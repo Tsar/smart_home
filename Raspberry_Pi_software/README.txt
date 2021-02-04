@@ -8,6 +8,6 @@ Actions to prepare and check RF24 library:
 
 4. ./build.sh
 
-5. ./test_send_data_using_rf24
+5. sudo ./test_send_data_using_rf24
 
 Tsar. 04.02.2021
