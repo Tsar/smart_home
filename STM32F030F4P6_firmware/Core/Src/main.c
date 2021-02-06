@@ -104,7 +104,7 @@ int main(void)
   setDataRate(RF24_1MBPS);
   setAddressWidth(5);
   enableDynamicPayloads();
-  setAutoAck(false);
+  setAutoAck(true);
   setChannel(103);
 
   openWritingPipe(0xA83C70FD6CLL);
@@ -128,7 +128,6 @@ int main(void)
           switch (command) {
             case COMMAND_GET_STATUS:
               stopListening();
-              HAL_Delay(50);
               if (write(message, 4)) {
                 HAL_GPIO_TogglePin(OnboardLED_GPIO_Port, OnboardLED_Pin);
               }

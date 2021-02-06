@@ -48,7 +48,7 @@ def sendPacket(packet):
     info('debug: Sending: %s' % packet.hex())
     radio.write(packet)
     radio.startListening();
-    time.sleep(0.5)
+    time.sleep(0.05)
     try:
         hasPayload, pipeId = radio.available_pipe()
         if hasPayload:
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     radio.setPALevel(RF24_PA_MAX)
     radio.setDataRate(RF24_1MBPS)
     radio.setAddressWidth(5)
-    radio.enableAckPayload()
+    radio.setAutoAck(True)
     radio.enableDynamicPayloads()
     radio.setChannel(103)
     radio.openWritingPipe(bytearray.fromhex('6BFD703CA8'))
