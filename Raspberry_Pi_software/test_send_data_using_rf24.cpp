@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    uint8_t address[] = { 0xE2, 0xF0, 0xF0, 0xE8, 0xE8 };
+    uint8_t address[] = { 0x6B, 0xFD, 0x70, 0x3C, 0xA8 };
 
     radio.setAddressWidth(5);
     radio.enableAckPayload();

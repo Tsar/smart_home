@@ -68,7 +68,7 @@ if __name__ == '__main__':
     radio.setAddressWidth(5)
     radio.enableAckPayload()
     radio.setChannel(103)
-    radio.openWritingPipe(bytearray.fromhex('E2F0F0E8E8'))
+    radio.openWritingPipe(bytearray.fromhex('6BFD703CA8'))
     radio.printPrettyDetails()
     radio.stopListening()
 

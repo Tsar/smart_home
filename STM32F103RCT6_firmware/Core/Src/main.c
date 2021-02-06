@@ -105,7 +105,7 @@ int main(void)
   DWT_Init(); // счётчик для микросекундных пауз
 
   //const uint64_t pipe0 = 0x787878787878;
-  const uint64_t pipe1 = 0xE8E8F0F0E2LL; // адрес первой трубы
+  const uint64_t pipe1 = 0xA83C70FD6BLL; // адрес первой трубы
   //const uint64_t pipe2 = 0xE8E8F0F0A2LL;
   //const uint64_t pipe3 = 0xE8E8F0F0D1LL;
   //const uint64_t pipe4 = 0xE8E8F0F0C3LL;
