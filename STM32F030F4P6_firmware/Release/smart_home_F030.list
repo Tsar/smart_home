@@ -413,7 +413,7 @@ Disassembly of section .text:
  80003e0:	2d01      	cmp	r5, #1
  80003e2:	d9ee      	bls.n	80003c2 <main+0x152>
  80003e4:	7823      	ldrb	r3, [r4, #0]
- 80003e6:	2b01      	cmp	r3, #1
+ 80003e6:	2b02      	cmp	r3, #2
  80003e8:	d1eb      	bne.n	80003c2 <main+0x152>
  80003ea:	7863      	ldrb	r3, [r4, #1]
  80003ec:	4d12      	ldr	r5, [pc, #72]	; (8000438 <main+0x1c8>)

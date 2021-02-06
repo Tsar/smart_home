@@ -42,45 +42,29 @@ def info(msg):
     ))
     sys.stdout.flush()
 
-def sendPacket(packet):
+def sendPacket(packet, writeAttemts=3, readAttempts=3):
     global radio
 
-    info('debug: Sending: %s' % packet.hex())
-    radio.write(packet)
-    radio.startListening();
-    time.sleep(0.05)
-    try:
-        hasPayload, pipeId = radio.available_pipe()
-        if hasPayload:
-            response = radio.read(radio.getDynamicPayloadSize())
-            info('debug: Got response: %s' % response.hex())
-            return response
-        info('debug: No response')
-    finally:
-        radio.stopListening()
+    while writeAttemts > 0:
+        info('debug: Sending: %s' % packet.hex())
+        radio.write(packet)
+        radio.startListening();
+        try:
+            hasPayload = False
+            readAttemptsLeft = readAttempts
+            while not hasPayload and readAttemptsLeft > 0:
+                time.sleep(0.05)
+                hasPayload, pipeId = radio.available_pipe()
+                if hasPayload:
+                    response = radio.read(radio.getDynamicPayloadSize())
+                    info('debug: Got response: %s' % response.hex())
+                    return response
+                info('debug: No response')
+                readAttemptsLeft -= 1
+        finally:
+            radio.stopListening()
+        writeAttemts -= 1
     return None
-
-#def sendPacket(packet, attempts=3):
-#    global radio
-#
-#    result = False
-#    while not result and attempts > 0:
-#        info('debug: Sending: %s' % packet.hex())
-#        result = radio.write(packet)
-#        if not result:
-#            attempts -= 1
-#            time.sleep(0.05)
-#    if not result:
-#        info('debug: All attempts to send failed')
-#        return None
-#    if radio.isAckPayloadAvailable():
-#        length = radio.getDynamicPayloadSize()
-#        if length > 0:
-#            response = radio.read(length)
-#            info('debug: Got response: %s' % response.hex())
-#            return response
-#    info('debug: Sent OK, but no response data')
-#    return None
 
 def getBits(byte):
     result = []

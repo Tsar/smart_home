@@ -33,7 +33,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define DEVICE_ID 0x01
+#define DEVICE_ID 0x02
 
 #define COMMAND_GET_STATUS 0x01
 #define COMMAND_SET_STATUS 0x02
