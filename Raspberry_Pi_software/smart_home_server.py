@@ -12,7 +12,7 @@ import socket
 import json
 import struct
 
-from RF24 import RF24, RF24_PA_MAX
+from RF24 import RF24, RF24_PA_MAX, RF24_1MBPS
 
 radio = RF24(22, 0)
 
@@ -65,6 +65,7 @@ if __name__ == '__main__':
     if not radio.begin():
         raise RuntimeError("radio hardware is not responding")
     radio.setPALevel(RF24_PA_MAX)
+    radio.setDataRate(RF24_1MBPS)
     radio.setAddressWidth(5)
     radio.enableAckPayload()
     radio.setChannel(103)
