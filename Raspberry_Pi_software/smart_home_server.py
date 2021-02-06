@@ -52,7 +52,7 @@ def sendPacket(packet):
     try:
         hasPayload, pipeId = radio.available_pipe()
         if hasPayload:
-            response = radio.read(radio.payloadSize)
+            response = radio.read(radio.getDynamicPayloadSize())
             info('debug: Got response: %s' % response.hex())
             return response
         info('debug: No response')
