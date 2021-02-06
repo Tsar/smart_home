@@ -240,11 +240,13 @@ static const uint8_t child_pipe_enable[] = {ERX_P0, ERX_P1, ERX_P2, ERX_P3, ERX_
 void stopListening(void)
 {
 	ce(LOW);
-	delay_us(txDelay);
+	//delay_us(txDelay);
+	HAL_Delay(1);  // TODO: fix
 
 	if(read_register(FEATURE) & (1 << EN_ACK_PAY))
 	{
-		delay_us(txDelay); //200
+		//delay_us(txDelay); //200
+	  HAL_Delay(1);  // TODO: fix
 		flush_tx();
 	}
 

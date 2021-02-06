@@ -32,6 +32,12 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define DEVICE_ID 0x01
+
+#define COMMAND_GET_STATUS 0x01
+#define COMMAND_SET_STATUS 0x02
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,6 +49,8 @@
 SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
+
+uint8_t message[4] = {DEVICE_ID, 0, 6, 0};
 
 /* USER CODE END PV */
 
@@ -95,9 +103,11 @@ int main(void)
   setPALevel(RF24_PA_MAX);
   setDataRate(RF24_1MBPS);
   setAddressWidth(5);
-  enableAckPayload();
+  enableDynamicPayloads();
+  setAutoAck(false);
   setChannel(103);
 
+  openWritingPipe(0xA83C70FD6CLL);
   openReadingPipe(1, 0xA83C70FD6BLL);
   startListening();
 
@@ -107,16 +117,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   uint8_t buf[32] = {0,};
   uint8_t pipeId = 0;
-  uint8_t respMsg = 0;
   while (1) {
     if (available(&pipeId)) {
       if (pipeId == 1) {
         uint8_t length = getDynamicPayloadSize();
         read(buf, length);
-        if (length >= 3 && buf[0] == 77 && buf[1] == 86 && buf[2] == 97) {
-          ++respMsg;
-          writeAckPayload(pipeId, &respMsg, sizeof(respMsg));
-          HAL_GPIO_TogglePin(OnboardLED_GPIO_Port, OnboardLED_Pin);
+        if (length >= 2 && buf[0] == DEVICE_ID) {
+          uint8_t command = buf[1];
+          message[1] = command;
+          switch (command) {
+            case COMMAND_GET_STATUS:
+              stopListening();
+              HAL_Delay(50);
+              if (write(message, 4)) {
+                HAL_GPIO_TogglePin(OnboardLED_GPIO_Port, OnboardLED_Pin);
+              }
+              startListening();
+              break;
+            case COMMAND_SET_STATUS:
+              break;
+          }
         }
       }
     }
