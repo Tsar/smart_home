@@ -42,6 +42,8 @@
 
 #define OUTPUTS_COUNT 7
 
+#define FLASH_DATA_ADDR 0x08003800
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -74,7 +76,7 @@ const uint16_t gpio_pins[OUTPUTS_COUNT] = {
     OUT6_Pin
 };
 
-uint8_t message[4] = {DEVICE_ID, COMMAND_REPORTING_STATUS, OUTPUTS_COUNT, 0x00};
+uint8_t message[32] = {DEVICE_ID, COMMAND_REPORTING_STATUS, OUTPUTS_COUNT, 0x00};
 
 /* USER CODE END PV */
 
@@ -89,7 +91,57 @@ static void MX_SPI1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void setupOutputs(uint8_t cfg) {
+// Articles about flash: https://habrahabr.ru/post/213771/ and http://easystm32.ru/for-beginners/38-flash-stm32
+
+void flashUnlock() {
+  FLASH->KEYR = 0x45670123;
+  FLASH->KEYR = 0xCDEF89AB;
+}
+
+//pageAddress - любой адрес, принадлежащий стираемой странице
+void flashErase(unsigned int pageAddress) {
+  while (FLASH->SR & FLASH_SR_BSY);
+  if (FLASH->SR & FLASH_SR_EOP) {
+    FLASH->SR = FLASH_SR_EOP;
+  }
+
+  FLASH->CR |= FLASH_CR_PER;
+  FLASH->AR = pageAddress;
+  FLASH->CR |= FLASH_CR_STRT;
+  while (!(FLASH->SR & FLASH_SR_EOP));
+  FLASH->SR = FLASH_SR_EOP;
+  FLASH->CR &= ~FLASH_CR_PER;
+}
+
+void flashWriteBegin() {
+  while (FLASH->SR & FLASH_SR_BSY);
+  if (FLASH->SR & FLASH_SR_EOP) {
+    FLASH->SR = FLASH_SR_EOP;
+  }
+  FLASH->CR |= FLASH_CR_PG;
+}
+
+//data - указатель на записываемые данные
+//address - адрес во flash
+//count - количество записываемых байт, должно быть кратно 2
+void flashWrite(unsigned char* data, unsigned int address, unsigned int count) {
+  unsigned int i;
+  for (i = 0; i < count; i += 2) {
+    *(volatile unsigned short*)(address + i) = (((unsigned short)data[i + 1]) << 8) + data[i];
+    while (!(FLASH->SR & FLASH_SR_EOP));
+    FLASH->SR = FLASH_SR_EOP;
+  }
+}
+
+void flashWriteEnd() {
+  FLASH->CR &= ~(FLASH_CR_PG);
+}
+
+void setupOutputs(uint8_t cfg, bool writeFlash) {
+  if (message[3] == cfg) {
+    return;
+  }
+
   message[3] = cfg;
   for (int i = 0; i < OUTPUTS_COUNT; ++i) {
     HAL_GPIO_WritePin(
@@ -98,6 +150,13 @@ void setupOutputs(uint8_t cfg) {
         ((cfg & 0x80) == 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET
     );
     cfg <<= 1;
+  }
+
+  if (writeFlash) {
+    flashErase(FLASH_DATA_ADDR);
+    flashWriteBegin();
+    flashWrite(message + 3, FLASH_DATA_ADDR, 2);
+    flashWriteEnd();
   }
 }
 
@@ -133,6 +192,9 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+  flashUnlock();
+  const uint8_t cfg = *((const volatile uint8_t*)FLASH_DATA_ADDR);
+  setupOutputs(cfg, false);
 
   isChipConnected();  // not checking result because it is often wrong
   NRF_Init();
@@ -169,7 +231,7 @@ int main(void)
             case COMMAND_SET_STATUS:
               if (length >= 4 && buf[2] == message[2]) {
                 stopListening();
-                setupOutputs(buf[3]);
+                setupOutputs(buf[3], true);
                 write(message, 4);
                 startListening();
               }
