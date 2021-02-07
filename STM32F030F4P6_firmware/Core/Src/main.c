@@ -33,10 +33,14 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define DEVICE_ID 0x02
+#define DEVICE_ID 0x01
 
 #define COMMAND_GET_STATUS 0x01
 #define COMMAND_SET_STATUS 0x02
+
+#define COMMAND_REPORTING_STATUS 0x00
+
+#define OUTPUTS_COUNT 7
 
 /* USER CODE END PD */
 
@@ -50,7 +54,27 @@ SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
 
-uint8_t message[4] = {DEVICE_ID, 0, 6, 0};
+GPIO_TypeDef* gpio_ports[OUTPUTS_COUNT] = {
+    OnboardLED_GPIO_Port,
+    OUT1_GPIO_Port,
+    OUT2_GPIO_Port,
+    OUT3_GPIO_Port,
+    OUT4_GPIO_Port,
+    OUT5_GPIO_Port,
+    OUT6_GPIO_Port
+};
+
+const uint16_t gpio_pins[OUTPUTS_COUNT] = {
+    OnboardLED_Pin,
+    OUT1_Pin,
+    OUT2_Pin,
+    OUT3_Pin,
+    OUT4_Pin,
+    OUT5_Pin,
+    OUT6_Pin
+};
+
+uint8_t message[4] = {DEVICE_ID, COMMAND_REPORTING_STATUS, OUTPUTS_COUNT, 0x00};
 
 /* USER CODE END PV */
 
@@ -64,6 +88,18 @@ static void MX_SPI1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void setupOutputs(uint8_t cfg) {
+  message[3] = cfg;
+  for (int i = 0; i < OUTPUTS_COUNT; ++i) {
+    HAL_GPIO_WritePin(
+        gpio_ports[i],
+        gpio_pins[i],
+        ((cfg & 0x80) == 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET
+    );
+    cfg <<= 1;
+  }
+}
 
 /* USER CODE END 0 */
 
@@ -124,16 +160,19 @@ int main(void)
         read(buf, length);
         if (length >= 2 && buf[0] == DEVICE_ID) {
           uint8_t command = buf[1];
-          message[1] = command;
           switch (command) {
             case COMMAND_GET_STATUS:
               stopListening();
-              if (write(message, 4)) {
-                HAL_GPIO_TogglePin(OnboardLED_GPIO_Port, OnboardLED_Pin);
-              }
+              write(message, 4);
               startListening();
               break;
             case COMMAND_SET_STATUS:
+              if (length >= 4 && buf[2] == message[2]) {
+                stopListening();
+                setupOutputs(buf[3]);
+                write(message, 4);
+                startListening();
+              }
               break;
           }
         }

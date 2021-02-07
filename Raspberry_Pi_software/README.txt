@@ -1,4 +1,4 @@
-Actions to prepare and check RF24 library:
+Actions to prepare and launch Smart Home Server:
 
 1. sudo apt install make g++ git
 
@@ -6,24 +6,20 @@ Actions to prepare and check RF24 library:
 
 3. Choose to install only "RF24 core library"
 
-4. ./build.sh
+Next stage is installing RF24 for Python (full doc here: https://nrf24.github.io/RF24/Python.html):
 
-5. sudo ./test_send_data_using_rf24
+4. sudo apt install python3-dev libboost-python-dev python3-setuptools python3-rpi.gpio
 
-To use python (full doc here: https://nrf24.github.io/RF24/Python.html)
+5. sudo ln -s /usr/lib/arm-linux-gnueabihf/libboost_python38.so.1.71.0 /usr/lib/arm-linux-gnueabihf/libboost_python3.so
 
-6. sudo apt install python3-dev libboost-python-dev python3-setuptools python3-rpi.gpio
+6. cd rf24libs/RF24/pyRF24/
 
-7. sudo ln -s /usr/lib/arm-linux-gnueabihf/libboost_python38.so.1.71.0 /usr/lib/arm-linux-gnueabihf/libboost_python3.so
+7. python3 setup.py build
 
-8. cd rf24libs/RF24/pyRF24/
+8. sudo python3 setup.py install
 
-9. python3 setup.py build
+9. Change dir to script location
 
-10. sudo python3 setup.py install
+10. sudo ./smart_home_server.py
 
-11. Change dir to script location
-
-12. sudo ./test_send_data_using_rf24.py
-
-Tsar. 04.02.2021
+Tsar. 07.02.2021

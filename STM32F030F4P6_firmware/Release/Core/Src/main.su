@@ -1,3 +1,4 @@
-main.c:153:6:SystemClock_Config	72	static,ignoring_inline_asm
-main.c:74:5:main	72	static,ignoring_inline_asm
-main.c:286:6:Error_Handler	0	static,ignoring_inline_asm
+main.c:92:6:setupOutputs	16	static
+main.c:192:6:SystemClock_Config	72	static,ignoring_inline_asm
+main.c:110:5:main	72	static,ignoring_inline_asm
+main.c:325:6:Error_Handler	0	static,ignoring_inline_asm
