@@ -1,8 +1,7 @@
 /*
- * nrf24l01.h
+ * RF24.h
  *
- *  Created on: 1 авг. 2019 г.
- *      Author: dima
+ *  Taken from: https://istarik.ru/blog/stm32/127.html
  */
 
 #ifndef NRF24L01_H_
@@ -144,8 +143,6 @@ typedef enum
 	RF24_CRC_16
 } rf24_crclength_e;
 
-#define HIGH 1
-#define LOW  0
 
 uint8_t NRF_Init(void);
 bool isChipConnected();
@@ -198,5 +195,10 @@ uint8_t write_payload(const void* buf, uint8_t len, const uint8_t writeType);
 uint8_t read_payload(void* buf, uint8_t len);
 uint8_t get_status(void);
 void toggle_features(void);
+
+#ifdef HAS_DWT
+void DWT_Init(void);
+void delay_us(uint32_t us);
+#endif
 
 #endif /* NRF24L01_H_ */

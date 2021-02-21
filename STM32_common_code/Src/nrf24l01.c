@@ -1,13 +1,16 @@
 /*
  * nrf24l01.c
  *
- *  Created on: 1 авг. 2019 г.
- *      Author: dima
+ *  Taken from: https://istarik.ru/blog/stm32/127.html
  */
+
 #include "RF24.h"
 
 #define DWT_CONTROL *(volatile unsigned long *)0xE0001000
 #define SCB_DEMCR   *(volatile unsigned long *)0xE000EDFC
+
+#define HIGH 1
+#define LOW  0
 
 extern SPI_HandleTypeDef hspi1;
 
@@ -18,10 +21,29 @@ uint8_t pipe0_reading_address[5] = {0,}; /**< Last address set on pipe 0 for rea
 uint8_t addr_width = 0; /**< The address width to use - 3,4 or 5 bytes. */
 uint8_t txDelay = 0;
 
+#ifdef HAS_DWT
+
+void DWT_Init(void)
+{
+    SCB_DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // разрешаем использовать счётчик
+	DWT_CONTROL |= DWT_CTRL_CYCCNTENA_Msk;   // запускаем счётчик
+}
+
+void delay_us(uint32_t us) // DelayMicro
+{
+    uint32_t us_count_tic =  us * (SystemCoreClock / 1000000);
+    DWT->CYCCNT = 0U; // обнуляем счётчик
+    while(DWT->CYCCNT < us_count_tic);
+}
+
+#endif
+
 void csn(uint8_t level)
 {
 	HAL_GPIO_WritePin(CSN_GPIO_Port, CSN_Pin, level);
-	//delay_us(5);
+#ifdef HAS_DWT
+	delay_us(5);
+#endif
 }
 
 void ce(uint8_t level)
@@ -240,13 +262,19 @@ static const uint8_t child_pipe_enable[] = {ERX_P0, ERX_P1, ERX_P2, ERX_P3, ERX_
 void stopListening(void)
 {
 	ce(LOW);
-	//delay_us(txDelay);
+#ifdef HAS_DWT
+	delay_us(txDelay);
+#else
 	HAL_Delay(1);  // TODO: fix
+#endif
 
 	if(read_register(FEATURE) & (1 << EN_ACK_PAY))
 	{
-		//delay_us(txDelay); //200
-	  HAL_Delay(1);  // TODO: fix
+#ifdef HAS_DWT
+		delay_us(txDelay); //200
+#else
+		HAL_Delay(1);  // TODO: fix
+#endif
 		flush_tx();
 	}
 
