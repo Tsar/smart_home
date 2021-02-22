@@ -147,6 +147,7 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+
   flashUnlock();
   const uint8_t cfg = *((const volatile uint8_t*)FLASH_DATA_ADDR);
   setupOutputs(cfg, false);
