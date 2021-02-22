@@ -55,29 +55,33 @@ typedef struct {
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define RESET_DEVICES_CONFIGURATION
+//#define RESET_DEVICES_CONFIGURATION
 
 #define FLASH_DATA_ADDR 0x08003800
 
 #define MAX_DEVICES_COUNT 30
 
-#define DEVICE_UNAVAILABLE_STATE 0xFF000000
+#define DEVICE_UNAVAILABLE_STATE 0xFF0000FF
 
 #define NRF_COMMAND_GET_STATE          0x01
 #define NRF_COMMAND_RESPONSE_GET_STATE 0xF1
 
 #define UART_HEADER_MAGIC 0xBFCE
 
-#define UART_COMMAND_PING              0x01
-#define UART_COMMAND_GET_DEVICES       0x02
-#define UART_COMMAND_GET_DEVICE_STATES 0x03
-#define UART_COMMAND_SEND_NRF_MESSAGE  0x04
+#define UART_COMMAND_PING                 0x01
+#define UART_COMMAND_GET_DEVICES          0x02
+#define UART_COMMAND_SET_DEVICES          0x03
+#define UART_COMMAND_GET_DEVICE_STATES    0x04
+#define UART_COMMAND_UPDATE_DEVICE_STATES 0x05
+#define UART_COMMAND_SEND_NRF_MESSAGE     0x08
 
 #define UART_COMMAND_RESPONSE_PING                    0x81
 #define UART_COMMAND_RESPONSE_GET_DEVICES             0x82
-#define UART_COMMAND_RESPONSE_GET_DEVICE_STATES       0x83
-#define UART_COMMAND_RESPONSE_SEND_NRF_MESSAGE        0x84
-#define UART_COMMAND_RESPONSE_SEND_NRF_MESSAGE_FAILED 0xF4
+#define UART_COMMAND_RESPONSE_SET_DEVICES             0x83
+#define UART_COMMAND_RESPONSE_GET_DEVICE_STATES       0x84
+#define UART_COMMAND_RESPONSE_UPDATE_DEVICE_STATES    0x85
+#define UART_COMMAND_RESPONSE_SEND_NRF_MESSAGE        0x88
+#define UART_COMMAND_RESPONSE_SEND_NRF_MESSAGE_FAILED 0xF8
 
 /* USER CODE END PD */
 
@@ -139,11 +143,11 @@ void fastBlinkForever() {
 void readDevicesConfiguration() {
 	devicesCount = *((const volatile uint8_t*)FLASH_DATA_ADDR);
 	if (devicesCount > MAX_DEVICES_COUNT) {
-		// error
+		// error, if happens use RESET_DEVICES_CONFIGURATION
 		fastBlinkForever();
 		return;
 	}
-	memcpy(devices, (/*volatile*/ uint8_t*)FLASH_DATA_ADDR + 1, devicesCount * sizeof(Device));
+	memcpy(devices, (/*volatile*/ uint8_t*)FLASH_DATA_ADDR + 2, devicesCount * sizeof(Device));
 }
 
 bool sendNRFMessage(uint8_t writeAttempts, uint8_t readAttempts) {
@@ -153,7 +157,7 @@ bool sendNRFMessage(uint8_t writeAttempts, uint8_t readAttempts) {
 
 		uint8_t readAttemptsLeft = readAttempts;
 		while (readAttemptsLeft > 0) {
-			HAL_Delay(50);
+			HAL_Delay(50);  // TODO: think about reducing this interval
 			uint8_t pipeId = 0;
 			if (available(&pipeId)) {
 				if (pipeId == 1) {
@@ -182,7 +186,7 @@ void updateAllDeviceStates() {
 		nrfTxHeader->command = NRF_COMMAND_GET_STATE;
 		nrfTxHeader->payloadSize = 0;
 
-		if (sendNRFMessage(5, 5) && nrfRxHeader->command == NRF_COMMAND_RESPONSE_GET_STATE && nrfRxHeader->payloadSize == 4) {
+		if (sendNRFMessage(3, 3) && nrfRxHeader->command == NRF_COMMAND_RESPONSE_GET_STATE && nrfRxHeader->payloadSize == 4) {
 			deviceStates[i] = *((uint32_t*)(nrfRxBuf + sizeof(NRFHeader)));
 		} else {
 			deviceStates[i] = DEVICE_UNAVAILABLE_STATE;
@@ -204,17 +208,42 @@ void handleUartPing() {
 	sendUartTxMessage();
 }
 
-void handleUartGetDevices() {
+void handleUartGetDevices(bool afterSet) {
 	uartTxHeader->magic = UART_HEADER_MAGIC;
-	uartTxHeader->command = UART_COMMAND_RESPONSE_GET_DEVICES;
+	uartTxHeader->command = afterSet
+		? UART_COMMAND_RESPONSE_SET_DEVICES
+		: UART_COMMAND_RESPONSE_GET_DEVICES;
 	uartTxHeader->payloadSize = devicesCount * sizeof(Device);
 	memcpy(uartTxBuf + sizeof(UARTHeader), devices, uartTxHeader->payloadSize);
 	sendUartTxMessage();
 }
 
-void handleUartGetDeviceStates() {
+void handleUartSetDevices() {
+	devicesCount = uartRxHeader->payloadSize / sizeof(Device);
+	memcpy(devices, uartRxBuf + sizeof(UARTHeader), devicesCount * sizeof(Device));
+
+	uint8_t firstTwoBytes[2] = {devicesCount, 0x00};
+	flashErase(FLASH_DATA_ADDR);
+	flashErase(FLASH_DATA_ADDR + 0x400);
+	flashWriteBegin();
+	flashWrite(firstTwoBytes, FLASH_DATA_ADDR, 2);
+	flashWrite((uint8_t*)devices, FLASH_DATA_ADDR + 2, devicesCount * sizeof(Device));
+	flashWriteEnd();
+
+	readDevicesConfiguration();  // read back immediately
+	updateAllDeviceStates();     // make our "cache" up to date
+	handleUartGetDevices(true);  // send back for verification
+}
+
+void handleUartGetDeviceStates(bool update) {
+	if (update) {
+		updateAllDeviceStates();
+	}
+
 	uartTxHeader->magic = UART_HEADER_MAGIC;
-	uartTxHeader->command = UART_COMMAND_RESPONSE_GET_DEVICE_STATES;
+	uartTxHeader->command = update
+		? UART_COMMAND_RESPONSE_UPDATE_DEVICE_STATES
+		: UART_COMMAND_RESPONSE_GET_DEVICE_STATES;
 	uartTxHeader->payloadSize = devicesCount * sizeof(uint32_t);
 	memcpy(uartTxBuf + sizeof(UARTHeader), deviceStates, uartTxHeader->payloadSize);
 	sendUartTxMessage();
@@ -252,10 +281,16 @@ void handleUartMessage() {
 			handleUartPing();
 			break;
 		case UART_COMMAND_GET_DEVICES:
-			handleUartGetDevices();
+			handleUartGetDevices(false);
+			break;
+		case UART_COMMAND_SET_DEVICES:
+			handleUartSetDevices();
 			break;
 		case UART_COMMAND_GET_DEVICE_STATES:
-			handleUartGetDeviceStates();
+			handleUartGetDeviceStates(false);
+			break;
+		case UART_COMMAND_UPDATE_DEVICE_STATES:
+			handleUartGetDeviceStates(true);
 			break;
 		case UART_COMMAND_SEND_NRF_MESSAGE:
 			handleUartSendNRFMessage();
