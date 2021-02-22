@@ -1,1 +1,1 @@
-../../../../STM32_common_code/Src/flash.c
+../../../../STM32_Common/flash.c
