@@ -28,7 +28,11 @@ typedef struct {
 
 //#define RESET_DEVICES_CONFIGURATION
 
+#if defined(STM32F103xB)
+#define FLASH_DATA_ADDR 0x0800F800
+#elif defined(STM32F030x6)
 #define FLASH_DATA_ADDR 0x08003800
+#endif
 
 #define MAX_DEVICES_COUNT 30
 

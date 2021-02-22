@@ -21,6 +21,10 @@ uint8_t pipe0_reading_address[5] = {0,}; /**< Last address set on pipe 0 for rea
 uint8_t addr_width = 0; /**< The address width to use - 3,4 or 5 bytes. */
 uint8_t txDelay = 0;
 
+#if !defined(STM32F030x6)
+#define HAS_DWT
+#endif
+
 #ifdef HAS_DWT
 
 void DWT_Init(void)
