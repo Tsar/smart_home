@@ -29,21 +29,31 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+#pragma pack(push, 1)
+
+typedef struct {
+	uint32_t uuid;
+	uint8_t command;
+	uint8_t payloadSize;
+} NRFHeader;
+
+#pragma pack(pop)
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define DEVICE_ID 0x01
-
-#define COMMAND_GET_STATUS 0x01
-#define COMMAND_SET_STATUS 0x02
-
-#define COMMAND_REPORTING_STATUS 0x00
-
-#define OUTPUTS_COUNT 7
+#define DEVICE_UUID 0x00015566
 
 #define FLASH_DATA_ADDR 0x08003800
+
+#define NRF_COMMAND_GET_STATE 0x01
+#define NRF_COMMAND_SET_STATE 0x02
+
+#define NRF_COMMAND_RESPONSE_STATE 0xF1
+
+#define OUTPUTS_COUNT 7
 
 /* USER CODE END PD */
 
@@ -56,6 +66,14 @@
 SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
+
+uint32_t state = 0;
+
+uint8_t nrfTxBuf[32] = {};
+NRFHeader* nrfTxHeader = (NRFHeader*)nrfTxBuf;
+
+uint8_t nrfRxBuf[32] = {};
+NRFHeader* nrfRxHeader = (NRFHeader*)nrfRxBuf;
 
 GPIO_TypeDef* gpio_ports[OUTPUTS_COUNT] = {
     OnboardLED_GPIO_Port,
@@ -77,8 +95,6 @@ const uint16_t gpio_pins[OUTPUTS_COUNT] = {
     OUT6_Pin
 };
 
-uint8_t message[32] = {DEVICE_ID, COMMAND_REPORTING_STATUS, OUTPUTS_COUNT, 0x00};
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,27 +108,73 @@ static void MX_SPI1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void setupOutputs(uint8_t cfg, bool writeFlash) {
-  if (message[3] == cfg) {
-    return;
-  }
+void applyState() {
+	uint8_t byte0 = ((uint8_t*)&state)[0];
+	for (int i = 0; i < OUTPUTS_COUNT; ++i) {
+		HAL_GPIO_WritePin(
+			gpio_ports[i],
+			gpio_pins[i],
+			((byte0 & 0x80) == 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET
+		);
+		byte0 <<= 1;
+	}
+}
 
-  message[3] = cfg;
-  for (int i = 0; i < OUTPUTS_COUNT; ++i) {
-    HAL_GPIO_WritePin(
-        gpio_ports[i],
-        gpio_pins[i],
-        ((cfg & 0x80) == 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET
-    );
-    cfg <<= 1;
-  }
+void setState(uint32_t newState) {
+	if (state != newState) {
+		state = newState;
+		applyState();
 
-  if (writeFlash) {
-    flashErase(FLASH_DATA_ADDR);
-    flashWriteBegin();
-    flashWrite(message + 3, FLASH_DATA_ADDR, 2);
-    flashWriteEnd();
-  }
+		// saving state to flash
+		flashErase(FLASH_DATA_ADDR);
+		flashWriteBegin();
+		flashWrite((uint8_t*)&state, FLASH_DATA_ADDR, 4);
+		flashWriteEnd();
+	}
+}
+
+void handleNRFGetState() {
+	nrfTxHeader->uuid = DEVICE_UUID;
+	nrfTxHeader->command = NRF_COMMAND_RESPONSE_STATE;
+	nrfTxHeader->payloadSize = 4;
+	*((uint32_t*)(nrfTxBuf + sizeof(NRFHeader))) = state;
+
+	stopListening();
+	write(nrfTxBuf, sizeof(NRFHeader) + nrfTxHeader->payloadSize);
+	startListening();
+}
+
+void handleNRFSetState() {
+	if (nrfRxHeader->payloadSize < 4) return;
+
+	setState(*((uint32_t*)(nrfRxBuf + sizeof(NRFHeader))));
+	handleNRFGetState();
+}
+
+void handleNRFMessage() {
+	switch (nrfRxHeader->command) {
+		case NRF_COMMAND_GET_STATE:
+			handleNRFGetState();
+			break;
+		case NRF_COMMAND_SET_STATE:
+			handleNRFSetState();
+			break;
+	}
+}
+
+void tryToReadNRF() {
+	uint8_t pipeId = 0;
+	if (available(&pipeId)) {
+		if (pipeId == 1) {
+			uint8_t length = getDynamicPayloadSize();
+			read(nrfRxBuf, length);
+			if (length >= sizeof(NRFHeader)
+					&& nrfRxHeader->uuid == DEVICE_UUID
+					&& sizeof(NRFHeader) + nrfRxHeader->payloadSize == length) {
+				handleNRFMessage();
+			}
+		}
+	}
 }
 
 /* USER CODE END 0 */
@@ -149,8 +211,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   flashUnlock();
-  const uint8_t cfg = *((const volatile uint8_t*)FLASH_DATA_ADDR);
-  setupOutputs(cfg, false);
+  state = *((volatile uint32_t*)FLASH_DATA_ADDR);
+  applyState();
 
   isChipConnected();  // not checking result because it is often wrong
   NRF_Init();
@@ -169,33 +231,8 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t buf[32] = {0,};
-  uint8_t pipeId = 0;
   while (1) {
-    if (available(&pipeId)) {
-      if (pipeId == 1) {
-        uint8_t length = getDynamicPayloadSize();
-        read(buf, length);
-        if (length >= 2 && buf[0] == DEVICE_ID) {
-          uint8_t command = buf[1];
-          switch (command) {
-            case COMMAND_GET_STATUS:
-              stopListening();
-              write(message, 4);
-              startListening();
-              break;
-            case COMMAND_SET_STATUS:
-              if (length >= 4 && buf[2] == message[2]) {
-                stopListening();
-                setupOutputs(buf[3], true);
-                write(message, 4);
-                startListening();
-              }
-              break;
-          }
-        }
-      }
-    }
+    tryToReadNRF();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -38,8 +38,8 @@ typedef struct {
 
 #define DEVICE_UNAVAILABLE_STATE 0xFF0000FF
 
-#define NRF_COMMAND_GET_STATE          0x01
-#define NRF_COMMAND_RESPONSE_GET_STATE 0xF1
+#define NRF_COMMAND_GET_STATE      0x01
+#define NRF_COMMAND_RESPONSE_STATE 0xF1
 
 #define UART_HEADER_MAGIC 0xBFCE
 
@@ -134,7 +134,7 @@ void updateAllDeviceStates() {
 		nrfTxHeader->command = NRF_COMMAND_GET_STATE;
 		nrfTxHeader->payloadSize = 0;
 
-		if (sendNRFMessage(3, 3) && nrfRxHeader->command == NRF_COMMAND_RESPONSE_GET_STATE && nrfRxHeader->payloadSize == 4) {
+		if (sendNRFMessage(3, 3) && nrfRxHeader->command == NRF_COMMAND_RESPONSE_STATE && nrfRxHeader->payloadSize == 4) {
 			deviceStates[i] = *((uint32_t*)(nrfRxBuf + sizeof(NRFHeader)));
 		} else {
 			deviceStates[i] = DEVICE_UNAVAILABLE_STATE;
@@ -213,7 +213,7 @@ void handleUartSendNRFMessage() {
 	sendUartTxMessage();
 
 	// If NRF message has device state update, than update it in our "cache"
-	if (nrfRxHeader->command == NRF_COMMAND_RESPONSE_GET_STATE && nrfRxHeader->payloadSize == 4) {
+	if (nrfRxHeader->command == NRF_COMMAND_RESPONSE_STATE && nrfRxHeader->payloadSize == 4) {
 		for (int i = 0; i < devicesCount; ++i) {
 			if (devices[i].uuid == nrfRxHeader->uuid) {
 				deviceStates[i] = *((uint32_t*)(nrfRxBuf + sizeof(NRFHeader)));
