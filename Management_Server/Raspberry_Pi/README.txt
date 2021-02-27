@@ -20,6 +20,8 @@ Next stage is installing RF24 for Python (full doc here: https://nrf24.github.io
 
 9. Change dir to script location
 
-10. sudo ./smart_home_server.py
+10. Create file "smart_home_auth.txt" with auth token (password)
 
-Tsar. 07.02.2021
+11. sudo ./smart_home_server.py
+
+Tsar. 27.02.2021
