@@ -138,7 +138,7 @@ def readDevicesConfiguration():
 
 def saveDevicesConfiguration():
     with open(DEVICES_FILE, 'w') as cfg:
-        cfg.write(json.dumps({'devices': devices}))
+        cfg.write(json.dumps({'devices': devices}, indent=2))
 
 def sendNRFMessageInternal(message, writeAttempts, readAttempts):
     global radio
@@ -187,7 +187,7 @@ def handleUartPing(message):
         b''.join([bytes([byte ^ 0xFF]) for byte in message.payload])
     )
 
-def handleUartGetDevices(message, afterSet):
+def handleUartGetDevices(afterSet):
     global devicesLock
 
     with devicesLock:
@@ -211,7 +211,7 @@ def handleUartSetDevices(message):
         updateAllDeviceStates()            # make our "cache" up to date
     return handleUartGetDevices(True)  # send back for verification
 
-def handleUartGetDeviceStates(message, update):
+def handleUartGetDeviceStates(update):
     global devicesLock
     global deviceStatesLock
 
@@ -253,10 +253,10 @@ def handleUartSendNRFMessage(message):
 
 UART_MESSAGE_HANDLERS = {
     UARTMessage.COMMAND_PING:                 handleUartPing,
-    UARTMessage.COMMAND_GET_DEVICES:          lambda msg: handleUartGetDevices(msg, False),
+    UARTMessage.COMMAND_GET_DEVICES:          lambda _: handleUartGetDevices(False),
     UARTMessage.COMMAND_SET_DEVICES:          handleUartSetDevices,
-    UARTMessage.COMMAND_GET_DEVICE_STATES:    lambda msg: handleUartGetDeviceStates(msg, False),
-    UARTMessage.COMMAND_UPDATE_DEVICE_STATES: lambda msg: handleUartGetDeviceStates(msg, True),
+    UARTMessage.COMMAND_GET_DEVICE_STATES:    lambda _: handleUartGetDeviceStates(False),
+    UARTMessage.COMMAND_UPDATE_DEVICE_STATES: lambda _: handleUartGetDeviceStates(True),
     UARTMessage.COMMAND_SEND_NRF_MESSAGE:     handleUartSendNRFMessage
 }
 
