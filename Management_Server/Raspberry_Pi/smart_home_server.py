@@ -4,7 +4,7 @@
 #   @reboot cd /home/ubuntu && screen -dmS smart_home_server sudo ./smart_home_server.py
 
 # Command for testing without client:
-#   echo  -ne '\xCE\xBF\x01\x02\xFF\xAA' | curl -s -X POST -H 'Auth-token: <auth_token>' --data-binary @- http://<address>:9732/uart_message | hexdump -C
+#   echo  -ne '\xCE\xBF\x01\x02\xFF\xAA' | curl -s -X POST -H 'Password: <password>' --data-binary @- http://<address>:9732/uart_message | hexdump -C
 
 import sys
 from datetime import datetime
@@ -114,9 +114,9 @@ DEVICES_FILE = 'smart_home_devices.json'
 DEVICE_STATE_SIZE = 4
 DEVICE_UNAVAILABLE_STATE = struct.pack('<I', 0xFF0000FF)
 
-AUTH_TOKEN_FILE = 'smart_home_auth.txt'
+PASSWORD_FILE = 'smart_home_password.txt'
 
-authToken = None
+password = None
 
 devices = []       # configuration
 devicesLock = threading.Lock()
@@ -137,13 +137,12 @@ def info(msg):
     ))
     sys.stdout.flush()
 
-def readAuthToken():
-    global authToken
-
-    if not os.path.isfile(AUTH_TOKEN_FILE):
-        raise RuntimeError('No file "%s" with auth token' % AUTH_TOKEN_FILE)
-    with open(AUTH_TOKEN_FILE, 'r') as authFile:
-        authToken = authFile.read().strip()
+def readPasswordFromFile():
+    global password
+    if not os.path.isfile(PASSWORD_FILE):
+        raise RuntimeError('No file "%s" with password' % PASSWORD_FILE)
+    with open(PASSWORD_FILE, 'r') as pwdFile:
+        password = pwdFile.read().strip()
 
 def readDevicesConfiguration():
     global devices
@@ -296,7 +295,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response_advanced(404, 'text/plain', 'Not Found')
 
     def do_POST(self):
-        if self.headers.get('Auth-Token', '') != authToken:
+        if self.headers.get('Password', '') != password:
             self.send_response_advanced(401, 'text/plain', 'Unauthorized')
             return
 
@@ -322,7 +321,7 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
 
 if __name__ == '__main__':
-    readAuthToken()
+    readPasswordFromFile()
     readDevicesConfiguration()
 
     if not radio.begin():
