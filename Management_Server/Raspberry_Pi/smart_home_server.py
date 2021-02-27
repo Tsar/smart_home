@@ -224,13 +224,16 @@ def handleUartGetDeviceStates(message, update):
                 b''.join([deviceStates[device.uuid] for device in devices])
             )
 
+class BadNRFMessageException(Exception):
+    pass
+
 def handleUartSendNRFMessage(message):
     global deviceStates
     global deviceStatesLock
 
     nrfMessage = NRFMessage()
-    if not nrfMessage.parse(message):
-        return None
+    if not nrfMessage.parse(message.payload):
+        raise BadNRFMessageException()
     result = sendNRFMessage(nrfMessage, 5, 5)
     if result is not None:
         # If NRF message has device state update, than update it in our "cache"
@@ -280,8 +283,11 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             body = self.rfile.read(contentLength)
             message = UARTMessage()
             if message.parse(body) and message.command in UART_MESSAGE_HANDLERS:
-                result = UART_MESSAGE_HANDLERS[message.command](message)
-                self.send_response_advanced(200, 'application/octet-stream', result.serialize())
+                try:
+                    result = UART_MESSAGE_HANDLERS[message.command](message)
+                    self.send_response_advanced(200, 'application/octet-stream', result.serialize())
+                except BadNRFMessageException:
+                    self.send_response_advanced(400, 'text/plain', 'Bad NRF Message')
             else:
                 self.send_response_advanced(400, 'text/plain', 'Bad Request')
         else:
