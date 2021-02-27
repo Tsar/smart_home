@@ -296,10 +296,11 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response_advanced(404, 'text/plain', 'Not Found')
 
     def do_POST(self):
+        if self.headers.get('Auth-Token', '') != authToken:
+            self.send_response_advanced(401, 'text/plain', 'Unauthorized')
+            return
+
         if self.path == '/uart_message':  # receiving UART-message by HTTP :)
-            if self.headers.get('Auth-Token', '') != authToken:
-                self.send_response_advanced(401, 'text/plain', 'Unauthorized')
-                return
             contentLength = int(self.headers.get('Content-Length', 0))
             if contentLength <= 0:
                 self.send_response_advanced(400, 'text/plain', 'Bad Request')
