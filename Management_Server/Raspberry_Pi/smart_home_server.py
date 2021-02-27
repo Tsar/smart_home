@@ -24,14 +24,23 @@ class DeviceParams:
     DEVICE_PARAMS_FMT = '<II'  # nameId, uuid
     DEVICE_PARAMS_SZ = struct.calcsize(DEVICE_PARAMS_FMT)
 
+    KEY_NAME_ID = 'nameId'
+    KEY_UUID = 'uuid'
+
     def __init__(self, deviceJsonOrBytes):
         if isinstance(deviceJsonOrBytes, dict):
-            self.nameId = deviceJsonOrBytes['nameId']
-            self.uuid = deviceJsonOrBytes['uuid']
+            self.nameId = deviceJsonOrBytes[self.KEY_NAME_ID]
+            self.uuid = deviceJsonOrBytes[self.KEY_UUID]
         elif isinstance(deviceJsonOrBytes, bytes) and len(deviceJsonOrBytes) == self.DEVICE_PARAMS_SZ:
             self.nameId, self.uuid = struct.unpack(self.DEVICE_PARAMS_FMT, deviceJsonOrBytes)
         else:
             raise RuntimeError('Bad type of deviceJsonOrBytes argument')
+
+    def toDict(self):
+        return {
+            self.KEY_NAME_ID: self.nameId,
+            self.KEY_UUID: self.uuid
+        }
 
     def serialize(self):
         return struct.pack(self.DEVICE_PARAMS_FMT, self.nameId, self.uuid)
@@ -138,7 +147,7 @@ def readDevicesConfiguration():
 
 def saveDevicesConfiguration():
     with open(DEVICES_FILE, 'w') as cfg:
-        cfg.write(json.dumps({'devices': devices}, indent=2))
+        cfg.write(json.dumps({'devices': [device.toDict() for device in devices]}, indent=2))
 
 def sendNRFMessageInternal(message, writeAttempts, readAttempts):
     global radio
@@ -174,7 +183,7 @@ def updateAllDeviceStates():
     newDeviceStates = {}
     for device in devices:
         result = sendNRFMessage(NRFMessage(device.uuid, NRFMessage.COMMAND_GET_STATE, b''))
-        if result is not None and result.command == COMMAND_RESPONSE_STATE and len(result.payload) == DEVICE_STATE_SIZE:
+        if result is not None and result.command == NRFMessage.COMMAND_RESPONSE_STATE and len(result.payload) == DEVICE_STATE_SIZE:
             newDeviceStates[device.uuid] = result.payload
         else:
             newDeviceStates[device.uuid] = DEVICE_UNAVAILABLE_STATE
@@ -237,7 +246,7 @@ def handleUartSendNRFMessage(message):
     result = sendNRFMessage(nrfMessage, 5, 5)
     if result is not None:
         # If NRF message has device state update, than update it in our "cache"
-        if result.command == COMMAND_RESPONSE_STATE and len(result.payload) == DEVICE_STATE_SIZE:
+        if result.command == NRFMessage.COMMAND_RESPONSE_STATE and len(result.payload) == DEVICE_STATE_SIZE:
             with deviceStatesLock:
                 deviceStates[result.uuid] = result.payload
 
@@ -311,8 +320,8 @@ if __name__ == '__main__':
 
     radio.openWritingPipe(bytearray.fromhex('6BFD703CA8'))
     radio.openReadingPipe(1, bytearray.fromhex('6CFD703CA8'))
-    radio.printPrettyDetails()
     radio.stopListening()
+    radio.printPrettyDetails()
 
     updateAllDeviceStates()
 
