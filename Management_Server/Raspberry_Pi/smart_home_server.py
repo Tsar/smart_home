@@ -4,7 +4,7 @@
 #   @reboot cd /home/ubuntu && screen -dmS smart_home_server sudo ./smart_home_server.py
 
 # Command for testing without client:
-#   echo  -ne '\xCE\xBF\x01\x02\xFF\xAA' | curl -s -X POST --data-binary @- http://<address>:9732/uart_message | hexdump -C
+#   echo  -ne '\xCE\xBF\x01\x02\xFF\xAA' | curl -s -X POST -H 'Auth-token: <auth_token>' --data-binary @- http://<address>:9732/uart_message | hexdump -C
 
 import sys
 from datetime import datetime
@@ -109,10 +109,14 @@ class UARTMessage:
 SERVER_NAME = socket.gethostname()
 HTTP_PORT = 9732
 
-DEVICES_FILE = 'devices.json'
+DEVICES_FILE = 'smart_home_devices.json'
 
 DEVICE_STATE_SIZE = 4
 DEVICE_UNAVAILABLE_STATE = struct.pack('<I', 0xFF0000FF)
+
+AUTH_TOKEN_FILE = 'smart_home_auth.txt'
+
+authToken = None
 
 devices = []       # configuration
 devicesLock = threading.Lock()
@@ -132,6 +136,14 @@ def info(msg):
         msg
     ))
     sys.stdout.flush()
+
+def readAuthToken():
+    global authToken
+
+    if not os.path.isfile(AUTH_TOKEN_FILE):
+        raise RuntimeError('No file "%s" with auth token' % AUTH_TOKEN_FILE)
+    with open(AUTH_TOKEN_FILE, 'r') as authFile:
+        authToken = authFile.read().strip()
 
 def readDevicesConfiguration():
     global devices
@@ -285,6 +297,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == '/uart_message':  # receiving UART-message by HTTP :)
+            if self.headers.get('Auth-Token', '') != authToken:
+                self.send_response_advanced(401, 'text/plain', 'Unauthorized')
+                return
             contentLength = int(self.headers.get('Content-Length', 0))
             if contentLength <= 0:
                 self.send_response_advanced(400, 'text/plain', 'Bad Request')
@@ -306,6 +321,7 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
 
 if __name__ == '__main__':
+    readAuthToken()
     readDevicesConfiguration()
 
     if not radio.begin():
