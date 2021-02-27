@@ -227,8 +227,8 @@ def handleUartSetDevices(message):
             devices.append(DeviceParams(message.payload[i:i + DeviceParams.DEVICE_PARAMS_SZ]))
         saveDevicesConfiguration()
 
-        readDevicesConfiguration()         # read back immediately
-        updateAllDeviceStates()            # make our "cache" up to date
+        readDevicesConfiguration()     # read back immediately
+        updateAllDeviceStates()        # make our "cache" up to date
     return handleUartGetDevices(True)  # send back for verification
 
 def handleUartGetDeviceStates(update):
