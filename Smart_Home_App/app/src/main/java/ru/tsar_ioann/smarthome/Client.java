@@ -1,35 +1,25 @@
 package ru.tsar_ioann.smarthome;
 
+import ru.tsar_ioann.smarthome.request_processors.*;
+
 public class Client {
     private String url;
     private String password;
 
-    public interface PingListener {
-        void onOKResult(int status);
-        void onError(String errorText);
-    }
-
     private static class RequestThread extends Thread {
         private String url;
-        private byte[] data;
         private String password;
-        private PingListener listener;
+        private RequestProcessor requestProcessor;
 
-        public RequestThread(String url, byte[] data, String password, PingListener listener) {
+        public RequestThread(String url, String password, RequestProcessor requestProcessor) {
             this.url = url;
-            this.data = data;
             this.password = password;
-            this.listener = listener;
+            this.requestProcessor = requestProcessor;
         }
 
         @Override
         public void run() {
-            try {
-                HttpRequest.HttpResponse result = HttpRequest.doPostRequest(url, data, password);
-                listener.onOKResult(result.getHttpCode());
-            } catch (HttpRequest.HttpRequestException e) {
-                listener.onError(e.getMessage());
-            }
+            requestProcessor.process(url, password);
         }
     }
 
@@ -38,8 +28,7 @@ public class Client {
         this.password = password;
     }
 
-    public void ping(PingListener listener) {
-        byte[] request = {(byte)0xCE, (byte)0xBF, (byte)0x01, (byte)0x02, (byte)0xFF, (byte)0xAA};
-        new RequestThread(url, request, password, listener).start();
+    public void ping(Ping.Listener listener) {
+        new RequestThread(url, password, new Ping(listener)).start();
     }
 }

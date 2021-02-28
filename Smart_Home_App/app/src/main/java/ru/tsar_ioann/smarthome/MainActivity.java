@@ -7,10 +7,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import ru.tsar_ioann.smarthome.request_processors.Ping;
+
 public class MainActivity extends Activity {
     private static final int DEFAULT_SERVER_PORT = 9732;
 
-    private Activity activity;
     private EditText edtServerAddress;
     private EditText edtPassword;
     private Button btnConnect;
@@ -22,7 +23,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        activity = this;
         edtServerAddress = findViewById(R.id.edtServerAddress);
         edtPassword = findViewById(R.id.edtPassword);
         btnConnect = findViewById(R.id.btnConnect);
@@ -35,18 +35,19 @@ public class MainActivity extends Activity {
         btnConnect.setOnClickListener(v -> tryToConnect());
     }
 
-    private Client.PingListener pingListener = new Client.PingListener() {
+    private Ping.Listener pingListener = new Ping.Listener() {
         @Override
-        public void onOKResult(int status) {
+        public void onOKResult() {
             runOnUiThread(() -> {
-                Toast.makeText(activity, "PING OK: " + status, Toast.LENGTH_SHORT).show();
+                // TODO: other things
+                Toast.makeText(MainActivity.this, "PING OK", Toast.LENGTH_SHORT).show();
             });
         }
 
         @Override
         public void onError(String errorText) {
             runOnUiThread(() -> {
-                Toast.makeText(activity, "PING FAILED: " + errorText, Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, errorText, Toast.LENGTH_SHORT).show();
             });
         }
     };

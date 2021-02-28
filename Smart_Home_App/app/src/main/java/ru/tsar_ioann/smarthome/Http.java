@@ -10,21 +10,23 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HttpRequest {
-    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 300;
-    private static final int DEFAULT_READ_TIMEOUT_MS = 500;
+public class Http {
+    private static final String LOG_TAG = "Http";
 
-    public static class HttpRequestException extends Exception {
-        public HttpRequestException(String errorMessage) {
+    private static final int CONNECT_TIMEOUT_MS = 300;
+    private static final int READ_TIMEOUT_MS = 500;
+
+    public static class Exception extends java.lang.Exception {
+        public Exception(String errorMessage) {
             super(errorMessage);
         }
     }
 
-    public static class HttpResponse {
+    public static class Response {
         private int httpCode;
         private List<Byte> data;
 
-        public HttpResponse(int httpCode) {
+        public Response(int httpCode) {
             this.httpCode = httpCode;
             this.data = new ArrayList<>();
         }
@@ -39,22 +41,26 @@ public class HttpRequest {
             return httpCode;
         }
 
-        public List<Byte> getData() {
-            return data;
+        public byte[] getData() {
+            byte[] result = new byte[data.size()];
+            for (int i = 0; i < data.size(); ++i) {
+                result[i] = data.get(i);
+            }
+            return result;
         }
     }
 
-    public static HttpResponse doPostRequest(String url, byte[] data, String password, int connectTimeoutMs, int readTimeoutMs) throws HttpRequestException {
+    public static Response doPostRequest(String url, byte[] data, String password) throws Exception {
         URL req;
         try {
             req = new URL(url);
         } catch (MalformedURLException e) {
-            throw new HttpRequestException("Malformed URL: " + e.getMessage());
+            throw new Exception("Malformed URL: " + e.getMessage());
         }
         try {
             HttpURLConnection connection = (HttpURLConnection) req.openConnection();
-            connection.setConnectTimeout(connectTimeoutMs);
-            connection.setReadTimeout(readTimeoutMs);
+            connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            connection.setReadTimeout(READ_TIMEOUT_MS);
             connection.setUseCaches(false);
 
             connection.setRequestMethod("POST");
@@ -65,9 +71,10 @@ public class HttpRequest {
             OutputStream os = connection.getOutputStream();
             os.write(data, 0, data.length);
             os.close();
+            Utils.logDataHex(LOG_TAG, "Request data:  ", data);
 
             int httpCode = connection.getResponseCode();
-            HttpResponse response = new HttpResponse(httpCode);
+            Response response = new Response(httpCode);
             if (httpCode == HttpURLConnection.HTTP_OK) {
                 InputStream is = connection.getInputStream();
                 int n;
@@ -76,18 +83,15 @@ public class HttpRequest {
                     response.appendData(buffer, n);
                 }
                 is.close();
+                Utils.logDataHex(LOG_TAG, "Response data: ", response.getData());
             }
 
             connection.disconnect();
             return response;
         } catch (SocketTimeoutException e) {
-            throw new HttpRequestException("Connection timeout");
+            throw new Exception("Connection timeout");
         } catch (IOException e) {
-            throw new HttpRequestException("Request to server failed");
+            throw new Exception("Request to server failed");
         }
-    }
-
-    public static HttpResponse doPostRequest(String url, byte[] data, String password) throws HttpRequestException {
-        return doPostRequest(url, data, password, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS);
     }
 }
