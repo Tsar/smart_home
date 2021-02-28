@@ -15,6 +15,7 @@ public class Ping implements RequestProcessor {
 
     public interface Listener {
         void onOKResult();
+        void onWrongPassword();
         void onError(String errorText);
     }
 
@@ -44,7 +45,7 @@ public class Ping implements RequestProcessor {
                     }
                     break;
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    listener.onError("Wrong password");
+                    listener.onWrongPassword();
                     break;
                 default:
                     listener.onError("Server responded with error code " + httpCode);
