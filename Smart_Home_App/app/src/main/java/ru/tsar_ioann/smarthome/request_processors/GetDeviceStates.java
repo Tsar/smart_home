@@ -21,11 +21,14 @@ public class GetDeviceStates extends RequestProcessor {
         byte requestCommand = update
                 ? UartMessage.COMMAND_UPDATE_DEVICE_STATES
                 : UartMessage.COMMAND_GET_DEVICES;
+
         UartMessage response = sendUartMessage(
                 new UartMessage(requestCommand, new byte[0])
         );
-        if (response != null) {
-            // TODO
+        if (response == null) {
+            return;  // already handled in RequestProcessor
         }
+
+        // TODO
     }
 }

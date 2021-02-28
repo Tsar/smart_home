@@ -33,12 +33,10 @@ public class GetDevices extends RequestProcessor {
         UartMessage response = sendUartMessage(
                 new UartMessage(UartMessage.COMMAND_GET_DEVICES, new byte[0])
         );
-        if (response != null) {
-            parseDevices(response);
+        if (response == null) {
+            return;  // already handled in RequestProcessor
         }
-    }
 
-    private void parseDevices(UartMessage response) {
         if (response.getCommand() != UartMessage.COMMAND_RESPONSE_GET_DEVICES) {
             Log.d(LOG_TAG, "Bad command in response");
             listener.onError("Invalid server response");

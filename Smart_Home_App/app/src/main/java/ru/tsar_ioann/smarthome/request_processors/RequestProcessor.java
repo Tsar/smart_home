@@ -14,7 +14,7 @@ public abstract class RequestProcessor {
     private String password;
     private ErrorsListener errorsListener;
 
-    public RequestProcessor(String url, String password, ErrorsListener errorsListener) {
+    protected RequestProcessor(String url, String password, ErrorsListener errorsListener) {
         this.url = url;
         this.password = password;
         this.errorsListener = errorsListener;

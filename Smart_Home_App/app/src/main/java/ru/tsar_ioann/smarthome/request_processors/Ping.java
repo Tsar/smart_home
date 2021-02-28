@@ -26,15 +26,18 @@ public class Ping extends RequestProcessor {
     public void process() {
         byte[] pingPayload = new byte[PING_PAYLOAD_SIZE];
         new Random().nextBytes(pingPayload);
+
         UartMessage response = sendUartMessage(
                 new UartMessage(UartMessage.COMMAND_PING, pingPayload)
         );
-        if (response != null) {
-            if (verifyPingResponse(response, pingPayload)) {
-                listener.onOKResult();
-            } else {
-                listener.onError("Invalid server response");
-            }
+        if (response == null) {
+            return;  // already handled in RequestProcessor
+        }
+
+        if (verifyPingResponse(response, pingPayload)) {
+            listener.onOKResult();
+        } else {
+            listener.onError("Invalid server response");
         }
     }
 
