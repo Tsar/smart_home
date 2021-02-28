@@ -7,19 +7,15 @@ public class Client {
     private String password;
 
     private static class RequestThread extends Thread {
-        private String url;
-        private String password;
         private RequestProcessor requestProcessor;
 
-        public RequestThread(String url, String password, RequestProcessor requestProcessor) {
-            this.url = url;
-            this.password = password;
+        public RequestThread(RequestProcessor requestProcessor) {
             this.requestProcessor = requestProcessor;
         }
 
         @Override
         public void run() {
-            requestProcessor.process(url, password);
+            requestProcessor.process();
         }
     }
 
@@ -29,10 +25,14 @@ public class Client {
     }
 
     public void ping(Ping.Listener listener) {
-        new RequestThread(url, password, new Ping(listener)).start();
+        new RequestThread(new Ping(url, password, listener)).start();
     }
 
-    public void getDevices(GetDevices.Listener listener) {
-        new RequestThread(url, password, new GetDevices(listener)).start();
+    public void getDevices(GetDevices.Listener listener, DeviceNamesCache deviceNamesCache) {
+        new RequestThread(new GetDevices(url, password, listener, deviceNamesCache)).start();
+    }
+
+    public void getDeviceStates(GetDeviceStates.Listener listener, boolean update) {
+        new RequestThread(new GetDeviceStates(url, password, listener, update)).start();
     }
 }

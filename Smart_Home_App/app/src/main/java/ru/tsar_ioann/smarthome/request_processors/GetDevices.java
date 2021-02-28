@@ -2,53 +2,39 @@ package ru.tsar_ioann.smarthome.request_processors;
 
 import android.util.Log;
 
-import java.net.HttpURLConnection;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import ru.tsar_ioann.smarthome.DeviceNamesCache;
 import ru.tsar_ioann.smarthome.DeviceParams;
-import ru.tsar_ioann.smarthome.Http;
 import ru.tsar_ioann.smarthome.UartMessage;
 
 public class GetDevices extends RequestProcessor {
     private static final String LOG_TAG = "GetDevices";
 
-    public interface Listener {
-        void onOKResult(List<DeviceParams> devices);
-        void onWrongPassword();
-        void onError(String errorText);
+    public interface Listener extends ErrorsListener {
+        void onOKResult(List<DeviceParams> devices, Map<Integer, String> deviceNames);
     }
 
-    private GetDevices.Listener listener;
+    private Listener listener;
+    private DeviceNamesCache deviceNamesCache;
 
-    public GetDevices(Listener listener) {
+    public GetDevices(String url, String password, Listener listener, DeviceNamesCache deviceNamesCache) {
+        super(url, password, listener);
         this.listener = listener;
+        this.deviceNamesCache = deviceNamesCache;
     }
 
     @Override
-    public void process(String url, String password) {
-        try {
-            Response result = sendUartMessage(url, password,
-                    new UartMessage(UartMessage.COMMAND_GET_DEVICES, new byte[0])
-            );
-            int httpCode = result.getHttpCode();
-            switch (httpCode) {
-                case HttpURLConnection.HTTP_OK:
-                    parseDevices(result.getResponse());
-                    break;
-                case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    listener.onWrongPassword();
-                    break;
-                default:
-                    listener.onError("Server responded with error code " + httpCode);
-                    break;
-            }
-        } catch (UartMessage.ParseException e) {
-            listener.onError("Invalid server response");
-        } catch (Http.Exception e) {
-            listener.onError(e.getMessage());
+    public void process() {
+        UartMessage response = sendUartMessage(
+                new UartMessage(UartMessage.COMMAND_GET_DEVICES, new byte[0])
+        );
+        if (response != null) {
+            parseDevices(response);
         }
     }
 
@@ -69,6 +55,6 @@ public class GetDevices extends RequestProcessor {
             int uuid = buffer.getInt();
             result.add(new DeviceParams(nameId, uuid));
         }
-        listener.onOKResult(result);
+        listener.onOKResult(result, deviceNamesCache.getDeviceNames(result));
     }
 }

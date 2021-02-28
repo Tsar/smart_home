@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -11,7 +12,11 @@ import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import java.util.List;
+import java.util.Map;
 
+import ru.tsar_ioann.smarthome.devices.Device;
+import ru.tsar_ioann.smarthome.devices.DeviceTypes;
+import ru.tsar_ioann.smarthome.request_processors.GetDeviceStates;
 import ru.tsar_ioann.smarthome.request_processors.GetDevices;
 import ru.tsar_ioann.smarthome.request_processors.Ping;
 
@@ -36,6 +41,7 @@ public class MainActivity extends Activity {
     private String password;
 
     private SharedPreferences settings;
+    private DeviceNamesCache deviceNamesCache;
     private Client client;
 
     @Override
@@ -55,6 +61,7 @@ public class MainActivity extends Activity {
         btnConnect.setTextColor(cslButtonText);
 
         settings = getSharedPreferences("settings", MODE_PRIVATE);
+        deviceNamesCache = new DeviceNamesCache(getSharedPreferences("deviceNames", MODE_PRIVATE));
         serverAddress = settings.getString(SETTING_KEY_SERVER_ADDRESS, "");
         serverPort = settings.getInt(SETTING_KEY_SERVER_PORT, DEFAULT_SERVER_PORT);
         password = settings.getString(SETTING_KEY_PASSWORD, "");
@@ -77,27 +84,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    private GetDevices.Listener getDevicesListener = new GetDevices.Listener() {
-        @Override
-        public void onOKResult(List<DeviceParams> devices) {
-            runOnUiThread(() -> {
-                for (DeviceParams device : devices) {
-                    DeviceTypes.addViewForDevice(device, MainActivity.this, devicesLayout);
-                }
-            });
-        }
-
-        @Override
-        public void onWrongPassword() {
-            handleWrongPassword(true);
-        }
-
-        @Override
-        public void onError(String errorText) {
-            // TODO: handle
-        }
-    };
-
     private class AuthPingListener implements Ping.Listener {
         private final boolean startedByButton;
 
@@ -117,7 +103,7 @@ public class MainActivity extends Activity {
                     editor.apply();
                 }
                 viewFlipper.setDisplayedChild(VIEWFLIPPER_SCREEN_DEVICES);
-                client.getDevices(getDevicesListener);
+                client.getDevices(getDevicesListener, deviceNamesCache);
                 btnConnect.setEnabled(true);
             });
         }
@@ -173,4 +159,54 @@ public class MainActivity extends Activity {
         client = new Client(serverAddress, serverPort, password);
         client.ping(new AuthPingListener(startedByButton));
     }
+
+    private GetDevices.Listener getDevicesListener = new GetDevices.Listener() {
+        @Override
+        public void onOKResult(List<DeviceParams> devices, Map<Integer, String> deviceNames) {
+            runOnUiThread(() -> {
+                devicesLayout.removeAllViews();
+                for (DeviceParams deviceParams : devices) {
+                    int nameId = deviceParams.getNameId();
+                    String name = deviceNames.containsKey(nameId) ? deviceNames.get(nameId) : "n" + nameId;
+                    Device device = DeviceTypes.getDeviceByType(deviceParams.getDeviceType());
+                    if (device != null) {
+                        View deviceView = device.createView(MainActivity.this, name);
+                        deviceView.setEnabled(false);
+                        devicesLayout.addView(deviceView);
+                    } else {
+                        // TODO: handle bad/unsupported device type
+                    }
+                }
+
+                client.getDeviceStates(getDeviceStatesListener, false);
+            });
+        }
+
+        @Override
+        public void onWrongPassword() {
+            handleWrongPassword(true);
+        }
+
+        @Override
+        public void onError(String errorText) {
+            // TODO: handle
+        }
+    };
+
+    private GetDeviceStates.Listener getDeviceStatesListener = new GetDeviceStates.Listener() {
+        @Override
+        public void onOKResult() {
+            // TODO
+        }
+
+        @Override
+        public void onWrongPassword() {
+            handleWrongPassword(true);
+        }
+
+        @Override
+        public void onError(String errorText) {
+            // TODO: handle
+        }
+    };
 }

@@ -2,10 +2,8 @@ package ru.tsar_ioann.smarthome.request_processors;
 
 import android.util.Log;
 
-import java.net.HttpURLConnection;
 import java.util.Random;
 
-import ru.tsar_ioann.smarthome.Http;
 import ru.tsar_ioann.smarthome.UartMessage;
 
 public class Ping extends RequestProcessor {
@@ -13,47 +11,30 @@ public class Ping extends RequestProcessor {
 
     private static final byte PING_PAYLOAD_SIZE = 16;
 
-    public interface Listener {
+    public interface Listener extends ErrorsListener {
         void onOKResult();
-        void onWrongPassword();
-        void onError(String errorText);
     }
 
     private Listener listener;
 
-    public Ping(Listener listener) {
+    public Ping(String url, String password, Listener listener) {
+        super(url, password, listener);
         this.listener = listener;
     }
 
     @Override
-    public void process(String url, String password) {
+    public void process() {
         byte[] pingPayload = new byte[PING_PAYLOAD_SIZE];
         new Random().nextBytes(pingPayload);
-        try {
-            Response result = sendUartMessage(url, password,
-                    new UartMessage(UartMessage.COMMAND_PING, pingPayload)
-            );
-            int httpCode = result.getHttpCode();
-            switch (httpCode) {
-                case HttpURLConnection.HTTP_OK:
-                    if (verifyPingResponse(result.getResponse(), pingPayload)) {
-                        listener.onOKResult();
-                    } else {
-                        listener.onError("Invalid server response");
-                    }
-                    break;
-                case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    listener.onWrongPassword();
-                    break;
-                default:
-                    listener.onError("Server responded with error code " + httpCode);
-                    break;
+        UartMessage response = sendUartMessage(
+                new UartMessage(UartMessage.COMMAND_PING, pingPayload)
+        );
+        if (response != null) {
+            if (verifyPingResponse(response, pingPayload)) {
+                listener.onOKResult();
+            } else {
+                listener.onError("Invalid server response");
             }
-        } catch (UartMessage.ParseException e) {
-            Log.d(LOG_TAG, "Response parsing failed: " + e.getMessage());
-            listener.onError("Invalid server response");
-        } catch (Http.Exception e) {
-            listener.onError(e.getMessage());
         }
     }
 
