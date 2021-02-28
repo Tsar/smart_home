@@ -31,4 +31,8 @@ public class Client {
     public void ping(Ping.Listener listener) {
         new RequestThread(url, password, new Ping(listener)).start();
     }
+
+    public void getDevices(GetDevices.Listener listener) {
+        new RequestThread(url, password, new GetDevices(listener)).start();
+    }
 }

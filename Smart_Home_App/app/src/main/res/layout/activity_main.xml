@@ -52,8 +52,17 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/devicesLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:textSize="14sp"
+            android:text="Loading devices info..." />
     </LinearLayout>
 </ViewFlipper>

@@ -6,13 +6,20 @@ import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
+import java.util.List;
+
+import ru.tsar_ioann.smarthome.request_processors.GetDevices;
 import ru.tsar_ioann.smarthome.request_processors.Ping;
 
 public class MainActivity extends Activity {
     private static final int DEFAULT_SERVER_PORT = 9732;
+
+    private static final int VIEWFLIPPER_SCREEN_LOGIN = 0;
+    private static final int VIEWFLIPPER_SCREEN_DEVICES = 1;
 
     private static final String SETTING_KEY_SERVER_ADDRESS = "serverAddress";
     private static final String SETTING_KEY_SERVER_PORT = "serverPort";
@@ -22,6 +29,7 @@ public class MainActivity extends Activity {
     private EditText edtServerAddress;
     private EditText edtPassword;
     private Button btnConnect;
+    private LinearLayout devicesLayout;
 
     private String serverAddress;
     private int serverPort;
@@ -39,6 +47,7 @@ public class MainActivity extends Activity {
         edtServerAddress = findViewById(R.id.edtServerAddress);
         edtPassword = findViewById(R.id.edtPassword);
         btnConnect = findViewById(R.id.btnConnect);
+        devicesLayout = findViewById(R.id.devicesLayout);
 
         ColorStateList cslButtonBg = getResources().getColorStateList(R.color.button_bg);
         ColorStateList cslButtonText = getResources().getColorStateList(R.color.button_text);
@@ -56,6 +65,38 @@ public class MainActivity extends Activity {
 
         btnConnect.setOnClickListener(v -> tryToConnect(true));
     }
+
+    private void handleWrongPassword(boolean wasChanged) {
+        runOnUiThread(() -> {
+            btnConnect.setEnabled(true);
+            viewFlipper.setDisplayedChild(VIEWFLIPPER_SCREEN_LOGIN);
+            Toast.makeText(
+                    MainActivity.this,
+                    wasChanged ? "Password has changed!" : "Wrong password!",
+                    Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private GetDevices.Listener getDevicesListener = new GetDevices.Listener() {
+        @Override
+        public void onOKResult(List<DeviceParams> devices) {
+            runOnUiThread(() -> {
+                for (DeviceParams device : devices) {
+                    DeviceTypes.addViewForDevice(device, MainActivity.this, devicesLayout);
+                }
+            });
+        }
+
+        @Override
+        public void onWrongPassword() {
+            handleWrongPassword(true);
+        }
+
+        @Override
+        public void onError(String errorText) {
+            // TODO: handle
+        }
+    };
 
     private class AuthPingListener implements Ping.Listener {
         private final boolean startedByButton;
@@ -75,20 +116,15 @@ public class MainActivity extends Activity {
                     editor.putString(SETTING_KEY_PASSWORD, password);
                     editor.apply();
                 }
-                viewFlipper.showNext();
+                viewFlipper.setDisplayedChild(VIEWFLIPPER_SCREEN_DEVICES);
+                client.getDevices(getDevicesListener);
                 btnConnect.setEnabled(true);
             });
         }
 
         @Override
         public void onWrongPassword() {
-            runOnUiThread(() -> {
-                btnConnect.setEnabled(true);
-                Toast.makeText(
-                        MainActivity.this,
-                        startedByButton ? "Wrong password!" : "Password has changed!",
-                        Toast.LENGTH_SHORT).show();
-            });
+            handleWrongPassword(!startedByButton);
         }
 
         @Override
