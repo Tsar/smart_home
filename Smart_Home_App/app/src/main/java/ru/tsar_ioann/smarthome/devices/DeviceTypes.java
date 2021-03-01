@@ -6,7 +6,7 @@ public class DeviceTypes {
     public static Device getDeviceByType(short deviceType) {
         switch (deviceType) {
             case TEST_DEVICE_WITH_LED:
-                return new TestDeviceWithLED();
+                return new TestDeviceWithInvertedLED();
         }
         return null;
     }

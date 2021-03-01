@@ -40,10 +40,7 @@ public class UartMessage {
         if (data.length < HEADER_SZ) {
             throw new ParseException("Less data than header size");
         }
-        ByteBuffer buffer = ByteBuffer.allocate(data.length)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .put(data);
-        buffer.position(0);
+        ByteBuffer buffer = Utils.createByteBuffer(data);
         short magic = buffer.getShort();
         if (magic != HEADER_MAGIC) {
             throw new ParseException("Wrong magic");

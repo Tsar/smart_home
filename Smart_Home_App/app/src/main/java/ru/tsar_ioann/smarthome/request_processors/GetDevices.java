@@ -3,7 +3,6 @@ package ru.tsar_ioann.smarthome.request_processors;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +10,7 @@ import java.util.Map;
 import ru.tsar_ioann.smarthome.DeviceNamesCache;
 import ru.tsar_ioann.smarthome.DeviceParams;
 import ru.tsar_ioann.smarthome.UartMessage;
+import ru.tsar_ioann.smarthome.Utils;
 
 public class GetDevices extends RequestProcessor {
     private static final String LOG_TAG = "GetDevices";
@@ -43,10 +43,7 @@ public class GetDevices extends RequestProcessor {
             return;
         }
         byte[] payload = response.getPayload();
-        ByteBuffer buffer = ByteBuffer.allocate(payload.length)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .put(payload);
-        buffer.position(0);
+        ByteBuffer buffer = Utils.createByteBuffer(payload);
         List<DeviceParams> result = new ArrayList<>();
         for (int i = 0; i < payload.length / 8; ++i) {
             int nameId = buffer.getInt();

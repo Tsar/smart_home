@@ -2,6 +2,9 @@ package ru.tsar_ioann.smarthome;
 
 import android.util.Log;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 public class Utils {
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
     private static String bytesToHex(byte[] bytes) {
@@ -19,5 +22,13 @@ public class Utils {
 
     public static void logDataHex(String logTag, String prefix, byte[] data) {
         Log.d(logTag, prefix + bytesToHex(data));
+    }
+
+    public static ByteBuffer createByteBuffer(byte[] byteArray) {
+        ByteBuffer buffer = ByteBuffer.allocate(byteArray.length)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .put(byteArray);
+        buffer.position(0);
+        return buffer;
     }
 }

@@ -4,13 +4,16 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +37,7 @@ public class MainActivity extends Activity {
     private EditText edtServerAddress;
     private EditText edtPassword;
     private Button btnConnect;
+    private TextView txtStatus;
     private LinearLayout devicesLayout;
 
     private String serverAddress;
@@ -44,6 +48,8 @@ public class MainActivity extends Activity {
     private DeviceNamesCache deviceNamesCache;
     private Client client;
 
+    private List<Device> devices;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,6 +59,7 @@ public class MainActivity extends Activity {
         edtServerAddress = findViewById(R.id.edtServerAddress);
         edtPassword = findViewById(R.id.edtPassword);
         btnConnect = findViewById(R.id.btnConnect);
+        txtStatus = findViewById(R.id.txtStatus);
         devicesLayout = findViewById(R.id.devicesLayout);
 
         ColorStateList cslButtonBg = getResources().getColorStateList(R.color.button_bg);
@@ -156,7 +163,7 @@ public class MainActivity extends Activity {
         }
 
         btnConnect.setEnabled(false);
-        client = new Client(serverAddress, serverPort, password);
+        client = new Client(serverAddress, serverPort, password, txtStatus);
         client.ping(new AuthPingListener(startedByButton));
     }
 
@@ -164,15 +171,16 @@ public class MainActivity extends Activity {
         @Override
         public void onOKResult(List<DeviceParams> devices, Map<Integer, String> deviceNames) {
             runOnUiThread(() -> {
+                MainActivity.this.devices = new ArrayList<>();
                 devicesLayout.removeAllViews();
                 for (DeviceParams deviceParams : devices) {
                     int nameId = deviceParams.getNameId();
                     String name = deviceNames.containsKey(nameId) ? deviceNames.get(nameId) : "n" + nameId;
                     Device device = DeviceTypes.getDeviceByType(deviceParams.getDeviceType());
+                    MainActivity.this.devices.add(device);
                     if (device != null) {
-                        View deviceView = device.createView(MainActivity.this, name);
-                        deviceView.setEnabled(false);
-                        devicesLayout.addView(deviceView);
+                        device.createView(MainActivity.this, name, client);
+                        devicesLayout.addView(device.getView());
                     } else {
                         // TODO: handle bad/unsupported device type
                     }
@@ -195,8 +203,23 @@ public class MainActivity extends Activity {
 
     private GetDeviceStates.Listener getDeviceStatesListener = new GetDeviceStates.Listener() {
         @Override
-        public void onOKResult() {
-            // TODO
+        public void onOKResult(List<Integer> deviceStates) {
+            if (MainActivity.this.devices.size() != deviceStates.size()) {
+                // TODO: retry getDevices and getDeviceStates?
+                Log.d("GetDeviceStatesListener", "devices.size != deviceStates.size");
+                return;
+            }
+
+            runOnUiThread(() -> {
+                for (int i = 0; i < deviceStates.size(); ++i) {
+                    Device device = MainActivity.this.devices.get(i);
+                    if (device != null) {
+                        device.setCurrentState(deviceStates.get(i));
+                    }
+                }
+
+                txtStatus.setText("");
+            });
         }
 
         @Override
