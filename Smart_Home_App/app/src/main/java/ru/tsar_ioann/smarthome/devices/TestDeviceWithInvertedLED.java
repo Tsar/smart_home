@@ -42,7 +42,10 @@ public class TestDeviceWithInvertedLED extends Device {
             setUnavailable();
         } else {
             view.setEnabled(true);
-            ((Switch)view).setChecked((state & LED_IS_OFF_BIT) != LED_IS_OFF_BIT);
+            Switch sw = (Switch)view;
+            sw.setOnCheckedChangeListener(null);
+            sw.setChecked((state & LED_IS_OFF_BIT) != LED_IS_OFF_BIT);
+            sw.setOnCheckedChangeListener(onCheckedChangeListener);
         }
     }
 
