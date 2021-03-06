@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 # Line for crontab:
-#   @reboot cd /<path_to_script> && screen -dmS smart_home_http2uart sudo ./smart_home_http2uart.py
+#   @reboot cd /<path_to_script> && screen -dmS smart_home_http2uart ./smart_home_http2uart.py
+# Note: to run this script without 'sudo' add user to group 'dialout'
 
 # Command for testing without client:
 #   echo  -ne '\xCE\xBF\x01\x02\xFF\xAA' | curl -s -X POST -H 'Password: <password>' --data-binary @- http://<address>:9732/uart_message | hexdump -C
