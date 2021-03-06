@@ -13,7 +13,7 @@ public class GetDeviceStates extends RequestProcessor {
     private static final String LOG_TAG = "GetDeviceStates";
 
     public interface Listener extends ErrorsListener {
-        void onOKResult(List<Integer> deviceStates);
+        void onOKResult(List<Integer> deviceStates, boolean wereUpdated);
     }
 
     private Listener listener;
@@ -52,6 +52,6 @@ public class GetDeviceStates extends RequestProcessor {
         for (int i = 0; i < payload.length / 4; ++i) {
             result.add(buffer.getInt());
         }
-        listener.onOKResult(result);
+        listener.onOKResult(result, update);
     }
 }

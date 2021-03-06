@@ -4,7 +4,7 @@ import android.widget.TextView;
 
 import ru.tsar_ioann.smarthome.request_processors.*;
 
-public class Client implements NrfMessageSender {
+public class Client {
     private String url;
     private String password;
     private TextView txtStatus;
@@ -42,7 +42,6 @@ public class Client implements NrfMessageSender {
         new RequestThread(new GetDeviceStates(url, password, listener, update)).start();
     }
 
-    @Override
     public void sendNrfMessage(SendNrfMessage.Listener listener, NrfMessage message) {
         new RequestThread(new SendNrfMessage(url, password, listener, message)).start();
     }

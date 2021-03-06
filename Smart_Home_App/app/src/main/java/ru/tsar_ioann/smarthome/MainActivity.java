@@ -79,7 +79,7 @@ public class MainActivity extends Activity {
         btnConnect.setOnClickListener(v -> tryToConnect(true));
     }
 
-    private void handleWrongPassword(boolean wasChanged) {
+    public void handleWrongPassword(boolean wasChanged) {
         runOnUiThread(() -> {
             btnConnect.setEnabled(true);
             viewFlipper.setDisplayedChild(VIEWFLIPPER_SCREEN_LOGIN);
@@ -178,7 +178,7 @@ public class MainActivity extends Activity {
                     Device device = DeviceTypes.getDeviceByType(deviceParams.getDeviceType());
                     MainActivity.this.devices.add(device);
                     if (device != null) {
-                        device.createView(MainActivity.this, name, deviceParams.getUuid(), client);
+                        device.createView(deviceParams.getUuid(), name, MainActivity.this, client);
                         devicesLayout.addView(device.getView());
                     } else {
                         // TODO: handle bad/unsupported device type
@@ -200,9 +200,9 @@ public class MainActivity extends Activity {
         }
     };
 
-    private GetDeviceStates.Listener getDeviceStatesListener = new GetDeviceStates.Listener() {
+    public GetDeviceStates.Listener getDeviceStatesListener = new GetDeviceStates.Listener() {
         @Override
-        public void onOKResult(List<Integer> deviceStates) {
+        public void onOKResult(List<Integer> deviceStates, boolean wereUpdated) {
             if (MainActivity.this.devices.size() != deviceStates.size()) {
                 // TODO: retry getDevices and getDeviceStates?
                 Log.d("GetDeviceStatesListener", "devices.size != deviceStates.size");
@@ -219,6 +219,10 @@ public class MainActivity extends Activity {
 
                 txtStatus.setText("");
             });
+
+            if (!wereUpdated) {
+                client.getDeviceStates(getDeviceStatesListener, true);
+            }
         }
 
         @Override

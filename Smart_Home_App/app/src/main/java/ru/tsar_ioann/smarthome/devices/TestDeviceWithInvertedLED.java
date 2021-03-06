@@ -1,6 +1,5 @@
 package ru.tsar_ioann.smarthome.devices;
 
-import android.app.Activity;
 import android.util.TypedValue;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.CompoundButton;
@@ -9,22 +8,23 @@ import android.widget.Switch;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import ru.tsar_ioann.smarthome.Client;
+import ru.tsar_ioann.smarthome.MainActivity;
 import ru.tsar_ioann.smarthome.NrfMessage;
-import ru.tsar_ioann.smarthome.NrfMessageSender;
 import ru.tsar_ioann.smarthome.request_processors.SendNrfMessage;
 
 public class TestDeviceWithInvertedLED extends Device {
     private static final int LED_IS_OFF_BIT = 0x00000080;
 
-    private Activity activity;
     private int uuid;
-    private NrfMessageSender nrfMessageSender;
+    private MainActivity activity;
+    private Client client;
 
     @Override
-    public void createView(Activity activity, String name, int uuid, NrfMessageSender nrfMessageSender) {
-        this.activity = activity;
+    public void createView(int uuid, String name, MainActivity activity, Client client) {
         this.uuid = uuid;
-        this.nrfMessageSender = nrfMessageSender;
+        this.activity = activity;
+        this.client = client;
 
         Switch result = new Switch(activity);
         result.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
@@ -53,27 +53,29 @@ public class TestDeviceWithInvertedLED extends Device {
                     .order(ByteOrder.LITTLE_ENDIAN)
                     .putInt(isChecked ? 0 : LED_IS_OFF_BIT)
                     .array();
-            nrfMessageSender.sendNrfMessage(
+            client.sendNrfMessage(
                     new SendNrfMessage.Listener() {
                         @Override
                         public void onOKResult(NrfMessage response) {
-                            // TODO
+                            // TODO: show warning if result is strange?
                         }
 
                         @Override
                         public void onSendFailed() {
                             setCheckedWithoutListener(!isChecked);
+                            client.getDeviceStates(activity.getDeviceStatesListener, true);
                         }
 
                         @Override
                         public void onWrongPassword() {
                             setCheckedWithoutListener(!isChecked);
-                            // TODO
+                            activity.handleWrongPassword(true);
                         }
 
                         @Override
                         public void onError(String errorText) {
                             setCheckedWithoutListener(!isChecked);
+                            client.getDeviceStates(activity.getDeviceStatesListener, true);
                         }
                     },
                     new NrfMessage(uuid, NrfMessage.COMMAND_SET_STATE, stateAsBytes)
