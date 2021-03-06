@@ -6,19 +6,16 @@
 # Command for testing without client:
 #   echo  -ne '\xCE\xBF\x01\x02\xFF\xAA' | curl -s -X POST -H 'Password: <password>' --data-binary @- http://<address>:9732/uart_message | hexdump -C
 
-import sys
-from datetime import datetime
-import threading
 import os.path
 import struct
+import threading
 import json
 import time
-import socket
-import http.server
-import socketserver
 from concurrent.futures import ThreadPoolExecutor
 
 from RF24 import RF24, RF24_PA_MAX, RF24_1MBPS
+
+from uart_http_server import UARTMessage, BaseUARTMessageHandler, launchServer
 
 class DeviceParams:
     DEVICE_PARAMS_FMT = '<II'  # nameId, uuid
@@ -69,54 +66,26 @@ class NRFMessage:
         self.payload = binary[self.HEADER_SZ:]
         return True
 
-class UARTMessage:
-    HEADER_FMT = '<HBB'  # magic, command, payloadSize
-    HEADER_SZ = struct.calcsize(HEADER_FMT)
+UARTMessage.COMMAND_PING                 = 0x01
+UARTMessage.COMMAND_GET_DEVICES          = 0x02
+UARTMessage.COMMAND_SET_DEVICES          = 0x03
+UARTMessage.COMMAND_GET_DEVICE_STATES    = 0x04
+UARTMessage.COMMAND_UPDATE_DEVICE_STATES = 0x05
+UARTMessage.COMMAND_SEND_NRF_MESSAGE     = 0x08
 
-    HEADER_MAGIC = 0xBFCE
+UARTMessage.COMMAND_RESPONSE_PING                    = 0x81
+UARTMessage.COMMAND_RESPONSE_GET_DEVICES             = 0x82
+UARTMessage.COMMAND_RESPONSE_SET_DEVICES             = 0x83
+UARTMessage.COMMAND_RESPONSE_GET_DEVICE_STATES       = 0x84
+UARTMessage.COMMAND_RESPONSE_UPDATE_DEVICE_STATES    = 0x85
+UARTMessage.COMMAND_RESPONSE_SEND_NRF_MESSAGE        = 0x88
+UARTMessage.COMMAND_RESPONSE_SEND_NRF_MESSAGE_FAILED = 0xF8
 
-    COMMAND_PING                 = 0x01
-    COMMAND_GET_DEVICES          = 0x02
-    COMMAND_SET_DEVICES          = 0x03
-    COMMAND_GET_DEVICE_STATES    = 0x04
-    COMMAND_UPDATE_DEVICE_STATES = 0x05
-    COMMAND_SEND_NRF_MESSAGE     = 0x08
-
-    COMMAND_RESPONSE_PING                    = 0x81
-    COMMAND_RESPONSE_GET_DEVICES             = 0x82
-    COMMAND_RESPONSE_SET_DEVICES             = 0x83
-    COMMAND_RESPONSE_GET_DEVICE_STATES       = 0x84
-    COMMAND_RESPONSE_UPDATE_DEVICE_STATES    = 0x85
-    COMMAND_RESPONSE_SEND_NRF_MESSAGE        = 0x88
-    COMMAND_RESPONSE_SEND_NRF_MESSAGE_FAILED = 0xF8
-
-    def __init__(self, command=0, payload=b''):
-        self.command = command
-        self.payload = payload
-
-    def serialize(self):
-        return struct.pack(self.HEADER_FMT, self.HEADER_MAGIC, self.command, len(self.payload)) + self.payload
-
-    def parse(self, binary):
-        if len(binary) < self.HEADER_SZ:
-            return False
-        magic, self.command, payloadSize = struct.unpack(self.HEADER_FMT, binary[0:self.HEADER_SZ])
-        if magic != self.HEADER_MAGIC or self.HEADER_SZ + payloadSize != len(binary):
-            return False
-        self.payload = binary[self.HEADER_SZ:]
-        return True
-
-SERVER_NAME = socket.gethostname()
-HTTP_PORT = 9732
 
 DEVICES_FILE = 'smart_home_devices.json'
 
 DEVICE_STATE_SIZE = 4
 DEVICE_UNAVAILABLE_STATE = struct.pack('<I', 0xFF0000FF)
-
-PASSWORD_FILE = 'smart_home_password.txt'
-
-password = None
 
 devices = []       # configuration
 devicesLock = threading.Lock()
@@ -127,22 +96,6 @@ deviceStatesLock = threading.Lock()
 radio = RF24(22, 0)
 
 radioExchange = ThreadPoolExecutor(max_workers=1)
-
-def info(msg):
-    print('[%s, %d, %s] %s' % (
-        datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
-        threading.active_count(),
-        threading.current_thread().name,
-        msg
-    ))
-    sys.stdout.flush()
-
-def readPasswordFromFile():
-    global password
-    if not os.path.isfile(PASSWORD_FILE):
-        raise RuntimeError('No file "%s" with password' % PASSWORD_FILE)
-    with open(PASSWORD_FILE, 'r') as pwdFile:
-        password = pwdFile.read().strip()
 
 def readDevicesConfiguration():
     global devices
@@ -280,48 +233,18 @@ UART_MESSAGE_HANDLERS = {
     UARTMessage.COMMAND_SEND_NRF_MESSAGE:     handleUartSendNRFMessage
 }
 
-class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
-    def send_response_advanced(self, code, contentType, data):
-        dataB = bytes(data, 'UTF-8') if isinstance(data, str) else data
-        assert isinstance(dataB, bytes)
-        self.send_response(code)
-        self.send_header('Content-Type', contentType)
-        self.send_header('Content-Length', len(dataB))
-        self.end_headers()
-        self.wfile.write(dataB)
-        self.wfile.flush()
-
-    def do_GET(self):
-        self.send_response_advanced(404, 'text/plain', 'Not Found')
-
-    def do_POST(self):
-        if self.headers.get('Password', '') != password:
-            self.send_response_advanced(401, 'text/plain', 'Unauthorized')
+class UARTMessageHandler(BaseUARTMessageHandler):
+    def handleUartMessage(self, message):
+        if message.command not in UART_MESSAGE_HANDLERS:
+            self.send_response_advanced(400, 'text/plain', 'Bad Request')
             return
-
-        if self.path == '/uart_message':  # receiving UART-message by HTTP :)
-            contentLength = int(self.headers.get('Content-Length', 0))
-            if contentLength <= 0:
-                self.send_response_advanced(400, 'text/plain', 'Bad Request')
-                return
-            body = self.rfile.read(contentLength)
-            message = UARTMessage()
-            if message.parse(body) and message.command in UART_MESSAGE_HANDLERS:
-                try:
-                    result = UART_MESSAGE_HANDLERS[message.command](message)
-                    self.send_response_advanced(200, 'application/octet-stream', result.serialize())
-                except BadNRFMessageException:
-                    self.send_response_advanced(400, 'text/plain', 'Bad NRF Message')
-            else:
-                self.send_response_advanced(400, 'text/plain', 'Bad Request')
-        else:
-            self.send_response_advanced(404, 'text/plain', 'Not Found')
-
-class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
-    pass
+        try:
+            result = UART_MESSAGE_HANDLERS[message.command](message)
+            self.send_response_advanced(200, 'application/octet-stream', result.serialize())
+        except BadNRFMessageException:
+            self.send_response_advanced(400, 'text/plain', 'Bad NRF Message')
 
 if __name__ == '__main__':
-    readPasswordFromFile()
     readDevicesConfiguration()
 
     if not radio.begin():
@@ -341,12 +264,6 @@ if __name__ == '__main__':
 
     updateAllDeviceStates()
 
-    server = ThreadedHTTPServer(('', HTTP_PORT), HTTPRequestHandler)
-    info('Smart Home server "%s" created, serving forever on port %d...' % (SERVER_NAME, HTTP_PORT))
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        info('Halting Smart Home server "%s"...' % SERVER_NAME)
-        server.shutdown()
-        radio.powerDown()
-        info('Goodbye!')
+    launchServer(UARTMessageHandler)
+
+    radio.powerDown()
