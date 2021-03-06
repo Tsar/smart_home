@@ -14,7 +14,7 @@ public class Http {
     private static final String LOG_TAG = "Http";
 
     private static final int CONNECT_TIMEOUT_MS = 300;
-    private static final int READ_TIMEOUT_MS = 500;
+    private static final int READ_TIMEOUT_MS = 2500;
 
     public static class Exception extends java.lang.Exception {
         public Exception(String errorMessage) {

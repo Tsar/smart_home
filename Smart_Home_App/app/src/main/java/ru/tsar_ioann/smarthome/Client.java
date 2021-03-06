@@ -43,7 +43,7 @@ public class Client implements NrfMessageSender {
     }
 
     @Override
-    public void sendNrfMessage() {
-        // TODO
+    public void sendNrfMessage(SendNrfMessage.Listener listener, NrfMessage message) {
+        new RequestThread(new SendNrfMessage(url, password, listener, message)).start();
     }
 }
