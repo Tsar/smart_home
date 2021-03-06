@@ -16,7 +16,7 @@ typedef struct {
 #pragma pack(pop)
 
 
-#define DEVICE_UUID 0x00015566
+//#define DEVICE_UUID 0x00011991
 
 #if defined(STM32F103xB)
 #define FLASH_DATA_ADDR 0x0800F800
