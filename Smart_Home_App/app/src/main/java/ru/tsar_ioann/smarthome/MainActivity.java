@@ -178,8 +178,9 @@ public class MainActivity extends Activity {
                     Device device = DeviceTypes.getDeviceByType(deviceParams.getDeviceType());
                     MainActivity.this.devices.add(device);
                     if (device != null) {
-                        device.createView(deviceParams.getUuid(), name, MainActivity.this, client);
-                        devicesLayout.addView(device.getView());
+                        devicesLayout.addView(
+                                device.createView(deviceParams.getUuid(), name, MainActivity.this, client)
+                        );
                     } else {
                         // TODO: handle bad/unsupported device type
                     }

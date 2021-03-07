@@ -8,45 +8,32 @@ import android.widget.Switch;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import ru.tsar_ioann.smarthome.Client;
-import ru.tsar_ioann.smarthome.MainActivity;
 import ru.tsar_ioann.smarthome.NrfMessage;
 import ru.tsar_ioann.smarthome.request_processors.SendNrfMessage;
 
 public class TestDeviceWithInvertedLED extends Device {
     private static final int LED_IS_OFF_BIT = 0x00000080;
 
-    private int uuid;
-    private MainActivity activity;
-    private Client client;
-
     @Override
-    public void createView(int uuid, String name, MainActivity activity, Client client) {
-        this.uuid = uuid;
-        this.activity = activity;
-        this.client = client;
-
+    protected void createViewInternal(String name) {
         Switch result = new Switch(activity);
         result.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         result.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
         result.setText(name);
         result.setOnCheckedChangeListener(onCheckedChangeListener);
-
         view = result;
-        setUnavailable();
     }
 
     @Override
-    public void setCurrentState(int state) {
-        if (state == DEVICE_UNAVAILABLE_STATE) {
-            setUnavailable();
-        } else {
-            view.setEnabled(true);
-            Switch sw = (Switch)view;
-            sw.setOnCheckedChangeListener(null);
-            sw.setChecked((state & LED_IS_OFF_BIT) != LED_IS_OFF_BIT);
-            sw.setOnCheckedChangeListener(onCheckedChangeListener);
-        }
+    protected void setCurrentStateInternal(int state) {
+        setCheckedWithoutListener((state & LED_IS_OFF_BIT) != LED_IS_OFF_BIT);
+    }
+
+    private void setCheckedWithoutListener(boolean isChecked) {
+        Switch sw = (Switch)view;
+        sw.setOnCheckedChangeListener(null);
+        sw.setChecked(isChecked);
+        sw.setOnCheckedChangeListener(onCheckedChangeListener);
     }
 
     private CompoundButton.OnCheckedChangeListener onCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {
@@ -65,19 +52,19 @@ public class TestDeviceWithInvertedLED extends Device {
 
                         @Override
                         public void onSendFailed() {
-                            setCheckedWithoutListener(!isChecked);
+                            setCheckedWithoutListenerOnUiThread(!isChecked);
                             client.getDeviceStates(activity.getDeviceStatesListener, true);
                         }
 
                         @Override
                         public void onWrongPassword() {
-                            setCheckedWithoutListener(!isChecked);
+                            setCheckedWithoutListenerOnUiThread(!isChecked);
                             activity.handleWrongPassword(true);
                         }
 
                         @Override
                         public void onError(String errorText) {
-                            setCheckedWithoutListener(!isChecked);
+                            setCheckedWithoutListenerOnUiThread(!isChecked);
                             client.getDeviceStates(activity.getDeviceStatesListener, true);
                         }
                     },
@@ -85,12 +72,9 @@ public class TestDeviceWithInvertedLED extends Device {
             );
         }
 
-        private void setCheckedWithoutListener(boolean isChecked) {
+        private void setCheckedWithoutListenerOnUiThread(boolean isChecked) {
             activity.runOnUiThread(() -> {
-                Switch sw = (Switch)view;
-                sw.setOnCheckedChangeListener(null);
-                sw.setChecked(isChecked);
-                sw.setOnCheckedChangeListener(this);
+                setCheckedWithoutListener(isChecked);
             });
         }
     };
