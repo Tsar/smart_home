@@ -1,5 +1,7 @@
 package ru.tsar_ioann.smarthome;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -7,6 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,7 +53,7 @@ public class Http {
         }
     }
 
-    public static Response doPostRequest(String url, byte[] data, String password) throws Exception {
+    public static Response doPostRequest(String url, byte[] data, String password, boolean hexLogs) throws Exception {
         URL req;
         try {
             req = new URL(url);
@@ -65,13 +68,15 @@ public class Http {
 
             connection.setRequestMethod("POST");
             connection.setRequestProperty("User-Agent", "Smart Home App 1.0");
-            connection.setRequestProperty("Password", password);
+            if (password != null) {
+                connection.setRequestProperty("Password", password);
+            }
 
             connection.setDoOutput(true);
             OutputStream os = connection.getOutputStream();
             os.write(data, 0, data.length);
             os.close();
-            Utils.logDataHex(LOG_TAG, "Request data:  ", data);
+            logData("Request data:  ", data, hexLogs);
 
             int httpCode = connection.getResponseCode();
             Response response = new Response(httpCode);
@@ -83,7 +88,7 @@ public class Http {
                     response.appendData(buffer, n);
                 }
                 is.close();
-                Utils.logDataHex(LOG_TAG, "Response data: ", response.getData());
+                logData("Response data: ", response.getData(), hexLogs);
             }
 
             connection.disconnect();
@@ -93,5 +98,12 @@ public class Http {
         } catch (IOException e) {
             throw new Exception("Request to server failed");
         }
+    }
+
+    private static void logData(String prefix, byte[] data, boolean asHex) {
+        Log.d(LOG_TAG, prefix + (asHex
+                ? Utils.bytesToHex(data)
+                : new String(data, StandardCharsets.UTF_8)
+        ));
     }
 }

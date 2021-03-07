@@ -24,7 +24,7 @@ public abstract class RequestProcessor {
 
     protected UartMessage sendUartMessage(UartMessage request) {
         try {
-            Http.Response result = Http.doPostRequest(url, request.serialize(), password);
+            Http.Response result = Http.doPostRequest(url, request.serialize(), password, true);
             int httpCode = result.getHttpCode();
             switch (httpCode) {
                 case HttpURLConnection.HTTP_OK:
