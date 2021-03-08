@@ -5,6 +5,8 @@ import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -48,6 +50,7 @@ public class MainActivity extends Activity {
     private Client client;
 
     private List<Device> devices;
+    private boolean deviceStatusesWereOnceUpdated = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +80,22 @@ public class MainActivity extends Activity {
         }
 
         btnConnect.setOnClickListener(v -> tryToConnect(true));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.empty, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (deviceStatusesWereOnceUpdated) {
+            getMenuInflater().inflate(R.menu.menu, menu);
+        } else {
+            getMenuInflater().inflate(R.menu.empty, menu);
+        }
+        return true;
     }
 
     public void handleWrongPassword(boolean wasChanged) {
@@ -221,8 +240,13 @@ public class MainActivity extends Activity {
                 txtStatus.setText("");
             });
 
-            if (!wereUpdated) {
-                client.getDeviceStates(getDeviceStatesListener, true);
+            if (!deviceStatusesWereOnceUpdated) {
+                if (wereUpdated) {
+                    deviceStatusesWereOnceUpdated = true;
+                    invalidateOptionsMenu();
+                } else {
+                    client.getDeviceStates(getDeviceStatesListener, true);
+                }
             }
         }
 
@@ -236,4 +260,8 @@ public class MainActivity extends Activity {
             // TODO: handle
         }
     };
+
+    public void onUpdateDevices(MenuItem menuItem) {
+        client.getDeviceStates(getDeviceStatesListener, true);
+    }
 }

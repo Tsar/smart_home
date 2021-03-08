@@ -38,7 +38,10 @@ public class Client {
     }
 
     public void getDeviceStates(GetDeviceStates.Listener listener, boolean update) {
-        txtStatus.setText("Getting device states...");
+        txtStatus.setText(update
+                ? "Getting current devices states..."
+                : "Getting cached device states..."
+        );
         new RequestThread(new GetDeviceStates(url, password, listener, update)).start();
     }
 
