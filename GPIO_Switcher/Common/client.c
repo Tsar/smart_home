@@ -16,7 +16,7 @@ typedef struct {
 #pragma pack(pop)
 
 
-//#define DEVICE_UUID 0x00011991
+#define DEVICE_UUID 0x00015566
 
 #if defined(STM32F103xB)
 #define FLASH_DATA_ADDR 0x0800F800
@@ -29,7 +29,7 @@ typedef struct {
 
 #define NRF_COMMAND_RESPONSE_STATE 0xF1
 
-#define OUTPUTS_COUNT 7
+#define OUTPUTS_COUNT 4
 
 
 uint32_t state = 0;
@@ -44,20 +44,14 @@ GPIO_TypeDef* gpio_ports[OUTPUTS_COUNT] = {
     OnboardLED_GPIO_Port,
     OUT1_GPIO_Port,
     OUT2_GPIO_Port,
-    OUT3_GPIO_Port,
-    OUT4_GPIO_Port,
-    OUT5_GPIO_Port,
-    OUT6_GPIO_Port
+    OUT3_GPIO_Port
 };
 
 const uint16_t gpio_pins[OUTPUTS_COUNT] = {
     OnboardLED_Pin,
     OUT1_Pin,
     OUT2_Pin,
-    OUT3_Pin,
-    OUT4_Pin,
-    OUT5_Pin,
-    OUT6_Pin
+    OUT3_Pin
 };
 
 
