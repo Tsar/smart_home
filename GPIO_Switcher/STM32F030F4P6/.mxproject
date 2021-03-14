@@ -9,17 +9,17 @@ CDefines=USE_HAL_DRIVER;STM32F030x6;USE_HAL_DRIVER;USE_HAL_DRIVER;
 [PreviousGenFiles]
 AdvancedFolderStructure=true
 HeaderFileListSize=3
-HeaderFiles#0=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Inc/stm32f0xx_it.h
-HeaderFiles#1=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Inc/stm32f0xx_hal_conf.h
-HeaderFiles#2=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Inc/main.h
+HeaderFiles#0=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Inc/stm32f0xx_it.h
+HeaderFiles#1=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Inc/stm32f0xx_hal_conf.h
+HeaderFiles#2=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Inc/main.h
 HeaderFolderListSize=1
-HeaderPath#0=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Inc
+HeaderPath#0=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Inc
 HeaderFiles=;
 SourceFileListSize=3
-SourceFiles#0=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Src/stm32f0xx_it.c
-SourceFiles#1=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Src/stm32f0xx_hal_msp.c
-SourceFiles#2=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Src/main.c
+SourceFiles#0=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Src/stm32f0xx_it.c
+SourceFiles#1=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Src/stm32f0xx_hal_msp.c
+SourceFiles#2=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Src/main.c
 SourceFolderListSize=1
-SourcePath#0=/home/tsar/develop/smart_home/STM32F030F4P6_firmware/Core/Src
+SourcePath#0=/home/tsar/develop/smart_home/GPIO_Switcher/STM32F030F4P6/Core/Src
 SourceFiles=;
 

@@ -50,6 +50,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -62,8 +64,8 @@ void Error_Handler(void);
 #define OUT1_GPIO_Port GPIOF
 #define OUT2_Pin GPIO_PIN_1
 #define OUT2_GPIO_Port GPIOF
-#define OUT5_Pin GPIO_PIN_0
-#define OUT5_GPIO_Port GPIOA
+#define OUT3_Pin GPIO_PIN_0
+#define OUT3_GPIO_Port GPIOA
 #define IRQ_Pin GPIO_PIN_1
 #define IRQ_GPIO_Port GPIOA
 #define CE_Pin GPIO_PIN_2
@@ -72,14 +74,8 @@ void Error_Handler(void);
 #define CSN_GPIO_Port GPIOA
 #define OnboardLED_Pin GPIO_PIN_4
 #define OnboardLED_GPIO_Port GPIOA
-#define OUT6_Pin GPIO_PIN_1
-#define OUT6_GPIO_Port GPIOB
-#define OUT4_Pin GPIO_PIN_9
-#define OUT4_GPIO_Port GPIOA
-#define OUT3_Pin GPIO_PIN_10
-#define OUT3_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
-
+#define DEVICE_UUID 0x00015566
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

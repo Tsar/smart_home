@@ -1,6 +1,5 @@
 #include <client.h>
 
-#include <main.h>
 #include <flash.h>
 #include <RF24.h>
 
@@ -16,8 +15,6 @@ typedef struct {
 #pragma pack(pop)
 
 
-//#define DEVICE_UUID 0x00011991
-
 #if defined(STM32F103xB)
 #define FLASH_DATA_ADDR 0x0800F800
 #elif defined(STM32F030x6)
@@ -29,7 +26,11 @@ typedef struct {
 
 #define NRF_COMMAND_RESPONSE_STATE 0xF1
 
-#define OUTPUTS_COUNT 7
+#define OUTPUTS_COUNT 4
+#define PWMS_COUNT    3
+
+#define PWM_MIN_PULSE 600
+#define PWM_MAX_PULSE 2200
 
 
 uint32_t state = 0;
@@ -44,25 +45,24 @@ GPIO_TypeDef* gpio_ports[OUTPUTS_COUNT] = {
     OnboardLED_GPIO_Port,
     OUT1_GPIO_Port,
     OUT2_GPIO_Port,
-    OUT3_GPIO_Port,
-    OUT4_GPIO_Port,
-    OUT5_GPIO_Port,
-    OUT6_GPIO_Port
+    OUT3_GPIO_Port
 };
 
 const uint16_t gpio_pins[OUTPUTS_COUNT] = {
     OnboardLED_Pin,
     OUT1_Pin,
     OUT2_Pin,
-    OUT3_Pin,
-    OUT4_Pin,
-    OUT5_Pin,
-    OUT6_Pin
+    OUT3_Pin
 };
+
+TIM_HandleTypeDef* pwmTimers[PWMS_COUNT];
+int pwmTimerChannels[PWMS_COUNT];
 
 
 void applyState() {
-  uint8_t byte0 = ((uint8_t*)&state)[0];
+  const uint8_t* stateBytes = (uint8_t*)&state;
+
+  uint8_t byte0 = stateBytes[0];
   for (int i = 0; i < OUTPUTS_COUNT; ++i) {
     HAL_GPIO_WritePin(
       gpio_ports[i],
@@ -70,6 +70,11 @@ void applyState() {
       ((byte0 & 0x80) == 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET
     );
     byte0 <<= 1;
+  }
+
+  for (int i = 0; i < PWMS_COUNT; ++i) {
+    uint16_t pulse = PWM_MIN_PULSE + (((PWM_MAX_PULSE - PWM_MIN_PULSE) * (int)stateBytes[1 + i]) >> 8);
+    __HAL_TIM_SET_COMPARE(pwmTimers[i], pwmTimerChannels[i], pulse);
   }
 }
 
@@ -130,10 +135,28 @@ void tryToReadNRF() {
   }
 }
 
-void smartHomeGPIOSwitcher() {
+void smartHomeGPIOSwitcher(
+    TIM_HandleTypeDef* pwmTimer1,
+    int pwmTimer1Channel,
+    TIM_HandleTypeDef* pwmTimer2,
+    int pwmTimer2Channel,
+    TIM_HandleTypeDef* pwmTimer3,
+    int pwmTimer3Channel
+) {
+  pwmTimers[0] = pwmTimer1;
+  pwmTimers[1] = pwmTimer2;
+  pwmTimers[2] = pwmTimer3;
+  pwmTimerChannels[0] = pwmTimer1Channel;
+  pwmTimerChannels[1] = pwmTimer2Channel;
+  pwmTimerChannels[2] = pwmTimer3Channel;
+
   flashUnlock();
   state = *((volatile uint32_t*)FLASH_DATA_ADDR);
   applyState();
+
+  for (int i = 0; i < PWMS_COUNT; ++i) {
+    HAL_TIM_PWM_Start(pwmTimers[i], pwmTimerChannels[i]);
+  }
 
   isChipConnected();  // not checking result because it is often wrong
   NRF_Init();

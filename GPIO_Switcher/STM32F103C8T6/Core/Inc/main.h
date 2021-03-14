@@ -50,6 +50,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -79,7 +81,7 @@ void Error_Handler(void);
 #define OUT6_Pin GPIO_PIN_6
 #define OUT6_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
-
+#define DEVICE_UUID 0x00011991
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
