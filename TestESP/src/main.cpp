@@ -20,10 +20,8 @@ struct MsgHeader {
 MsgHeader msgHeader;
 uint8_t msgPayload[256];
 
-bool softAPMode = true;
-
-char ssid[33];
-char passphrase[65];
+char ssid[32];
+char passphrase[64];
 
 WiFiServer server(SERVER_PORT);
 
@@ -36,23 +34,42 @@ void fastBlinkForever() {
   }
 }
 
-bool connectToWiFi() {
-  Serial.printf("Connecting to wi-fi: SSID [%s], passphrase [%s] ", ssid, passphrase);
+void enableAccessPoint() {
+  uint8_t mac[WL_MAC_ADDR_LENGTH];
+  WiFi.macAddress(mac);
+  char softAPName[32] = {};
+  sprintf(softAPName, "SmartHomeDevice_%02X%02X%02X", mac[3], mac[4], mac[5]);
+
+  Serial.printf("Enabling access point '%s' ... ", softAPName);
+  const bool result = WiFi.softAP(softAPName, "setup12345");
+  if (!result) {
+    Serial.println("Failed");
+    fastBlinkForever();
+    return;
+  }
+
+  Serial.println("Ready");
+}
+
+bool connectToWiFiOrEnableAP(bool useSsidPassphrase) {
   digitalWrite(LED_BUILTIN, LOW);
 
-  WiFi.begin(ssid, passphrase);
-  while (WiFi.status() != WL_CONNECTED) {
-    if (WiFi.status() == WL_CONNECT_FAILED) {
-      Serial.println("Failed");
-      return false;
-    }
-    delay(200);
-    Serial.print(".");
+  if (useSsidPassphrase) {
+    Serial.printf("Connecting to wi-fi: SSID [%s], passphrase [%s]\n", ssid, passphrase);
+    WiFi.disconnect(true);
+    WiFi.begin(ssid, passphrase);
+  } else {
+    Serial.println("Waiting for connect to wi-fi");
   }
-  Serial.println();
 
-  Serial.print("Connected, IP address: ");
-  Serial.println(WiFi.localIP());
+  int8_t result = WiFi.waitForConnectResult(30000);
+  if (result != WL_CONNECTED) {
+    Serial.printf("Failed to connect, status: %d\n", result);
+    enableAccessPoint();
+    return false;
+  }
+
+  Serial.printf("Connected, IP address: %s\n", WiFi.localIP().toString().c_str());
   digitalWrite(LED_BUILTIN, HIGH);
   return true;
 }
@@ -60,36 +77,32 @@ bool connectToWiFi() {
 void setup() {
   Serial.begin(115200);
   Serial.println();
+
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 
-  if (softAPMode) {
-    digitalWrite(LED_BUILTIN, LOW);
+  // Just to be sure
+  WiFi.setAutoConnect(true);
+  WiFi.setAutoReconnect(true);
 
-    uint8_t mac[WL_MAC_ADDR_LENGTH];
-    WiFi.macAddress(mac);
-    char softAPName[32] = {};
-    sprintf(softAPName, "SmartHomeDevice_%02X%02X%02X", mac[3], mac[4], mac[5]);
-
-    Serial.printf("Setting soft-AP '%s' ... ", softAPName);
-    const bool result = WiFi.softAP(softAPName, "setup12345");
-    if (!result) {
-      Serial.println("Failed!");
-      fastBlinkForever();
-      return;
-    }
-
-    Serial.println("Ready");
-    digitalWrite(LED_BUILTIN, HIGH);
+  struct station_config cfg;
+  if (WiFi.getPersistent()) {
+    wifi_station_get_config_default(&cfg);
   } else {
-    if (!connectToWiFi()) {
-      fastBlinkForever();
-      return;
-    }
+    wifi_station_get_config(&cfg);
+  }
+
+  if (strlen(reinterpret_cast<char*>(cfg.ssid)) > 0) {
+    Serial.printf("Found wi-fi credentials for SSID '%s'\n", cfg.ssid);
+    connectToWiFiOrEnableAP(false);
+  } else {
+    Serial.println("No wi-fi credentials found");
+    enableAccessPoint();
   }
 
   server.begin();
   server.setNoDelay(true);
-  Serial.printf("Server started, IP: %s, port: %d\n", WiFi.softAPIP().toString().c_str(), SERVER_PORT);
+  Serial.printf("Server started, local IP: %s, access point IP: %s, port: %d\n", WiFi.localIP().toString().c_str(), WiFi.softAPIP().toString().c_str(), SERVER_PORT);
 }
 
 void loop() {
@@ -108,40 +121,35 @@ void loop() {
           Serial.println("Handled ping");
           break;
         case MSG_COMMAND_SETUP_WIFI:
-          if (softAPMode) {
-            if (msgHeader.payloadSize >= 3) {
-              // payload should be <ssid>0x00<passphrase>
-              bool parsed = false;
-              for (int i = 1; i < msgHeader.payloadSize - 1; ++i) {
-                if (msgPayload[i] == 0x00) {
-                  memcpy(ssid, msgPayload, i + 1);
-                  memcpy(passphrase, msgPayload + i + 1, msgHeader.payloadSize - i - 1);
-                  passphrase[msgHeader.payloadSize - i - 1] = 0;
-                  parsed = true;
-                  break;
-                }
+          if (msgHeader.payloadSize >= 3) {
+            // payload should be <ssid>0x00<passphrase>
+            bool parsed = false;
+            for (int i = 1; i < msgHeader.payloadSize - 1; ++i) {
+              if (msgPayload[i] == 0x00) {
+                memcpy(ssid, msgPayload, i + 1);
+                memcpy(passphrase, msgPayload + i + 1, msgHeader.payloadSize - i - 1);
+                passphrase[msgHeader.payloadSize - i - 1] = 0;
+                parsed = true;
+                break;
               }
+            }
 
-              if (parsed) {
-                if (connectToWiFi()) {
-                  softAPMode = false;
-                  client.print("WIFI_CONNECT_OK\n");
-                  client.stop();
-                  WiFi.softAPdisconnect(true);
-                  Serial.println("Disabled soft-AP cause connected to wi-fi");
-                  return;
-                } else {
-                  client.print("WIFI_CONNECT_FAILED\n");
-                }
+            if (parsed) {
+              if (connectToWiFiOrEnableAP(true)) {
+                client.print("WIFI_CONNECT_OK\n");
+                client.stop();
+                delay(10);
+                WiFi.softAPdisconnect(true);
+                Serial.println("Disabled access point because connected to wi-fi");
+                return;
               } else {
-                Serial.println("Bad setup wi-fi request (#2), ignoring");
+                client.print("WIFI_CONNECT_FAILED\n");
               }
             } else {
-              Serial.println("Bad setup wi-fi request (#1), ignoring");
+              Serial.println("Bad setup wi-fi request (#2), ignoring");
             }
           } else {
-            client.print("WIFI_SETUP_UNAVAILABLE\n");
-            Serial.println("Unexpected setup wi-fi request, available only in soft-AP mode");
+            Serial.println("Bad setup wi-fi request (#1), ignoring");
           }
           break;
       }
