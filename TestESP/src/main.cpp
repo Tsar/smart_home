@@ -110,7 +110,6 @@ void loop() {
   if (client) {
     Serial.println("Client connected");
     if (client.connected()
-        && client.available()
         && client.readBytes(reinterpret_cast<uint8_t*>(&msgHeader), sizeof(MsgHeader)) == sizeof(MsgHeader)
         && msgHeader.magic == MSG_HEADER_MAGIC
         && (msgHeader.payloadSize == 0 || client.readBytes(msgPayload, msgHeader.payloadSize) == msgHeader.payloadSize)
