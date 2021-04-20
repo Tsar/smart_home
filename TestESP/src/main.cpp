@@ -108,7 +108,7 @@ void setup() {
 void loop() {
   WiFiClient client = server.available();
   if (client) {
-    Serial.println("Client connected");
+    Serial.printf("Request from %s\n", client.remoteIP().toString().c_str());
     if (client.connected()
         && client.readBytes(reinterpret_cast<uint8_t*>(&msgHeader), sizeof(MsgHeader)) == sizeof(MsgHeader)
         && msgHeader.magic == MSG_HEADER_MAGIC
@@ -157,6 +157,5 @@ void loop() {
     }
 
     client.stop();
-    Serial.println("Client disconnected");
   }
 }
