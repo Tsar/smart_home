@@ -6,6 +6,7 @@
 
 #define MSG_COMMAND_PING       0x01
 #define MSG_COMMAND_SETUP_WIFI 0x02
+#define MSG_COMMAND_SET_LED    0x03
 
 #pragma pack(push, 1)
 
@@ -150,6 +151,15 @@ void loop() {
             }
           } else {
             Serial.println("Bad setup wi-fi request (#1), ignoring");
+          }
+          break;
+        case MSG_COMMAND_SET_LED:
+          if (msgHeader.payloadSize == 1) {
+            digitalWrite(LED_BUILTIN, (msgPayload[0] & 1) ? HIGH : LOW);
+            client.print("OK\n");
+            Serial.printf("Set LED to %d\n", msgPayload[0] & 1);
+          } else {
+            Serial.println("Bad set-LED request, ignoring");
           }
           break;
       }
