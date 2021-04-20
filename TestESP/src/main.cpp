@@ -17,12 +17,6 @@ struct MsgHeader {
 
 #pragma pack(pop)
 
-MsgHeader msgHeader;
-uint8_t msgPayload[256];
-
-char ssid[32];
-char passphrase[64];
-
 WiFiServer server(SERVER_PORT);
 
 void fastBlinkForever() {
@@ -51,15 +45,16 @@ void enableAccessPoint() {
   Serial.println("Ready");
 }
 
-bool connectToWiFiOrEnableAP(bool useSsidPassphrase) {
+bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
   digitalWrite(LED_BUILTIN, LOW);
 
-  if (useSsidPassphrase) {
+  if (ssid != 0) {
     Serial.printf("Connecting to wi-fi: SSID [%s], passphrase [%s]\n", ssid, passphrase);
     WiFi.disconnect(true);
     WiFi.begin(ssid, passphrase);
   } else {
     Serial.println("Waiting for connect to wi-fi");
+    WiFi.begin();  // also works without this line
   }
 
   int8_t result = WiFi.waitForConnectResult(30000);
@@ -94,7 +89,7 @@ void setup() {
 
   if (strlen(reinterpret_cast<char*>(cfg.ssid)) > 0) {
     Serial.printf("Found wi-fi credentials for SSID '%s'\n", cfg.ssid);
-    connectToWiFiOrEnableAP(false);
+    connectToWiFiOrEnableAP();
   } else {
     Serial.println("No wi-fi credentials found");
     enableAccessPoint();
@@ -109,6 +104,10 @@ void loop() {
   WiFiClient client = server.available();
   if (client) {
     Serial.printf("Request from %s\n", client.remoteIP().toString().c_str());
+
+    MsgHeader msgHeader;
+    uint8_t msgPayload[256];
+
     if (client.connected()
         && client.readBytes(reinterpret_cast<uint8_t*>(&msgHeader), sizeof(MsgHeader)) == sizeof(MsgHeader)
         && msgHeader.magic == MSG_HEADER_MAGIC
@@ -122,6 +121,8 @@ void loop() {
         case MSG_COMMAND_SETUP_WIFI:
           if (msgHeader.payloadSize >= 3) {
             // payload should be <ssid>0x00<passphrase>
+            char ssid[32];
+            char passphrase[64];
             bool parsed = false;
             for (int i = 1; i < msgHeader.payloadSize - 1; ++i) {
               if (msgPayload[i] == 0x00) {
@@ -134,7 +135,7 @@ void loop() {
             }
 
             if (parsed) {
-              if (connectToWiFiOrEnableAP(true)) {
+              if (connectToWiFiOrEnableAP(ssid, passphrase)) {
                 client.print("WIFI_CONNECT_OK\n");
                 client.stop();
                 delay(10);
