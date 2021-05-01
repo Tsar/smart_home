@@ -1,24 +1,9 @@
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 
-#define SERVER_PORT 7131
+#define HTTP_SERVER_PORT 80
 
-#define MSG_HEADER_MAGIC 0xDFCE
-
-#define MSG_COMMAND_PING       0x01
-#define MSG_COMMAND_SETUP_WIFI 0x02
-#define MSG_COMMAND_SET_LED    0x03
-
-#pragma pack(push, 1)
-
-struct MsgHeader {
-	uint16_t magic;
-	uint8_t command;
-	uint16_t payloadSize;
-};
-
-#pragma pack(pop)
-
-WiFiServer server(SERVER_PORT);
+ESP8266WebServer server(HTTP_SERVER_PORT);
 
 void fastBlinkForever() {
   while (true) {
@@ -70,6 +55,48 @@ bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
   return true;
 }
 
+void sendBadRequest() {
+  server.send(400, "text/plain", "Bad Request");
+}
+
+void handleSetupWiFi() {
+  if (!server.hasArg("ssid") || !server.hasArg("passphrase")) {
+    sendBadRequest();
+    return;
+  }
+
+  if (connectToWiFiOrEnableAP(server.arg("ssid").c_str(), server.arg("passphrase").c_str())) {
+    server.send(200, "text/plain", "WIFI_CONNECT_OK");
+    delay(50);
+    WiFi.softAPdisconnect(true);
+    Serial.println("Disabled access point because connected to wi-fi");
+  } else {
+    server.send(200, "text/plain", "WIFI_CONNECT_FAILED");
+  }
+}
+
+void handleSetBuiltinLED() {
+  if (!server.hasArg("state")) {
+    sendBadRequest();
+    return;
+  }
+
+  const auto state = server.arg("state");
+  if (state == "on") {
+    digitalWrite(LED_BUILTIN, LOW);
+    server.send(200, "text/plain", "LED_IS_ON");
+  } else if (state == "off") {
+    digitalWrite(LED_BUILTIN, HIGH);
+    server.send(200, "text/plain", "LED_IS_OFF");
+  } else {
+    sendBadRequest();
+  }
+}
+
+void handleNotFound() {
+  server.send(404, "text/plain", "Not Found");
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println();
@@ -96,77 +123,19 @@ void setup() {
     enableAccessPoint();
   }
 
+  server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
+  server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
+  server.onNotFound(handleNotFound);
+
   server.begin();
-  server.setNoDelay(true);
-  Serial.printf("Server started, local IP: %s, access point IP: %s, port: %d\n", WiFi.localIP().toString().c_str(), WiFi.softAPIP().toString().c_str(), SERVER_PORT);
+  Serial.printf(
+    "HTTP server started, local IP: %s, access point IP: %s, port: %d\n",
+    WiFi.localIP().toString().c_str(),
+    WiFi.softAPIP().toString().c_str(),
+    HTTP_SERVER_PORT
+  );
 }
 
 void loop() {
-  WiFiClient client = server.available();
-  if (client) {
-    Serial.printf("Request from %s\n", client.remoteIP().toString().c_str());
-
-    MsgHeader msgHeader;
-    uint8_t msgPayload[256];
-
-    if (client.connected()
-        && client.readBytes(reinterpret_cast<uint8_t*>(&msgHeader), sizeof(MsgHeader)) == sizeof(MsgHeader)
-        && msgHeader.magic == MSG_HEADER_MAGIC
-        && (msgHeader.payloadSize == 0 || client.readBytes(msgPayload, msgHeader.payloadSize) == msgHeader.payloadSize)
-       ) {
-      switch (msgHeader.command) {
-        case MSG_COMMAND_PING:
-          client.print("tmp_response\n");
-          Serial.println("Handled ping");
-          break;
-        case MSG_COMMAND_SETUP_WIFI:
-          if (msgHeader.payloadSize >= 3) {
-            // payload should be <ssid>0x00<passphrase>
-            char ssid[32];
-            char passphrase[64];
-            bool parsed = false;
-            for (int i = 1; i < msgHeader.payloadSize - 1; ++i) {
-              if (msgPayload[i] == 0x00) {
-                memcpy(ssid, msgPayload, i + 1);
-                memcpy(passphrase, msgPayload + i + 1, msgHeader.payloadSize - i - 1);
-                passphrase[msgHeader.payloadSize - i - 1] = 0;
-                parsed = true;
-                break;
-              }
-            }
-
-            if (parsed) {
-              if (connectToWiFiOrEnableAP(ssid, passphrase)) {
-                client.print("WIFI_CONNECT_OK\n");
-                client.stop();
-                delay(10);
-                WiFi.softAPdisconnect(true);
-                Serial.println("Disabled access point because connected to wi-fi");
-                return;
-              } else {
-                client.print("WIFI_CONNECT_FAILED\n");
-              }
-            } else {
-              Serial.println("Bad setup wi-fi request (#2), ignoring");
-            }
-          } else {
-            Serial.println("Bad setup wi-fi request (#1), ignoring");
-          }
-          break;
-        case MSG_COMMAND_SET_LED:
-          if (msgHeader.payloadSize == 1) {
-            digitalWrite(LED_BUILTIN, (msgPayload[0] & 1) ? HIGH : LOW);
-            client.print("OK\n");
-            Serial.printf("Set LED to %d\n", msgPayload[0] & 1);
-          } else {
-            Serial.println("Bad set-LED request, ignoring");
-          }
-          break;
-      }
-    } else {
-      Serial.println("Bad request, ignoring");
-    }
-
-    client.stop();
-  }
+  server.handleClient();
 }
