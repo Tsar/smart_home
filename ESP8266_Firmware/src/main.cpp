@@ -5,7 +5,7 @@
 
 #define HTTP_SERVER_PORT 80
 
-//#define RESET_CONFIGURATION
+//#define RESET_CONFIGURATION  // Usage: uncomment; build & upload & run; comment; build & upload & run
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
@@ -157,6 +157,7 @@ void setup() {
 #endif
 
   homeCfg.load();
+  Serial.printf("Device name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
 
   server.on("/ping", HTTP_GET, handlePing);
   server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
