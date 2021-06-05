@@ -3,12 +3,28 @@
 
 #include "configuration.hpp"
 
+//#define RESET_CONFIGURATION  // Usage: uncomment; build & upload & run; comment; build & upload & run
+
 #define HTTP_SERVER_PORT 80
 
-//#define RESET_CONFIGURATION  // Usage: uncomment; build & upload & run; comment; build & upload & run
+#define INPUT_PIN 14  // for 50 Hz meander
+
+#define OUTPUT_PINS_COUNT VALUES_COUNT
+const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
+uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
+
+uint64_t inputChangeTime = 0;  // timestamp in microseconds
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
+
+ICACHE_RAM_ATTR void onInputChanged() {
+  inputChangeTime = micros64();
+  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+    digitalWrite(outputPins[i], LOW);
+    outputPinStates[i] = LOW;
+  }
+}
 
 void fastBlinkForever() {
   while (true) {
@@ -120,11 +136,53 @@ void handleSetBuiltinLED() {
   }
 }
 
+void handleGetValues() {
+  if (!checkPassword()) return;
+
+  String response = "Values:";
+  for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
+    response += " " + String(homeCfg.getValue(i));
+  }
+  server.send(200, "text/plain", response + "\n");
+}
+
+void handleSetValues() {
+  if (!checkPassword()) return;
+
+  bool anythingChanged = false;
+  for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
+    const String argName = "v" + String(i);
+    if (server.hasArg(argName)) {
+      const uint32_t value = server.arg(argName).toInt();
+      if (value != homeCfg.getValue(i)) {
+        homeCfg.setValue(i, value);
+        anythingChanged = true;
+      }
+    }
+  }
+
+  if (anythingChanged) {
+    homeCfg.save();
+    server.send(200, "text/plain", "Accepted\n");
+  } else {
+    server.send(200, "text/plain", "Nothing changed\n");
+  }
+}
+
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
 }
 
 void setup() {
+  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+    pinMode(outputPins[i], OUTPUT);
+    digitalWrite(outputPins[i], LOW);
+    outputPinStates[i] = LOW;
+  }
+
+  pinMode(INPUT_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputChanged, CHANGE);
+
   Serial.begin(115200);
   Serial.println();
 
@@ -135,7 +193,7 @@ void setup() {
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
 
-  struct station_config stationCfg;
+  station_config stationCfg;
   if (WiFi.getPersistent()) {
     wifi_station_get_config_default(&stationCfg);
   } else {
@@ -151,9 +209,7 @@ void setup() {
   }
 
 #ifdef RESET_CONFIGURATION
-  homeCfg.setName("new-device");
-  homeCfg.setPassword("12345");
-  homeCfg.save();
+  homeCfg.resetAndSave();
 #endif
 
   homeCfg.load();
@@ -162,6 +218,8 @@ void setup() {
   server.on("/ping", HTTP_GET, handlePing);
   server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
+  server.on("/get_values", HTTP_GET, handleGetValues);
+  server.on("/set_values", HTTP_ANY, handleSetValues);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};
@@ -172,5 +230,13 @@ void setup() {
 }
 
 void loop() {
+  const uint64_t now = micros64();
+  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+    if (outputPinStates[i] == LOW && now - inputChangeTime >= homeCfg.getValue(i)) {
+      digitalWrite(outputPins[i], HIGH);
+      outputPinStates[i] = HIGH;
+    }
+  }
+
   server.handleClient();
 }

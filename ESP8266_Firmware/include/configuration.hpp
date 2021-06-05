@@ -1,5 +1,7 @@
 #include <WString.h>
 
+#define VALUES_COUNT 4
+
 namespace smart_home {
 
 class Configuration {
@@ -11,23 +13,24 @@ class Configuration {
         void load();
         void save() const;
 
+        void resetAndSave();
+
         String getName() const;
         void setName(const String& name);
 
         String getPassword() const;
         void setPassword(const String& password);
 
+        uint32_t getValue(uint8_t index) const;
+        void setValue(uint8_t index, uint32_t value);
+
     private:
-        uint16_t readUInt16(int& pos) const;
-        String readString(int& pos) const;
-
-        void writeUInt16(int& pos, uint16_t value) const;
-        void writeString(int& pos, const String& value) const;
-
         String ip_;
 
         String name_;
-        String password_;  // password for managing device, NOT wi-fi passphrase
+        String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
+
+        uint32_t values_[VALUES_COUNT];
 };
 
 }
