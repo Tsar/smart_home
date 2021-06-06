@@ -13,17 +13,14 @@
 const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
 uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
 
-uint64_t inputChangeTime = 0;  // timestamp in microseconds
+bool resetOutputsToLow = false;
+uint64_t resetOutputsTime = 0;  // timestamp in microseconds
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
 ICACHE_RAM_ATTR void onInputChanged() {
-  inputChangeTime = micros64();
-  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-    digitalWrite(outputPins[i], LOW);
-    outputPinStates[i] = LOW;
-  }
+  resetOutputsToLow = true;
 }
 
 void fastBlinkForever() {
@@ -180,7 +177,7 @@ void setup() {
     outputPinStates[i] = LOW;
   }
 
-  pinMode(INPUT_PIN, INPUT_PULLUP);
+  pinMode(INPUT_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputChanged, CHANGE);
 
   Serial.begin(115200);
@@ -230,9 +227,18 @@ void setup() {
 }
 
 void loop() {
+  if (resetOutputsToLow) {
+    resetOutputsToLow = false;
+    resetOutputsTime = micros64();
+    for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+      digitalWrite(outputPins[i], LOW);
+      outputPinStates[i] = LOW;
+    }
+  }
+
   const uint64_t now = micros64();
   for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-    if (outputPinStates[i] == LOW && now - inputChangeTime >= homeCfg.getValue(i)) {
+    if (outputPinStates[i] == LOW && now - resetOutputsTime >= homeCfg.getValue(i)) {
       digitalWrite(outputPins[i], HIGH);
       outputPinStates[i] = HIGH;
     }
