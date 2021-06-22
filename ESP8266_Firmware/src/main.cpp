@@ -228,11 +228,9 @@ void setup() {
 void loop() {
   if (inputFallEvent) {
     inputFallEvent = false;
-    if (outputPinStates[0] == 4) {
-      inputFallTime = micros64();
-      for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-        outputPinStates[i] = 0;
-      }
+    inputFallTime = micros64();
+    for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+      outputPinStates[i] = 0;
     }
   }
 
