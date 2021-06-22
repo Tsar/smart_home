@@ -13,16 +13,14 @@
 const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
 uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
 
+volatile bool inputFallEvent = false;
 uint64_t inputFallTime = 0;  // timestamp in microseconds
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
 ICACHE_RAM_ATTR void onInputFall() {
-  inputFallTime = micros64();
-  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-    outputPinStates[i] = 0;
-  }
+  inputFallEvent = true;
 }
 
 void fastBlinkForever() {
@@ -228,6 +226,16 @@ void setup() {
 }
 
 void loop() {
+  if (inputFallEvent) {
+    inputFallEvent = false;
+    if (outputPinStates[0] == 4) {
+      inputFallTime = micros64();
+      for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+        outputPinStates[i] = 0;
+      }
+    }
+  }
+
   const uint64_t now = micros64();
   for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
     uint32_t offsetMicros = homeCfg.getValue(i);
