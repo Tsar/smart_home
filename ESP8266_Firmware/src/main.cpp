@@ -13,14 +13,16 @@
 const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
 uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
 
-bool resetOutputsToLow = false;
-uint64_t resetOutputsTime = 0;  // timestamp in microseconds
+uint64_t inputFallTime = 0;  // timestamp in microseconds
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
-ICACHE_RAM_ATTR void onInputChanged() {
-  resetOutputsToLow = true;
+ICACHE_RAM_ATTR void onInputFall() {
+  inputFallTime = micros64();
+  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+    outputPinStates[i] = 0;
+  }
 }
 
 void fastBlinkForever() {
@@ -174,11 +176,10 @@ void setup() {
   for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
     pinMode(outputPins[i], OUTPUT);
     digitalWrite(outputPins[i], LOW);
-    outputPinStates[i] = LOW;
   }
 
   pinMode(INPUT_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputChanged, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputFall, FALLING);
 
   Serial.begin(115200);
   Serial.println();
@@ -227,20 +228,34 @@ void setup() {
 }
 
 void loop() {
-  if (resetOutputsToLow) {
-    resetOutputsToLow = false;
-    resetOutputsTime = micros64();
-    for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-      digitalWrite(outputPins[i], LOW);
-      outputPinStates[i] = LOW;
-    }
-  }
-
   const uint64_t now = micros64();
   for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-    if (outputPinStates[i] == LOW && now - resetOutputsTime >= homeCfg.getValue(i)) {
-      digitalWrite(outputPins[i], HIGH);
-      outputPinStates[i] = HIGH;
+    uint32_t offsetMicros = homeCfg.getValue(i);
+    switch (outputPinStates[i]) {
+      case 0:
+        if (now >= inputFallTime + offsetMicros) {
+          digitalWrite(outputPins[i], HIGH);
+          outputPinStates[i] = 1;
+        }
+        break;
+      case 1:
+        if (now >= inputFallTime + offsetMicros + 100) {
+          digitalWrite(outputPins[i], LOW);
+          outputPinStates[i] = 2;
+        }
+        break;
+      case 2:
+        if (now >= inputFallTime + offsetMicros + 10000) {
+          digitalWrite(outputPins[i], HIGH);
+          outputPinStates[i] = 3;
+        }
+        break;
+      case 3:
+        if (now >= inputFallTime + offsetMicros + 10100) {
+          digitalWrite(outputPins[i], LOW);
+          outputPinStates[i] = 4;
+        }
+        break;
     }
   }
 
