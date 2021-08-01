@@ -11,16 +11,47 @@
 
 #define OUTPUT_PINS_COUNT VALUES_COUNT
 const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
-uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
 
-volatile bool inputFallEvent = false;
-uint64_t inputFallTime = 0;  // timestamp in microseconds
+volatile uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
+volatile uint32_t offsetMicros[OUTPUT_PINS_COUNT] = {};
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
+ICACHE_RAM_ATTR void onTimerISR() {
+  const uint8_t i = 0;  // working only for pin 4 currently
+  switch (outputPinStates[i]) {
+    case 0:
+      timer1_write(500);
+      digitalWrite(outputPins[i], HIGH);
+      outputPinStates[i] = 1;
+      break;
+    case 1:
+      timer1_write(49500);
+      digitalWrite(outputPins[i], LOW);
+      outputPinStates[i] = 2;
+      break;
+    case 2:
+      timer1_write(500);
+      digitalWrite(outputPins[i], HIGH);
+      outputPinStates[i] = 3;
+      break;
+    case 3:
+      digitalWrite(outputPins[i], LOW);
+      outputPinStates[i] = 4;
+      break;
+  }
+}
+
 ICACHE_RAM_ATTR void onInputFall() {
-  inputFallEvent = true;
+  timer1_write(5 * offsetMicros[0]);
+  outputPinStates[0] = 0;
+}
+
+void fillOffsetMicros() {
+  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+    offsetMicros[i] = homeCfg.getValue(i);
+  }
 }
 
 void fastBlinkForever() {
@@ -159,6 +190,7 @@ void handleSetValues() {
   }
 
   if (anythingChanged) {
+    fillOffsetMicros();
     homeCfg.save();
     server.send(200, "text/plain", "Accepted\n");
   } else {
@@ -175,6 +207,16 @@ void setup() {
     pinMode(outputPins[i], OUTPUT);
     digitalWrite(outputPins[i], LOW);
   }
+
+#ifdef RESET_CONFIGURATION
+  homeCfg.resetAndSave();
+#endif
+  homeCfg.load();
+  fillOffsetMicros();
+  Serial.printf("Device name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
+
+  timer1_attachInterrupt(onTimerISR);
+  timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
 
   pinMode(INPUT_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputFall, FALLING);
@@ -204,13 +246,6 @@ void setup() {
     enableAccessPoint();
   }
 
-#ifdef RESET_CONFIGURATION
-  homeCfg.resetAndSave();
-#endif
-
-  homeCfg.load();
-  Serial.printf("Device name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
-
   server.on("/ping", HTTP_GET, handlePing);
   server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
@@ -226,44 +261,5 @@ void setup() {
 }
 
 void loop() {
-  if (inputFallEvent) {
-    inputFallEvent = false;
-    inputFallTime = micros64();
-    for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-      outputPinStates[i] = 0;
-    }
-  }
-
-  const uint64_t now = micros64();
-  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-    uint32_t offsetMicros = homeCfg.getValue(i);
-    switch (outputPinStates[i]) {
-      case 0:
-        if (now >= inputFallTime + offsetMicros) {
-          digitalWrite(outputPins[i], HIGH);
-          outputPinStates[i] = 1;
-        }
-        break;
-      case 1:
-        if (now >= inputFallTime + offsetMicros + 100) {
-          digitalWrite(outputPins[i], LOW);
-          outputPinStates[i] = 2;
-        }
-        break;
-      case 2:
-        if (now >= inputFallTime + offsetMicros + 10000) {
-          digitalWrite(outputPins[i], HIGH);
-          outputPinStates[i] = 3;
-        }
-        break;
-      case 3:
-        if (now >= inputFallTime + offsetMicros + 10100) {
-          digitalWrite(outputPins[i], LOW);
-          outputPinStates[i] = 4;
-        }
-        break;
-    }
-  }
-
   server.handleClient();
 }
