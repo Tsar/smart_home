@@ -9,16 +9,20 @@
 
 #define HTTP_SERVER_PORT 80
 
+#define DIMMER_PREFIX   "dim"
+#define SWITCHER_PREFIX "sw"
+
 #define INPUT_PIN 14  // for 50 Hz meander
 
 volatile uint32_t inputFallTimeMs = 0;
 
 const uint8_t DIMMER_PINS[DIMMER_PINS_COUNT] = {4, 5, 12};
+const uint8_t SWITCHER_PINS[SWITCHER_PINS_COUNT] = {13, 15};
 
 #define MICROS_CHANGE_STEP 40
 
-volatile int32_t offsetMicros[DIMMER_PINS_COUNT] = {};
-volatile int32_t targetOffsetMicros[DIMMER_PINS_COUNT] = {};
+volatile int32_t dimmerMicros[DIMMER_PINS_COUNT] = {};
+volatile int32_t targetDimmerMicros[DIMMER_PINS_COUNT] = {};
 
 struct Event {
   uint32_t ticks;  // число тиков таймера, начиная от input fall
@@ -43,9 +47,9 @@ smart_home::Configuration homeCfg;
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const int32_t delta = targetOffsetMicros[i] - offsetMicros[i];
+    const int32_t delta = targetDimmerMicros[i] - dimmerMicros[i];
     if (delta != 0) {
-      offsetMicros[i] += std::abs(delta) > MICROS_CHANGE_STEP ? SIGN(delta) * MICROS_CHANGE_STEP : delta;
+      dimmerMicros[i] += std::abs(delta) > MICROS_CHANGE_STEP ? SIGN(delta) * MICROS_CHANGE_STEP : delta;
     }
   }
 }
@@ -54,7 +58,7 @@ ICACHE_RAM_ATTR void smoothLightnessChange() {
 ICACHE_RAM_ATTR void createEventsQueue() {
   uint8_t ev = 0;
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const uint32_t offsetTicks = 5 * offsetMicros[i];
+    const uint32_t offsetTicks = 5 * dimmerMicros[i];
     for (uint8_t j = 0; j < DIMMER_EVENTS_COUNT; ++j) {
       eventsQueue[ev].pin = DIMMER_PINS[i];
       eventsQueue[ev].ticks = offsetTicks + EVENT_ADDITIONAL_OFFSETS[j];
@@ -109,12 +113,18 @@ ICACHE_RAM_ATTR void onTimerISR() {
   }
 }
 
-void fillOffsetMicros(bool fillCurrent = false) {
+void fillDimmerMicros(bool fillCurrent = false) {
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    targetOffsetMicros[i] = homeCfg.getValue(i);
+    targetDimmerMicros[i] = homeCfg.getDimmerValue(i);
     if (fillCurrent) {
-      offsetMicros[i] = targetOffsetMicros[i];
+      dimmerMicros[i] = targetDimmerMicros[i];
     }
+  }
+}
+
+void applySwitcherValues() {
+  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+    digitalWrite(SWITCHER_PINS[i], homeCfg.getSwitcherValue(i) ? HIGH : LOW);
   }
 }
 
@@ -228,53 +238,63 @@ void handleSetBuiltinLED() {
   }
 }
 
+String generateValuesString() {
+  String result;
+  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+    result += DIMMER_PREFIX + String(i) + ": " + String(homeCfg.getDimmerValue(i)) + "\n";
+  }
+  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+    result += SWITCHER_PREFIX + String(i) + ": " + (homeCfg.getSwitcherValue(i) ? "on" : "off") + "\n";
+  }
+  return result;
+}
+
 void handleGetValues() {
   if (!checkPassword()) return;
 
-  String response = "Values:";
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    response += " " + String(homeCfg.getValue(i));
-  }
-  server.send(200, "text/plain", response + "\n");
+  server.send(200, "text/plain", generateValuesString());
 }
 
 void handleSetValues() {
   if (!checkPassword()) return;
 
-  bool anythingChanged = false;
+  bool dimmersChanged = false;
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const String argName = "v" + String(i);
+    const String argName = DIMMER_PREFIX + String(i);
     if (server.hasArg(argName)) {
       const int32_t value = server.arg(argName).toInt();
-      if (value != homeCfg.getValue(i)) {
-        homeCfg.setValue(i, value);
-        anythingChanged = true;
+      if (value != homeCfg.getDimmerValue(i)) {
+        homeCfg.setDimmerValue(i, value);
+        dimmersChanged = true;
       }
     }
   }
 
-  if (anythingChanged) {
-    fillOffsetMicros();
+  bool switchersChanged = false;
+  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+    const String argName = SWITCHER_PREFIX + String(i);
+    if (server.hasArg(argName)) {
+      const bool value = server.arg(argName).toInt();
+      if (value != homeCfg.getSwitcherValue(i)) {
+        homeCfg.setSwitcherValue(i, value);
+        switchersChanged = true;
+      }
+    }
+  }
+
+  if (dimmersChanged || switchersChanged) {
+    if (dimmersChanged) {
+      fillDimmerMicros();
+    }
+    if (switchersChanged) {
+      applySwitcherValues();
+    }
     homeCfg.save();
-    server.send(200, "text/plain", "Accepted\n");
+    server.send(200, "text/plain", "Accepted\n" + generateValuesString());
   } else {
     server.send(200, "text/plain", "Nothing changed\n");
   }
 }
-
-/*
-void handleDebug() {
-  if (!checkPassword()) return;
-
-  createEventsQueue();
-  String result = "Events queue:\n";
-  for (uint8_t i = 0; i < EVENTS_COUNT; ++i) {
-    const auto& event = eventsQueue[i];
-    result += String(i) + ": " + String(event.ticks) + ", " + String(event.pin) + ", " + String(event.value) + "\n";
-  }
-  server.send(200, "text/plain", result);
-}
-*/
 
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
@@ -285,13 +305,19 @@ void setup() {
     pinMode(DIMMER_PINS[i], OUTPUT);
     digitalWrite(DIMMER_PINS[i], LOW);
   }
+  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+    pinMode(SWITCHER_PINS[i], OUTPUT);
+  }
 
 #ifdef RESET_CONFIGURATION
   homeCfg.resetAndSave();
 #endif
   homeCfg.load();
-  fillOffsetMicros(true);
+
+  fillDimmerMicros(true);
   createEventsQueue();
+  applySwitcherValues();
+
   Serial.printf("Device name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
 
   timer1_attachInterrupt(onTimerISR);
@@ -330,7 +356,6 @@ void setup() {
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
   server.on("/get_values", HTTP_GET, handleGetValues);
   server.on("/set_values", HTTP_ANY, handleSetValues);
-  //server.on("/debug", HTTP_ANY, handleDebug);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};

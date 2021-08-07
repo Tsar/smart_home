@@ -43,6 +43,14 @@ void writeInt32(int& pos, int32_t value) {
     writeT(pos, value);
 }
 
+bool readBool(int& pos) {
+    return readT<bool>(pos);
+}
+
+void writeBool(int& pos, bool value) {
+    writeT(pos, value);
+}
+
 String readString(int& pos) {
     const uint16_t length = readUInt16(pos);
     String result;
@@ -75,7 +83,10 @@ void Configuration::load() {
     name_ = readString(pos);
     password_ = readString(pos);
     for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-        values_[i] = readInt32(pos);
+        dimmers_[i] = readInt32(pos);
+    }
+    for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+        switchers_[i] = readBool(pos);
     }
 }
 
@@ -84,7 +95,10 @@ void Configuration::save() const {
     writeString(pos, name_);
     writeString(pos, password_);
     for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-        writeInt32(pos, values_[i]);
+        writeInt32(pos, dimmers_[i]);
+    }
+    for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+        writeBool(pos, switchers_[i]);
     }
     EEPROM.commit();
 }
@@ -93,7 +107,10 @@ void Configuration::resetAndSave() {
     setName("new-device");
     setPassword("12345");
     for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-        setValue(i, 8100);
+        setDimmerValue(i, 8100);
+    }
+    for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+        setSwitcherValue(i, false);
     }
 
     save();
@@ -115,12 +132,20 @@ void Configuration::setPassword(const String& password) {
     password_ = password;
 }
 
-int32_t Configuration::getValue(uint8_t index) const {
-    return values_[index];
+int32_t Configuration::getDimmerValue(uint8_t index) const {
+    return dimmers_[index];
 }
 
-void Configuration::setValue(uint8_t index, int32_t value) {
-    values_[index] = value;
+void Configuration::setDimmerValue(uint8_t index, int32_t value) {
+    dimmers_[index] = value;
+}
+
+bool Configuration::getSwitcherValue(uint8_t index) const {
+    return switchers_[index];
+}
+
+void Configuration::setSwitcherValue(uint8_t index, bool value) {
+    switchers_[index] = value;
 }
 
 }
