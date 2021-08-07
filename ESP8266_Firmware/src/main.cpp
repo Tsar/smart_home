@@ -318,19 +318,17 @@ void setup() {
   createEventsQueue();
   applySwitcherValues();
 
-  Serial.printf("Device name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
-
   timer1_attachInterrupt(onTimerISR);
   timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
 
   pinMode(INPUT_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputFall, FALLING);
 
-  Serial.begin(115200);
-  Serial.println();
-
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
+
+  Serial.begin(115200);
+  Serial.printf("\nDevice name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
 
   // Just to be sure
   WiFi.setAutoConnect(true);
