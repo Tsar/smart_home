@@ -74,7 +74,7 @@ void Configuration::load() {
     int pos = 0;
     name_ = readString(pos);
     password_ = readString(pos);
-    for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
+    for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
         values_[i] = readInt32(pos);
     }
 }
@@ -83,7 +83,7 @@ void Configuration::save() const {
     int pos = 0;
     writeString(pos, name_);
     writeString(pos, password_);
-    for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
+    for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
         writeInt32(pos, values_[i]);
     }
     EEPROM.commit();
@@ -92,8 +92,8 @@ void Configuration::save() const {
 void Configuration::resetAndSave() {
     setName("new-device");
     setPassword("12345");
-    for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
-        setValue(i, 0);
+    for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+        setValue(i, 8100);
     }
 
     save();

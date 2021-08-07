@@ -13,42 +13,32 @@
 
 volatile uint32_t inputFallTimeMs = 0;
 
-#define OUTPUT_PINS_COUNT VALUES_COUNT
-const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
+const uint8_t DIMMER_PINS[DIMMER_OUTPUTS_COUNT] = {4, 5, 12};
 
 #define MICROS_CHANGE_STEP 40
 
-volatile uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
-volatile int32_t offsetMicros[OUTPUT_PINS_COUNT] = {};
-volatile int32_t targetOffsetMicros[OUTPUT_PINS_COUNT] = {};
+volatile int32_t offsetMicros[DIMMER_OUTPUTS_COUNT] = {};
+volatile int32_t targetOffsetMicros[DIMMER_OUTPUTS_COUNT] = {};
+
+struct Event {
+  uint32_t ticks;  // число тиков таймера, начиная от input fall
+  uint8_t pin;
+  uint8_t value;
+};
+
+#define DIMMER_EVENTS_COUNT 4  // число событий для одного выхода диммера
+
+// настройки событий
+const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 49500, 500};
+const uint8_t  EVENT_VALUES            [DIMMER_EVENTS_COUNT] = {HIGH, LOW, HIGH, LOW};
+
+#define EVENTS_COUNT (DIMMER_OUTPUTS_COUNT * DIMMER_EVENTS_COUNT)
+
+Event eventsQueue[EVENTS_COUNT];
+volatile uint8_t nextEventId = EVENTS_COUNT;
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
-
-ICACHE_RAM_ATTR void onTimerISR() {
-  const uint8_t i = 0;  // working only for pin 4 currently
-  switch (outputPinStates[i]) {
-    case 0:
-      timer1_write(500);
-      digitalWrite(outputPins[i], HIGH);
-      outputPinStates[i] = 1;
-      break;
-    case 1:
-      timer1_write(49500);
-      digitalWrite(outputPins[i], LOW);
-      outputPinStates[i] = 2;
-      break;
-    case 2:
-      timer1_write(500);
-      digitalWrite(outputPins[i], HIGH);
-      outputPinStates[i] = 3;
-      break;
-    case 3:
-      digitalWrite(outputPins[i], LOW);
-      outputPinStates[i] = 4;
-      break;
-  }
-}
 
 ICACHE_RAM_ATTR void onInputFall() {
   // защита от многократных срабатываний на одном FALLING
@@ -58,19 +48,46 @@ ICACHE_RAM_ATTR void onInputFall() {
   inputFallTimeMs = now;
 
   // плавное изменение яркости
-  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
     const int32_t delta = targetOffsetMicros[i] - offsetMicros[i];
     if (delta != 0) {
       offsetMicros[i] += std::abs(delta) > MICROS_CHANGE_STEP ? SIGN(delta) * MICROS_CHANGE_STEP : delta;
     }
   }
 
-  timer1_write(5 * offsetMicros[0]);
-  outputPinStates[0] = 0;
+  // формируем очередь событий, актуальную до следующего input fall;
+  // нужно из-за того, что у нас всего 1 hardware timer в распоряжении
+  uint8_t ev = 0;
+  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+    const uint32_t offsetTicks = 5 * offsetMicros[i];
+    for (uint8_t j = 0; j < DIMMER_EVENTS_COUNT; ++j) {
+      eventsQueue[ev].pin = DIMMER_PINS[i];
+      eventsQueue[ev].ticks = offsetTicks + EVENT_ADDITIONAL_OFFSETS[j];
+      eventsQueue[ev].value = EVENT_VALUES[j];
+      ++ev;
+    }
+  }
+  std::sort(eventsQueue, eventsQueue + EVENTS_COUNT, [](const Event& ev1, const Event& ev2) {
+    return ev1.ticks < ev2.ticks;
+  });
+
+  nextEventId = 0;
+  timer1_write(eventsQueue[0].ticks);
+}
+
+ICACHE_RAM_ATTR void onTimerISR() {
+  if (nextEventId >= EVENTS_COUNT) return;
+  const auto& event = eventsQueue[nextEventId++];
+
+  if (nextEventId < EVENTS_COUNT) {
+    timer1_write(eventsQueue[nextEventId].ticks - event.ticks);
+  }
+
+  digitalWrite(event.pin, event.value);
 }
 
 void fillOffsetMicros(bool fillCurrent = false) {
-  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
     targetOffsetMicros[i] = homeCfg.getValue(i);
     if (fillCurrent) {
       offsetMicros[i] = targetOffsetMicros[i];
@@ -192,7 +209,7 @@ void handleGetValues() {
   if (!checkPassword()) return;
 
   String response = "Values:";
-  for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
     response += " " + String(homeCfg.getValue(i));
   }
   server.send(200, "text/plain", response + "\n");
@@ -202,7 +219,7 @@ void handleSetValues() {
   if (!checkPassword()) return;
 
   bool anythingChanged = false;
-  for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
     const String argName = "v" + String(i);
     if (server.hasArg(argName)) {
       const int32_t value = server.arg(argName).toInt();
@@ -227,9 +244,9 @@ void handleNotFound() {
 }
 
 void setup() {
-  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-    pinMode(outputPins[i], OUTPUT);
-    digitalWrite(outputPins[i], LOW);
+  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+    pinMode(DIMMER_PINS[i], OUTPUT);
+    digitalWrite(DIMMER_PINS[i], LOW);
   }
 
 #ifdef RESET_CONFIGURATION
