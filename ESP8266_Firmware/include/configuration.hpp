@@ -1,6 +1,8 @@
+#pragma once
+
 #include <WString.h>
 
-#define DIMMER_OUTPUTS_COUNT 3
+#define DIMMER_PINS_COUNT 3
 
 namespace smart_home {
 
@@ -30,7 +32,7 @@ class Configuration {
         String name_;
         String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
 
-        int32_t values_[DIMMER_OUTPUTS_COUNT];
+        int32_t values_[DIMMER_PINS_COUNT];
 };
 
 }

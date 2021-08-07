@@ -13,12 +13,12 @@
 
 volatile uint32_t inputFallTimeMs = 0;
 
-const uint8_t DIMMER_PINS[DIMMER_OUTPUTS_COUNT] = {4, 5, 12};
+const uint8_t DIMMER_PINS[DIMMER_PINS_COUNT] = {4, 5, 12};
 
 #define MICROS_CHANGE_STEP 40
 
-volatile int32_t offsetMicros[DIMMER_OUTPUTS_COUNT] = {};
-volatile int32_t targetOffsetMicros[DIMMER_OUTPUTS_COUNT] = {};
+volatile int32_t offsetMicros[DIMMER_PINS_COUNT] = {};
+volatile int32_t targetOffsetMicros[DIMMER_PINS_COUNT] = {};
 
 struct Event {
   uint32_t ticks;  // число тиков таймера, начиная от input fall
@@ -32,33 +32,28 @@ struct Event {
 const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 50000, 50500};
 const uint8_t  EVENT_VALUES            [DIMMER_EVENTS_COUNT] = {HIGH, LOW, HIGH, LOW};
 
-#define EVENTS_COUNT (DIMMER_OUTPUTS_COUNT * DIMMER_EVENTS_COUNT)
+#define EVENTS_COUNT (DIMMER_PINS_COUNT * DIMMER_EVENTS_COUNT)
 
-Event eventsQueue[EVENTS_COUNT];
+volatile Event eventsQueue[EVENTS_COUNT];
 volatile uint8_t nextEventId = EVENTS_COUNT;
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
-ICACHE_RAM_ATTR void onInputFall() {
-  // защита от многократных срабатываний на одном FALLING
-  // и от срабатываний на RISING, которые тоже иногда случались
-  const uint32_t now = millis();
-  if (now - inputFallTimeMs < 15) return;
-  inputFallTimeMs = now;
-
-  // плавное изменение яркости
-  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+// Плавное изменение яркости
+ICACHE_RAM_ATTR void smoothLightnessChange() {
+  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
     const int32_t delta = targetOffsetMicros[i] - offsetMicros[i];
     if (delta != 0) {
       offsetMicros[i] += std::abs(delta) > MICROS_CHANGE_STEP ? SIGN(delta) * MICROS_CHANGE_STEP : delta;
     }
   }
+}
 
-  // формируем очередь событий, актуальную до следующего input fall;
-  // нужно из-за того, что у нас всего 1 hardware timer в распоряжении
+// Формируем новую очередь событий, начнутся со следующего input fall
+ICACHE_RAM_ATTR void createEventsQueue() {
   uint8_t ev = 0;
-  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
     const uint32_t offsetTicks = 5 * offsetMicros[i];
     for (uint8_t j = 0; j < DIMMER_EVENTS_COUNT; ++j) {
       eventsQueue[ev].pin = DIMMER_PINS[i];
@@ -67,9 +62,25 @@ ICACHE_RAM_ATTR void onInputFall() {
       ++ev;
     }
   }
-  std::sort(eventsQueue, eventsQueue + EVENTS_COUNT, [](const Event& ev1, const Event& ev2) {
-    return ev1.ticks < ev2.ticks;
-  });
+
+  // bubble sort is good enough for 12 elements
+  for (uint8_t i = 0; i < EVENTS_COUNT - 1; ++i) {
+    for (uint8_t j = 0; j < EVENTS_COUNT - i - 1; ++j) {
+      if (eventsQueue[j].ticks > eventsQueue[j + 1].ticks) {
+        std::swap(eventsQueue[j].ticks, eventsQueue[j + 1].ticks);
+        std::swap(eventsQueue[j].pin, eventsQueue[j + 1].pin);
+        std::swap(eventsQueue[j].value, eventsQueue[j + 1].value);
+      }
+    }
+  }
+}
+
+ICACHE_RAM_ATTR void onInputFall() {
+  // защита от многократных срабатываний на одном FALLING
+  // и от срабатываний на RISING, которые тоже иногда случались
+  const uint32_t now = millis();
+  if (now - inputFallTimeMs < 15) return;
+  inputFallTimeMs = now;
 
   nextEventId = 0;
   timer1_write(eventsQueue[0].ticks);
@@ -77,16 +88,29 @@ ICACHE_RAM_ATTR void onInputFall() {
 
 ICACHE_RAM_ATTR void onTimerISR() {
   if (nextEventId >= EVENTS_COUNT) return;
+
+  // выполнить event
   const auto& event = eventsQueue[nextEventId++];
   digitalWrite(event.pin, event.value);
 
+  // выполнить все следующие event'ы с такой же меткой времени
+  while (nextEventId < EVENTS_COUNT && eventsQueue[nextEventId].ticks == event.ticks) {
+    const auto& nextEvent = eventsQueue[nextEventId];
+    digitalWrite(nextEvent.pin, nextEvent.value);
+    ++nextEventId;
+  }
+
   if (nextEventId < EVENTS_COUNT) {
-    timer1_write(eventsQueue[nextEventId].ticks - event.ticks);
+    timer1_write(eventsQueue[nextEventId].ticks - event.ticks);  // аргумент будет >= 5
+  } else {
+    // после выполнения всех event'ов
+    smoothLightnessChange();
+    createEventsQueue();
   }
 }
 
 void fillOffsetMicros(bool fillCurrent = false) {
-  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
     targetOffsetMicros[i] = homeCfg.getValue(i);
     if (fillCurrent) {
       offsetMicros[i] = targetOffsetMicros[i];
@@ -208,7 +232,7 @@ void handleGetValues() {
   if (!checkPassword()) return;
 
   String response = "Values:";
-  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
     response += " " + String(homeCfg.getValue(i));
   }
   server.send(200, "text/plain", response + "\n");
@@ -218,7 +242,7 @@ void handleSetValues() {
   if (!checkPassword()) return;
 
   bool anythingChanged = false;
-  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
     const String argName = "v" + String(i);
     if (server.hasArg(argName)) {
       const int32_t value = server.arg(argName).toInt();
@@ -238,12 +262,26 @@ void handleSetValues() {
   }
 }
 
+/*
+void handleDebug() {
+  if (!checkPassword()) return;
+
+  createEventsQueue();
+  String result = "Events queue:\n";
+  for (uint8_t i = 0; i < EVENTS_COUNT; ++i) {
+    const auto& event = eventsQueue[i];
+    result += String(i) + ": " + String(event.ticks) + ", " + String(event.pin) + ", " + String(event.value) + "\n";
+  }
+  server.send(200, "text/plain", result);
+}
+*/
+
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
 }
 
 void setup() {
-  for (uint8_t i = 0; i < DIMMER_OUTPUTS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
     pinMode(DIMMER_PINS[i], OUTPUT);
     digitalWrite(DIMMER_PINS[i], LOW);
   }
@@ -253,6 +291,7 @@ void setup() {
 #endif
   homeCfg.load();
   fillOffsetMicros(true);
+  createEventsQueue();
   Serial.printf("Device name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
 
   timer1_attachInterrupt(onTimerISR);
@@ -291,6 +330,7 @@ void setup() {
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
   server.on("/get_values", HTTP_GET, handleGetValues);
   server.on("/set_values", HTTP_ANY, handleSetValues);
+  //server.on("/debug", HTTP_ANY, handleDebug);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};
