@@ -3,6 +3,8 @@
 
 #include "configuration.hpp"
 
+#define SIGN(val) (val > 0 ? 1 : (val < 0 ? -1 : 0))
+
 //#define RESET_CONFIGURATION  // Usage: uncomment; build & upload & run; comment; build & upload & run
 
 #define HTTP_SERVER_PORT 80
@@ -14,8 +16,11 @@ volatile uint32_t inputFallTimeMs = 0;
 #define OUTPUT_PINS_COUNT VALUES_COUNT
 const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
 
+#define MICROS_CHANGE_STEP 40
+
 volatile uint8_t outputPinStates[OUTPUT_PINS_COUNT] = {};
-volatile uint32_t offsetMicros[OUTPUT_PINS_COUNT] = {};
+volatile int32_t offsetMicros[OUTPUT_PINS_COUNT] = {};
+volatile int32_t targetOffsetMicros[OUTPUT_PINS_COUNT] = {};
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
@@ -46,17 +51,30 @@ ICACHE_RAM_ATTR void onTimerISR() {
 }
 
 ICACHE_RAM_ATTR void onInputFall() {
+  // защита от многократных срабатываний на одном FALLING
+  // и от срабатываний на RISING, которые тоже иногда случались
   const uint32_t now = millis();
   if (now - inputFallTimeMs < 15) return;
   inputFallTimeMs = now;
+
+  // плавное изменение яркости
+  for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
+    const int32_t delta = targetOffsetMicros[i] - offsetMicros[i];
+    if (delta != 0) {
+      offsetMicros[i] += std::abs(delta) > MICROS_CHANGE_STEP ? SIGN(delta) * MICROS_CHANGE_STEP : delta;
+    }
+  }
 
   timer1_write(5 * offsetMicros[0]);
   outputPinStates[0] = 0;
 }
 
-void fillOffsetMicros() {
+void fillOffsetMicros(bool fillCurrent = false) {
   for (uint8_t i = 0; i < OUTPUT_PINS_COUNT; ++i) {
-    offsetMicros[i] = homeCfg.getValue(i);
+    targetOffsetMicros[i] = homeCfg.getValue(i);
+    if (fillCurrent) {
+      offsetMicros[i] = targetOffsetMicros[i];
+    }
   }
 }
 
@@ -187,7 +205,7 @@ void handleSetValues() {
   for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
     const String argName = "v" + String(i);
     if (server.hasArg(argName)) {
-      const uint32_t value = server.arg(argName).toInt();
+      const int32_t value = server.arg(argName).toInt();
       if (value != homeCfg.getValue(i)) {
         homeCfg.setValue(i, value);
         anythingChanged = true;
@@ -218,7 +236,7 @@ void setup() {
   homeCfg.resetAndSave();
 #endif
   homeCfg.load();
-  fillOffsetMicros();
+  fillOffsetMicros(true);
   Serial.printf("Device name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
 
   timer1_attachInterrupt(onTimerISR);

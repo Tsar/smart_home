@@ -1,4 +1,4 @@
-# include "configuration.hpp"
+#include "configuration.hpp"
 
 #include <EEPROM.h>
 
@@ -35,11 +35,11 @@ void writeUInt16(int& pos, uint16_t value) {
     writeT(pos, value);
 }
 
-uint32_t readUInt32(int& pos) {
-    return readT<uint32_t>(pos);
+int32_t readInt32(int& pos) {
+    return readT<int32_t>(pos);
 }
 
-void writeUInt32(int& pos, uint32_t value) {
+void writeInt32(int& pos, int32_t value) {
     writeT(pos, value);
 }
 
@@ -75,7 +75,7 @@ void Configuration::load() {
     name_ = readString(pos);
     password_ = readString(pos);
     for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
-        values_[i] = readUInt32(pos);
+        values_[i] = readInt32(pos);
     }
 }
 
@@ -84,7 +84,7 @@ void Configuration::save() const {
     writeString(pos, name_);
     writeString(pos, password_);
     for (uint8_t i = 0; i < VALUES_COUNT; ++i) {
-        writeUInt32(pos, values_[i]);
+        writeInt32(pos, values_[i]);
     }
     EEPROM.commit();
 }
@@ -115,11 +115,11 @@ void Configuration::setPassword(const String& password) {
     password_ = password;
 }
 
-uint32_t Configuration::getValue(uint8_t index) const {
+int32_t Configuration::getValue(uint8_t index) const {
     return values_[index];
 }
 
-void Configuration::setValue(uint8_t index, uint32_t value) {
+void Configuration::setValue(uint8_t index, int32_t value) {
     values_[index] = value;
 }
 

@@ -21,8 +21,8 @@ class Configuration {
         String getPassword() const;
         void setPassword(const String& password);
 
-        uint32_t getValue(uint8_t index) const;
-        void setValue(uint8_t index, uint32_t value);
+        int32_t getValue(uint8_t index) const;
+        void setValue(uint8_t index, int32_t value);
 
     private:
         String ip_;
@@ -30,7 +30,7 @@ class Configuration {
         String name_;
         String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
 
-        uint32_t values_[VALUES_COUNT];
+        int32_t values_[VALUES_COUNT];
 };
 
 }
