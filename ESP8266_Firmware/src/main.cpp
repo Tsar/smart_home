@@ -29,7 +29,7 @@ struct Event {
 #define DIMMER_EVENTS_COUNT 4  // число событий для одного выхода диммера
 
 // настройки событий
-const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 49500, 500};
+const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 50000, 50500};
 const uint8_t  EVENT_VALUES            [DIMMER_EVENTS_COUNT] = {HIGH, LOW, HIGH, LOW};
 
 #define EVENTS_COUNT (DIMMER_OUTPUTS_COUNT * DIMMER_EVENTS_COUNT)
@@ -78,12 +78,11 @@ ICACHE_RAM_ATTR void onInputFall() {
 ICACHE_RAM_ATTR void onTimerISR() {
   if (nextEventId >= EVENTS_COUNT) return;
   const auto& event = eventsQueue[nextEventId++];
+  digitalWrite(event.pin, event.value);
 
   if (nextEventId < EVENTS_COUNT) {
     timer1_write(eventsQueue[nextEventId].ticks - event.ticks);
   }
-
-  digitalWrite(event.pin, event.value);
 }
 
 void fillOffsetMicros(bool fillCurrent = false) {
