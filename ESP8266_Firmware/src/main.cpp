@@ -9,6 +9,8 @@
 
 #define INPUT_PIN 14  // for 50 Hz meander
 
+volatile uint32_t inputFallTimeMs = 0;
+
 #define OUTPUT_PINS_COUNT VALUES_COUNT
 const uint8_t outputPins[OUTPUT_PINS_COUNT] = {4, 5, 12, 13};
 
@@ -44,6 +46,10 @@ ICACHE_RAM_ATTR void onTimerISR() {
 }
 
 ICACHE_RAM_ATTR void onInputFall() {
+  const uint32_t now = millis();
+  if (now - inputFallTimeMs < 15) return;
+  inputFallTimeMs = now;
+
   timer1_write(5 * offsetMicros[0]);
   outputPinStates[0] = 0;
 }
