@@ -82,11 +82,11 @@ void Configuration::load() {
     int pos = 0;
     name_ = readString(pos);
     password_ = readString(pos);
-    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-        dimmers_[i] = readInt32(pos);
-    }
     for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
         switchers_[i] = readBool(pos);
+    }
+    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+        dimmers_[i] = readInt32(pos);
     }
 }
 
@@ -94,11 +94,11 @@ void Configuration::save() const {
     int pos = 0;
     writeString(pos, name_);
     writeString(pos, password_);
-    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-        writeInt32(pos, dimmers_[i]);
-    }
     for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
         writeBool(pos, switchers_[i]);
+    }
+    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+        writeInt32(pos, dimmers_[i]);
     }
     EEPROM.commit();
 }
@@ -106,11 +106,11 @@ void Configuration::save() const {
 void Configuration::resetAndSave() {
     setName("new-device");
     setPassword("12345");
-    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-        setDimmerValue(i, 8100);
-    }
     for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
         setSwitcherValue(i, false);
+    }
+    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+        setDimmerValue(i, 8100);
     }
 
     save();
@@ -132,20 +132,20 @@ void Configuration::setPassword(const String& password) {
     password_ = password;
 }
 
-int32_t Configuration::getDimmerValue(uint8_t index) const {
-    return dimmers_[index];
-}
-
-void Configuration::setDimmerValue(uint8_t index, int32_t value) {
-    dimmers_[index] = value;
-}
-
 bool Configuration::getSwitcherValue(uint8_t index) const {
     return switchers_[index];
 }
 
 void Configuration::setSwitcherValue(uint8_t index, bool value) {
     switchers_[index] = value;
+}
+
+int32_t Configuration::getDimmerValue(uint8_t index) const {
+    return dimmers_[index];
+}
+
+void Configuration::setDimmerValue(uint8_t index, int32_t value) {
+    dimmers_[index] = value;
 }
 
 }
