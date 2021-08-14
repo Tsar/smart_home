@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:icon="@drawable/plus_sign"
+        android:onClick="onAddNewDevice"
+        android:showAsAction="ifRoom"
+        android:title="@string/add_new_device">
+    </item>
+    <item
+        android:icon="@drawable/update_arrow"
+        android:onClick="onUpdateStatuses"
+        android:showAsAction="ifRoom"
+        android:title="@string/update_statuses">
+    </item>
+</menu>

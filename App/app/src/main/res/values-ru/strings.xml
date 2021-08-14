@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_new_device">Добавить устройство</string>
+    <string name="update_statuses">Обновить состояния</string>
+    <string name="add_fresh_device">Добавить свежее устройство</string>
+    <string name="add_configured_device">Добавить настроенное устройство</string>
+    <string name="app_name">Умный Дом</string>
+</resources>
