@@ -3,9 +3,12 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/viewFlipper"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:layout_marginLeft="10dp"
+    android:layout_marginRight="10dp">
 
     <include layout="@layout/management" />
     <include layout="@layout/add_new_device" />
+    <include layout="@layout/fresh_devices" />
 
 </ViewFlipper>

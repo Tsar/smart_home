@@ -11,8 +11,13 @@ import android.util.Log;
 import java.util.List;
 
 public class WifiScanner {
+    public interface OnWifiFoundListener {
+        void onWifiFound(String ssid);
+    }
+
     private final Context context;
     private final WifiManager wifiManager;
+    private OnWifiFoundListener listener;
 
     public WifiScanner(Context context) {
         this.context = context.getApplicationContext();
@@ -23,7 +28,9 @@ public class WifiScanner {
         return wifiManager.isWifiEnabled();
     }
 
-    public void startScan() {
+    public void startScan(OnWifiFoundListener listener) {
+        this.listener = listener;
+
         BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
@@ -50,7 +57,8 @@ public class WifiScanner {
         Log.d("WIFI_SCAN", "scanSuccess");
         List<ScanResult> results = wifiManager.getScanResults();
         for (ScanResult wifi : results) {
-            Log.d("WIFI_SCAN", "#1 Found wi-fi: " + wifi.SSID);
+            Log.d("WIFI_SCAN", "[#1] Found wi-fi: " + wifi.SSID);
+            listener.onWifiFound(wifi.SSID);
         }
     }
 
@@ -60,7 +68,8 @@ public class WifiScanner {
         // consider using old scan results: these are the OLD results!
         List<ScanResult> results = wifiManager.getScanResults();
         for (ScanResult wifi : results) {
-            Log.d("WIFI_SCAN", "#2 Found wi-fi: " + wifi.SSID);
+            Log.d("WIFI_SCAN", "[#2] Found wi-fi: " + wifi.SSID);
+            listener.onWifiFound(wifi.SSID);
         }
     }
 }

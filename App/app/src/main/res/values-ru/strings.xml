@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Умный Дом</string>
+
     <string name="add_new_device">Добавить устройство</string>
     <string name="update_statuses">Обновить состояния</string>
     <string name="add_fresh_device">Добавить свежее устройство</string>
     <string name="add_configured_device">Добавить настроенное устройство</string>
-    <string name="app_name">Умный Дом</string>
     <string name="wifi_is_off">Wi-Fi выключен</string>
     <string name="enable_wifi_prompt">Включите Wi-Fi и попробуйте ещё раз.</string>
+    <string name="searching_smart_home">Выполняется поиск устройств Smart Home…</string>
 </resources>

@@ -7,4 +7,5 @@
     <string name="add_configured_device">Add configured device</string>
     <string name="wifi_is_off">Wi-Fi is off</string>
     <string name="enable_wifi_prompt">Please enable Wi-Fi and try again.</string>
+    <string name="searching_smart_home">Searching Smart Home devices…</string>
 </resources>

@@ -9,20 +9,31 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.ViewFlipper;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class MainActivity extends Activity {
     private static class Screens {
         public static final int MANAGEMENT = 0;
         public static final int ADD_NEW_DEVICE = 1;
+        public static final int FRESH_DEVICES = 2;
     }
+
+    private static final String SMART_HOME_DEVICE_AP_SSID_PREFIX = "SmartHomeDevice_";
+    private static final int SMART_HOME_DEVICE_AP_SSID_LENGTH = SMART_HOME_DEVICE_AP_SSID_PREFIX.length() + 6;
 
     private ViewFlipper viewFlipper;
     private MenuItem mnAddNewDevice;
     private MenuItem mnUpdateStatuses;
-    private Button btnAddFresh;
-    private Button btnAddConfigured;
+    private ListView lstDevices;
+
+    private ArrayAdapter<String> lstDevicesAdapter;
+    private Set<String> devices;
 
     private WifiScanner wifiScanner = null;
 
@@ -32,9 +43,10 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         viewFlipper = findViewById(R.id.viewFlipper);
+        lstDevices = findViewById(R.id.lstDevices);
 
-        btnAddFresh = findViewById(R.id.btnAddFresh);
-        btnAddConfigured = findViewById(R.id.btnAddConfigured);
+        Button btnAddFresh = findViewById(R.id.btnAddFresh);
+        Button btnAddConfigured = findViewById(R.id.btnAddConfigured);
 
         Button[] allButtons = new Button[]{
                 btnAddFresh,
@@ -47,6 +59,9 @@ public class MainActivity extends Activity {
             btn.setBackgroundTintList(cslButtonBg);
             btn.setTextColor(cslButtonText);
         }
+
+        lstDevicesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
+        lstDevices.setAdapter(lstDevicesAdapter);
     }
 
     private void setMenuVisibility(boolean visible) {
@@ -105,7 +120,16 @@ public class MainActivity extends Activity {
 
         // TODO: run from here when permission is granted
 
-        wifiScanner.startScan();
+        viewFlipper.setDisplayedChild(Screens.FRESH_DEVICES);
+        devices = new HashSet<>();
+        wifiScanner.startScan(ssid -> {
+            if (ssid.length() == SMART_HOME_DEVICE_AP_SSID_LENGTH && ssid.startsWith(SMART_HOME_DEVICE_AP_SSID_PREFIX)) {
+                if (!devices.contains(ssid)) {
+                    devices.add(ssid);
+                    lstDevicesAdapter.add(ssid);
+                }
+            }
+        });
     }
 
     public void onAddConfiguredDevice(View view) {
