@@ -9,13 +9,17 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="@string/add_fresh_device" />
+        android:textSize="24sp"
+        android:text="@string/add_fresh_device"
+        android:textAllCaps="false" />
 
     <Button
         android:id="@+id/btnAddConfigured"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="@string/add_configured_device" />
+        android:textSize="24sp"
+        android:text="@string/add_configured_device"
+        android:textAllCaps="false" />
 
 </LinearLayout>
