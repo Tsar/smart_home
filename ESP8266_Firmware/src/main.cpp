@@ -334,6 +334,8 @@ void setup() {
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
 
+  WiFi.softAPdisconnect(true);
+
   station_config stationCfg;
   if (WiFi.getPersistent()) {
     wifi_station_get_config_default(&stationCfg);
