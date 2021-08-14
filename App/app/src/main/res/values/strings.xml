@@ -4,5 +4,5 @@
     <string name="add_new_device">Add new device</string>
     <string name="update_statuses">Update statuses</string>
     <string name="add_fresh_device">Add fresh device</string>
-    <string name="add_configured_device">Add device, which has already been configured</string>
+    <string name="add_configured_device">Add configured device</string>
 </resources>

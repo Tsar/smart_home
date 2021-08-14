@@ -3,7 +3,6 @@ package ru.tsar_ioann.smarthome;
 import android.app.Activity;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
-import android.text.Html;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
@@ -16,6 +15,8 @@ public class MainActivity extends Activity {
     }
 
     private ViewFlipper viewFlipper;
+    private MenuItem mnAddNewDevice;
+    private MenuItem mnUpdateStatuses;
     private Button btnAddFresh;
     private Button btnAddConfigured;
 
@@ -42,9 +43,16 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void setMenuVisibility(boolean visible) {
+        mnAddNewDevice.setVisible(visible);
+        mnUpdateStatuses.setVisible(visible);
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu, menu);
+        mnAddNewDevice = menu.findItem(R.id.mnAddNewDevice);
+        mnUpdateStatuses = menu.findItem(R.id.mnUpdateStatuses);
         return true;
     }
 
@@ -56,8 +64,19 @@ public class MainActivity extends Activity {
     }
     */
 
+    @Override
+    public void onBackPressed() {
+        if (viewFlipper.getDisplayedChild() != Screens.MANAGEMENT) {
+            viewFlipper.setDisplayedChild(Screens.MANAGEMENT);
+            setMenuVisibility(true);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
     public void onAddNewDevice(MenuItem menuItem) {
         viewFlipper.setDisplayedChild(Screens.ADD_NEW_DEVICE);
+        setMenuVisibility(false);
     }
 
     public void onUpdateStatuses(MenuItem menuItem) {
