@@ -5,4 +5,6 @@
     <string name="update_statuses">Update statuses</string>
     <string name="add_fresh_device">Add fresh device</string>
     <string name="add_configured_device">Add configured device</string>
+    <string name="wifi_is_off">Wi-Fi is off</string>
+    <string name="enable_wifi_prompt">Please enable Wi-Fi and try again.</string>
 </resources>

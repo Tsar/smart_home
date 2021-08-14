@@ -1,10 +1,14 @@
 package ru.tsar_ioann.smarthome;
 
+import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ViewFlipper;
 
@@ -19,6 +23,8 @@ public class MainActivity extends Activity {
     private MenuItem mnUpdateStatuses;
     private Button btnAddFresh;
     private Button btnAddConfigured;
+
+    private WifiScanner wifiScanner = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,14 +62,6 @@ public class MainActivity extends Activity {
         return true;
     }
 
-    /*
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu, menu);
-        return true;
-    }
-    */
-
     @Override
     public void onBackPressed() {
         if (viewFlipper.getDisplayedChild() != Screens.MANAGEMENT) {
@@ -80,5 +78,37 @@ public class MainActivity extends Activity {
     }
 
     public void onUpdateStatuses(MenuItem menuItem) {
+        // TODO
+    }
+
+    private boolean requestPermissionsIfNeeded(String permission) {
+        if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {permission}, 1);
+            return true;
+        }
+        return false;
+    }
+
+    public void onAddFreshDevice(View view) {
+        wifiScanner = new WifiScanner(this);
+        if (!wifiScanner.isWifiEnabled()) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle(getResources().getString(R.string.wifi_is_off));
+            builder.setMessage(getResources().getString(R.string.enable_wifi_prompt));
+            builder.setPositiveButton("OK", (dialog, which) -> {});
+            builder.show();
+            return;
+        }
+        if (requestPermissionsIfNeeded(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            return;
+        }
+
+        // TODO: run from here when permission is granted
+
+        wifiScanner.startScan();
+    }
+
+    public void onAddConfiguredDevice(View view) {
+        // TODO
     }
 }
