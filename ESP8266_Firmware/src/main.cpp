@@ -17,7 +17,7 @@
 volatile uint32_t inputFallTimeMs = 0;
 
 const uint8_t DIMMER_PINS[DIMMER_PINS_COUNT] = {4, 5, 12};
-const uint8_t SWITCHER_PINS[SWITCHER_PINS_COUNT] = {13, 15};
+const uint8_t SWITCHER_PINS[SWITCHER_PINS_COUNT] = {13, 15, 9, 10};
 
 #define MICROS_CHANGE_STEP 40
 

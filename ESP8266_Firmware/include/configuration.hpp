@@ -3,7 +3,7 @@
 #include <WString.h>
 
 #define DIMMER_PINS_COUNT   3
-#define SWITCHER_PINS_COUNT 2
+#define SWITCHER_PINS_COUNT 4
 
 namespace smart_home {
 
