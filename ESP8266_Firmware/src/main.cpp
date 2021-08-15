@@ -3,10 +3,10 @@
 
 #define HTTP_SERVER_PORT 80
 
-#define INPUT_PIN 14
+#define INPUT_PIN 15
 
-#define OUTPUT_PIN_A  13
-#define OUTPUT_PIN_B  15
+#define OUTPUT_PIN_A  12
+#define OUTPUT_PIN_B  13
 #define OUTPUT_PIN_EN 4
 
 #define TIMER_ACTION_SWITCH_AB 0
@@ -27,7 +27,7 @@ ICACHE_RAM_ATTR void startSwitchAB() {
 ICACHE_RAM_ATTR void onInputRise() {
   // защита от многократных срабатываний
   const uint32_t now = millis();
-  if (now - inputRiseTimeMs < 3000) return;
+  if (now - inputRiseTimeMs < 1500) return;
   inputRiseTimeMs = now;
 
   startSwitchAB();
