@@ -7,7 +7,7 @@
 
 #define OUTPUT_PIN_A  13
 #define OUTPUT_PIN_B  15
-#define OUTPUT_PIN_EN 9
+#define OUTPUT_PIN_EN 4
 
 #define TIMER_ACTION_SWITCH_AB 0
 #define TIMER_ACTION_EN_TO_LOW 1
