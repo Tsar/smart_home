@@ -1,130 +1,50 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 
-#include "configuration.hpp"
-
-#define SIGN(val) (val > 0 ? 1 : (val < 0 ? -1 : 0))
-
-//#define RESET_CONFIGURATION  // Usage: uncomment; build & upload & run; comment; build & upload & run
-
 #define HTTP_SERVER_PORT 80
 
-#define DIMMER_PREFIX   "dim"
-#define SWITCHER_PREFIX "sw"
+#define INPUT_PIN 14
 
-#define INPUT_PIN 14  // for 50 Hz meander
+#define OUTPUT_PIN_A  13
+#define OUTPUT_PIN_B  15
+#define OUTPUT_PIN_EN 9
 
-volatile uint32_t inputFallTimeMs = 0;
-
-const uint8_t DIMMER_PINS[DIMMER_PINS_COUNT] = {4, 5, 12};
-const uint8_t SWITCHER_PINS[SWITCHER_PINS_COUNT] = {13, 15, 9, 10};
-
-#define MICROS_CHANGE_STEP 40
-
-volatile int32_t dimmerMicros[DIMMER_PINS_COUNT] = {};
-volatile int32_t targetDimmerMicros[DIMMER_PINS_COUNT] = {};
-
-struct Event {
-  uint32_t ticks;  // число тиков таймера, начиная от input fall
-  uint8_t pin;
-  uint8_t value;
-};
-
-#define DIMMER_EVENTS_COUNT 4  // число событий для одного выхода диммера
-
-// настройки событий
-const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 50000, 50500};
-const uint8_t  EVENT_VALUES            [DIMMER_EVENTS_COUNT] = {HIGH, LOW, HIGH, LOW};
-
-#define EVENTS_COUNT (DIMMER_PINS_COUNT * DIMMER_EVENTS_COUNT)
-
-volatile Event eventsQueue[EVENTS_COUNT];
-volatile uint8_t nextEventId = EVENTS_COUNT;
+#define TIMER_ACTION_SWITCH_AB 0
+#define TIMER_ACTION_EN_TO_LOW 1
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
-smart_home::Configuration homeCfg;
 
-// Плавное изменение яркости
-ICACHE_RAM_ATTR void smoothLightnessChange() {
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const int32_t delta = targetDimmerMicros[i] - dimmerMicros[i];
-    if (delta != 0) {
-      dimmerMicros[i] += std::abs(delta) > MICROS_CHANGE_STEP ? SIGN(delta) * MICROS_CHANGE_STEP : delta;
-    }
-  }
+volatile uint32_t inputRiseTimeMs = 0;
+volatile uint8_t timerAction;
+volatile uint8_t outputAState;
+
+ICACHE_RAM_ATTR void startSwitchAB() {
+  digitalWrite(OUTPUT_PIN_EN, HIGH);
+  timerAction = TIMER_ACTION_SWITCH_AB;
+  timer1_write(1562);  // 5 ms
 }
 
-// Формируем новую очередь событий, начнутся со следующего input fall
-ICACHE_RAM_ATTR void createEventsQueue() {
-  uint8_t ev = 0;
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const uint32_t offsetTicks = 5 * dimmerMicros[i];
-    for (uint8_t j = 0; j < DIMMER_EVENTS_COUNT; ++j) {
-      eventsQueue[ev].pin = DIMMER_PINS[i];
-      eventsQueue[ev].ticks = offsetTicks + EVENT_ADDITIONAL_OFFSETS[j];
-      eventsQueue[ev].value = EVENT_VALUES[j];
-      ++ev;
-    }
-  }
-
-  // bubble sort is good enough for 12 elements
-  for (uint8_t i = 0; i < EVENTS_COUNT - 1; ++i) {
-    for (uint8_t j = 0; j < EVENTS_COUNT - i - 1; ++j) {
-      if (eventsQueue[j].ticks > eventsQueue[j + 1].ticks) {
-        std::swap(eventsQueue[j].ticks, eventsQueue[j + 1].ticks);
-        std::swap(eventsQueue[j].pin, eventsQueue[j + 1].pin);
-        std::swap(eventsQueue[j].value, eventsQueue[j + 1].value);
-      }
-    }
-  }
-}
-
-ICACHE_RAM_ATTR void onInputFall() {
-  // защита от многократных срабатываний на одном FALLING
-  // и от срабатываний на RISING, которые тоже иногда случались
+ICACHE_RAM_ATTR void onInputRise() {
+  // защита от многократных срабатываний
   const uint32_t now = millis();
-  if (now - inputFallTimeMs < 15) return;
-  inputFallTimeMs = now;
+  if (now - inputRiseTimeMs < 3000) return;
+  inputRiseTimeMs = now;
 
-  nextEventId = 0;
-  timer1_write(eventsQueue[0].ticks);
+  startSwitchAB();
 }
 
 ICACHE_RAM_ATTR void onTimerISR() {
-  if (nextEventId >= EVENTS_COUNT) return;
-
-  // выполнить event
-  const auto& event = eventsQueue[nextEventId++];
-  digitalWrite(event.pin, event.value);
-
-  // выполнить все следующие event'ы с такой же меткой времени
-  while (nextEventId < EVENTS_COUNT && eventsQueue[nextEventId].ticks == event.ticks) {
-    const auto& nextEvent = eventsQueue[nextEventId];
-    digitalWrite(nextEvent.pin, nextEvent.value);
-    ++nextEventId;
-  }
-
-  if (nextEventId < EVENTS_COUNT) {
-    timer1_write(eventsQueue[nextEventId].ticks - event.ticks);  // аргумент будет >= 5
-  } else {
-    // после выполнения всех event'ов
-    smoothLightnessChange();
-    createEventsQueue();
-  }
-}
-
-void fillDimmerMicros(bool fillCurrent = false) {
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    targetDimmerMicros[i] = homeCfg.getDimmerValue(i);
-    if (fillCurrent) {
-      dimmerMicros[i] = targetDimmerMicros[i];
-    }
-  }
-}
-
-void applySwitcherValues() {
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
-    digitalWrite(SWITCHER_PINS[i], homeCfg.getSwitcherValue(i) ? HIGH : LOW);
+  switch (timerAction) {
+    case TIMER_ACTION_SWITCH_AB:
+      outputAState = !outputAState;
+      digitalWrite(OUTPUT_PIN_A, outputAState);
+      digitalWrite(OUTPUT_PIN_B, !outputAState);
+      timerAction = TIMER_ACTION_EN_TO_LOW;
+      timer1_write(312500);  // 1 s
+      break;
+    case TIMER_ACTION_EN_TO_LOW:
+      digitalWrite(OUTPUT_PIN_EN, LOW);
+      break;
   }
 }
 
@@ -152,7 +72,6 @@ void enableAccessPoint() {
   }
 
   const String ip = WiFi.softAPIP().toString();
-  homeCfg.updateIP(ip);
   Serial.printf("Access point enabled, IP: %s\n", ip.c_str());
 }
 
@@ -176,18 +95,9 @@ bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
   }
 
   const String ip = WiFi.localIP().toString();
-  homeCfg.updateIP(ip);
   Serial.printf("Connected, IP: %s\n", ip.c_str());
   digitalWrite(LED_BUILTIN, HIGH);
   return true;
-}
-
-bool checkPassword() {
-  if (server.hasHeader("Password") && server.header("Password") == homeCfg.getPassword()) {
-    return true;
-  }
-  server.send(403, "text/plain", "Forbidden");
-  return false;
 }
 
 void sendBadRequest() {
@@ -195,14 +105,10 @@ void sendBadRequest() {
 }
 
 void handlePing() {
-  if (!checkPassword()) return;
-
   server.send(200, "text/plain", "OK");
 }
 
 void handleSetupWiFi() {
-  if (!checkPassword()) return;
-
   if (!server.hasArg("ssid") || !server.hasArg("passphrase")) {
     sendBadRequest();
     return;
@@ -218,82 +124,9 @@ void handleSetupWiFi() {
   }
 }
 
-void handleSetBuiltinLED() {
-  if (!checkPassword()) return;
-
-  if (!server.hasArg("state")) {
-    sendBadRequest();
-    return;
-  }
-
-  const auto state = server.arg("state");
-  if (state == "on") {
-    digitalWrite(LED_BUILTIN, LOW);
-    server.send(200, "text/plain", "LED_IS_ON");
-  } else if (state == "off") {
-    digitalWrite(LED_BUILTIN, HIGH);
-    server.send(200, "text/plain", "LED_IS_OFF");
-  } else {
-    sendBadRequest();
-  }
-}
-
-String generateValuesString() {
-  String result;
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    result += DIMMER_PREFIX + String(i) + ": " + String(homeCfg.getDimmerValue(i)) + "\n";
-  }
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
-    result += SWITCHER_PREFIX + String(i) + ": " + (homeCfg.getSwitcherValue(i) ? "on" : "off") + "\n";
-  }
-  return result;
-}
-
-void handleGetValues() {
-  if (!checkPassword()) return;
-
-  server.send(200, "text/plain", generateValuesString());
-}
-
-void handleSetValues() {
-  if (!checkPassword()) return;
-
-  bool dimmersChanged = false;
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const String argName = DIMMER_PREFIX + String(i);
-    if (server.hasArg(argName)) {
-      const int32_t value = server.arg(argName).toInt();
-      if (value != homeCfg.getDimmerValue(i)) {
-        homeCfg.setDimmerValue(i, value);
-        dimmersChanged = true;
-      }
-    }
-  }
-
-  bool switchersChanged = false;
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
-    const String argName = SWITCHER_PREFIX + String(i);
-    if (server.hasArg(argName)) {
-      const bool value = server.arg(argName).toInt();
-      if (value != homeCfg.getSwitcherValue(i)) {
-        homeCfg.setSwitcherValue(i, value);
-        switchersChanged = true;
-      }
-    }
-  }
-
-  if (dimmersChanged || switchersChanged) {
-    if (dimmersChanged) {
-      fillDimmerMicros();
-    }
-    if (switchersChanged) {
-      applySwitcherValues();
-    }
-    homeCfg.save();
-    server.send(200, "text/plain", "Accepted\n" + generateValuesString());
-  } else {
-    server.send(200, "text/plain", "Nothing changed\n");
-  }
+void handleSwitch() {
+  startSwitchAB();
+  server.send(200, "text/plain", "Accepted\n");
 }
 
 void handleNotFound() {
@@ -301,34 +134,23 @@ void handleNotFound() {
 }
 
 void setup() {
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    pinMode(DIMMER_PINS[i], OUTPUT);
-    digitalWrite(DIMMER_PINS[i], LOW);
-  }
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
-    pinMode(SWITCHER_PINS[i], OUTPUT);
-  }
+  pinMode(OUTPUT_PIN_A, OUTPUT);
+  pinMode(OUTPUT_PIN_B, OUTPUT);
+  pinMode(OUTPUT_PIN_EN, OUTPUT);
 
-#ifdef RESET_CONFIGURATION
-  homeCfg.resetAndSave();
-#endif
-  homeCfg.load();
-
-  fillDimmerMicros(true);
-  createEventsQueue();
-  applySwitcherValues();
+  outputAState = LOW;
+  digitalWrite(OUTPUT_PIN_A, LOW);
+  digitalWrite(OUTPUT_PIN_B, HIGH);
+  digitalWrite(OUTPUT_PIN_EN, LOW);
 
   timer1_attachInterrupt(onTimerISR);
-  timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
+  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
 
   pinMode(INPUT_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputFall, FALLING);
+  attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputRise, RISING);
 
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
-
-  Serial.begin(115200);
-  Serial.printf("\nDevice name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
 
   // Just to be sure
   WiFi.setAutoConnect(true);
@@ -343,6 +165,9 @@ void setup() {
     wifi_station_get_config(&stationCfg);
   }
 
+  Serial.begin(115200);
+  Serial.print("\n");
+
   if (strlen(reinterpret_cast<char*>(stationCfg.ssid)) > 0) {
     Serial.printf("Found wi-fi credentials for SSID '%s'\n", stationCfg.ssid);
     connectToWiFiOrEnableAP();
@@ -353,13 +178,8 @@ void setup() {
 
   server.on("/ping", HTTP_GET, handlePing);
   server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
-  server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
-  server.on("/get_values", HTTP_GET, handleGetValues);
-  server.on("/set_values", HTTP_ANY, handleSetValues);
+  server.on("/switch", HTTP_GET, handleSwitch);
   server.onNotFound(handleNotFound);
-
-  const char* headerKeys[] = {"Password"};
-  server.collectHeaders(headerKeys, 1);
 
   server.begin();
   Serial.printf("Started HTTP server on port %d\n", HTTP_SERVER_PORT);
