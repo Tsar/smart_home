@@ -3,6 +3,7 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="../../../Android/Sdk/platforms/android-30/data/res/layout/simple_list_item_1.xml" value="0.365036231884058" />
         <entry key="app/src/main/res/drawable/plus_sign.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/update_arrow.xml" value="0.4390625" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.4053442028985507" />

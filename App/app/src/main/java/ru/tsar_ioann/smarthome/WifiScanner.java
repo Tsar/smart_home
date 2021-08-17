@@ -4,8 +4,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
+import android.net.NetworkSpecifier;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiNetworkSpecifier;
 import android.util.Log;
 
 import java.util.List;
@@ -17,6 +23,8 @@ public class WifiScanner {
         void onWifiFound(String ssid);
         void onScanFinished();
     }
+
+    private final int SCAN_DURATION_MS = 30000;
 
     private final Context context;
     private final WifiManager wifiManager;
@@ -61,7 +69,7 @@ public class WifiScanner {
                 context.unregisterReceiver(wifiScanReceiver);
                 listener.onScanFinished();
             }
-        }, 5000);
+        }, SCAN_DURATION_MS);
     }
 
     private void scanSuccess() {
@@ -82,5 +90,41 @@ public class WifiScanner {
             Log.d("WIFI_SCAN", "[#2] Found wi-fi: " + wifi.SSID);
             listener.onWifiFound(wifi.SSID);
         }
+    }
+
+    public void connectToWifi(String ssid, String passphrase) {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            // TODO: other way (may be just ask user to connect manually?)
+            return;
+        }
+
+        final NetworkSpecifier specifier = new WifiNetworkSpecifier.Builder()
+                .setSsid(ssid)
+                .setWpa2Passphrase(passphrase)
+                .build();
+        final NetworkRequest request = new NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .setNetworkSpecifier(specifier)
+                .build();
+        final ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                Log.d("WIFI_CONNECT", "onAvailable");
+                // TODO: call some callback
+            }
+
+            @Override
+            public void onUnavailable() {
+                Log.d("WIFI_CONNECT", "onUnavailable");
+                // TODO: call error callback
+            }
+        };
+        connectivityManager.requestNetwork(request, networkCallback);
+
+        // TODO later
+        //connectivityManager.unregisterNetworkCallback(networkCallback);
     }
 }

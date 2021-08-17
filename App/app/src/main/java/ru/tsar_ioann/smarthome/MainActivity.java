@@ -27,8 +27,13 @@ public class MainActivity extends Activity {
         public static final int FRESH_DEVICES = 2;
     }
 
+    private static final int PERMISSION_REQUEST_CODE = 1;
+
     private static final String SMART_HOME_DEVICE_AP_SSID_PREFIX = "SmartHomeDevice_";
     private static final int SMART_HOME_DEVICE_AP_SSID_LENGTH = SMART_HOME_DEVICE_AP_SSID_PREFIX.length() + 6;
+    private static final String SMART_HOME_DEVICE_AP_PASSPHRASE = "setup12345";
+
+    private WifiScanner wifiScanner;
 
     private ViewFlipper viewFlipper;
     private MenuItem mnAddNewDevice;
@@ -39,12 +44,12 @@ public class MainActivity extends Activity {
     private ArrayAdapter<String> lstDevicesAdapter;
     private Set<String> devices;
 
-    private WifiScanner wifiScanner = null;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        wifiScanner = new WifiScanner(this);
 
         viewFlipper = findViewById(R.id.viewFlipper);
         txtSearchTitle = findViewById(R.id.txtSearchTitle);
@@ -67,6 +72,10 @@ public class MainActivity extends Activity {
 
         lstDevicesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
         lstDevices.setAdapter(lstDevicesAdapter);
+        lstDevices.setOnItemClickListener((adapterView, view, position, id) -> {
+            String ssid = (String)adapterView.getItemAtPosition(position);
+            wifiScanner.connectToWifi(ssid, SMART_HOME_DEVICE_AP_PASSPHRASE);
+        });
     }
 
     private String tr(int resId) {
@@ -145,7 +154,6 @@ public class MainActivity extends Activity {
     }
 
     public void onAddFreshDevice(View view) {
-        wifiScanner = new WifiScanner(this);
         if (!wifiScanner.isWifiEnabled()) {
             showOkDialog(tr(R.string.wifi_is_off), tr(R.string.enable_wifi_prompt));
             return;
@@ -157,10 +165,10 @@ public class MainActivity extends Activity {
                 showOkDialog(
                         tr(R.string.warning),
                         tr(R.string.permission_request_explanation),
-                        (dialogInterface, i) -> requestPermissions(new String[]{perm}, 1)
+                        (dialogInterface, i) -> requestPermissions(new String[]{perm}, PERMISSION_REQUEST_CODE)
                 );
             } else {
-                requestPermissions(new String[]{perm}, 1);
+                requestPermissions(new String[]{perm}, PERMISSION_REQUEST_CODE);
             }
             return;
         }
@@ -170,18 +178,17 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        switch (requestCode) {
-            case 1:
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    switchToFreshDevicesAndStartScan();
-                } else {
-                    Toast.makeText(
-                            this,
-                            tr(R.string.you_declined_permission_request),
-                            Toast.LENGTH_LONG
-                    ).show();
-                }
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            // If request is cancelled, the result arrays are empty
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                switchToFreshDevicesAndStartScan();
+            } else {
+                Toast.makeText(
+                        this,
+                        tr(R.string.you_declined_permission_request),
+                        Toast.LENGTH_LONG
+                ).show();
+            }
         }
     }
 
