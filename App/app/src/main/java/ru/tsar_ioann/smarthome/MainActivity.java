@@ -3,6 +3,7 @@ package ru.tsar_ioann.smarthome;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import java.util.HashSet;
@@ -64,6 +66,10 @@ public class MainActivity extends Activity {
         lstDevices.setAdapter(lstDevicesAdapter);
     }
 
+    private String tr(int resId) {
+        return getResources().getString(resId);
+    }
+
     private void setMenuVisibility(boolean visible) {
         mnAddNewDevice.setVisible(visible);
         mnUpdateStatuses.setVisible(visible);
@@ -96,30 +102,19 @@ public class MainActivity extends Activity {
         // TODO
     }
 
-    private boolean requestPermissionsIfNeeded(String permission) {
-        if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[] {permission}, 1);
-            return true;
-        }
-        return false;
+    private void showOkDialog(String title, String message) {
+        showOkDialog(title, message, (dialogInterface, i) -> {});
     }
 
-    public void onAddFreshDevice(View view) {
-        wifiScanner = new WifiScanner(this);
-        if (!wifiScanner.isWifiEnabled()) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle(getResources().getString(R.string.wifi_is_off));
-            builder.setMessage(getResources().getString(R.string.enable_wifi_prompt));
-            builder.setPositiveButton("OK", (dialog, which) -> {});
-            builder.show();
-            return;
-        }
-        if (requestPermissionsIfNeeded(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            return;
-        }
+    private void showOkDialog(String title, String message, DialogInterface.OnClickListener listener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setPositiveButton("OK", listener);
+        builder.show();
+    }
 
-        // TODO: run from here when permission is granted
-
+    private void switchToFreshDevicesAndStartScan() {
         viewFlipper.setDisplayedChild(Screens.FRESH_DEVICES);
         devices = new HashSet<>();
         wifiScanner.startScan(ssid -> {
@@ -130,6 +125,47 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    public void onAddFreshDevice(View view) {
+        wifiScanner = new WifiScanner(this);
+        if (!wifiScanner.isWifiEnabled()) {
+            showOkDialog(tr(R.string.wifi_is_off), tr(R.string.enable_wifi_prompt));
+            return;
+        }
+
+        final String perm = Manifest.permission.ACCESS_FINE_LOCATION;
+        if (checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED) {
+            if (shouldShowRequestPermissionRationale(perm)) {
+                showOkDialog(
+                        tr(R.string.warning),
+                        tr(R.string.permission_request_explanation),
+                        (dialogInterface, i) -> requestPermissions(new String[]{perm}, 1)
+                );
+            } else {
+                requestPermissions(new String[]{perm}, 1);
+            }
+            return;
+        }
+
+        switchToFreshDevicesAndStartScan();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case 1:
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    switchToFreshDevicesAndStartScan();
+                } else {
+                    Toast.makeText(
+                            this,
+                            tr(R.string.you_declined_permission_request),
+                            Toast.LENGTH_LONG
+                    ).show();
+                }
+        }
     }
 
     public void onAddConfiguredDevice(View view) {
