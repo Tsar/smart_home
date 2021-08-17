@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
@@ -32,6 +33,7 @@ public class MainActivity extends Activity {
     private ViewFlipper viewFlipper;
     private MenuItem mnAddNewDevice;
     private MenuItem mnUpdateStatuses;
+    private TextView txtSearchTitle;
     private ListView lstDevices;
 
     private ArrayAdapter<String> lstDevicesAdapter;
@@ -45,6 +47,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         viewFlipper = findViewById(R.id.viewFlipper);
+        txtSearchTitle = findViewById(R.id.txtSearchTitle);
         lstDevices = findViewById(R.id.lstDevices);
 
         Button btnAddFresh = findViewById(R.id.btnAddFresh);
@@ -115,14 +118,28 @@ public class MainActivity extends Activity {
     }
 
     private void switchToFreshDevicesAndStartScan() {
+        txtSearchTitle.setText(tr(R.string.searching_smart_home));
         viewFlipper.setDisplayedChild(Screens.FRESH_DEVICES);
         devices = new HashSet<>();
-        wifiScanner.startScan(ssid -> {
-            if (ssid.length() == SMART_HOME_DEVICE_AP_SSID_LENGTH && ssid.startsWith(SMART_HOME_DEVICE_AP_SSID_PREFIX)) {
-                if (!devices.contains(ssid)) {
-                    devices.add(ssid);
-                    lstDevicesAdapter.add(ssid);
-                }
+        lstDevicesAdapter.clear();
+        wifiScanner.startScan(new WifiScanner.WifiScanListener() {
+            @Override
+            public void onWifiFound(String ssid) {
+                runOnUiThread(() -> {
+                    if (ssid.length() == SMART_HOME_DEVICE_AP_SSID_LENGTH && ssid.startsWith(SMART_HOME_DEVICE_AP_SSID_PREFIX)) {
+                        if (!devices.contains(ssid)) {
+                            devices.add(ssid);
+                            lstDevicesAdapter.add(ssid);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onScanFinished() {
+                runOnUiThread(() -> txtSearchTitle.setText(tr(R.string.searching_finished) + "\n" + tr(
+                        lstDevicesAdapter.getCount() > 0 ? R.string.choose_device : R.string.nothing_found
+                )));
             }
         });
     }

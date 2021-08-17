@@ -7,8 +7,11 @@
     <string name="add_configured_device">Add configured device</string>
     <string name="wifi_is_off">Wi-Fi is off</string>
     <string name="enable_wifi_prompt">Please enable Wi-Fi and try again.</string>
-    <string name="searching_smart_home">Searching Smart Home devices…</string>
+    <string name="searching_smart_home">Searching for fresh Smart Home devices…</string>
     <string name="you_declined_permission_request">You declined permission request, app can\'t use wi-fi</string>
     <string name="warning">Warning</string>
     <string name="permission_request_explanation">Now app will ask you for location permission. This is required to allow app to scan wi-fi. No location information will be gathered.\n\nIf you decline permission request, app will not be able to add fresh device.</string>
+    <string name="searching_finished">Search for fresh devices has finished.</string>
+    <string name="nothing_found">No devices found</string>
+    <string name="choose_device">If you see your device in the list, tap it</string>
 </resources>

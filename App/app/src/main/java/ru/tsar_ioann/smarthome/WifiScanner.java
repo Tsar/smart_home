@@ -9,15 +9,18 @@ import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class WifiScanner {
-    public interface OnWifiFoundListener {
+    public interface WifiScanListener {
         void onWifiFound(String ssid);
+        void onScanFinished();
     }
 
     private final Context context;
     private final WifiManager wifiManager;
-    private OnWifiFoundListener listener;
+    private WifiScanListener listener;
 
     public WifiScanner(Context context) {
         this.context = context.getApplicationContext();
@@ -28,7 +31,7 @@ public class WifiScanner {
         return wifiManager.isWifiEnabled();
     }
 
-    public void startScan(OnWifiFoundListener listener) {
+    public void startScan(WifiScanListener listener) {
         this.listener = listener;
 
         BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
@@ -51,6 +54,14 @@ public class WifiScanner {
         if (!success) {
             scanFailure();
         }
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                context.unregisterReceiver(wifiScanReceiver);
+                listener.onScanFinished();
+            }
+        }, 5000);
     }
 
     private void scanSuccess() {
