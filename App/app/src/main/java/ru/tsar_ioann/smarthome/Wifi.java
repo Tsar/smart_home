@@ -18,19 +18,25 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class WifiScanner {
-    public interface WifiScanListener {
+public class Wifi {
+    public interface ScanListener {
         void onWifiFound(String ssid);
         void onScanFinished();
+    }
+
+    public interface ConnectListener {
+        void onConnected();
+        void onConnectFailed();
+        void onConnectLost();
     }
 
     private final int SCAN_DURATION_MS = 30000;
 
     private final Context context;
     private final WifiManager wifiManager;
-    private WifiScanListener listener;
+    private ScanListener listener;
 
-    public WifiScanner(Context context) {
+    public Wifi(Context context) {
         this.context = context.getApplicationContext();
         wifiManager = (WifiManager)this.context.getSystemService(Context.WIFI_SERVICE);
     }
@@ -39,7 +45,7 @@ public class WifiScanner {
         return wifiManager.isWifiEnabled();
     }
 
-    public void startScan(WifiScanListener listener) {
+    public void scan(ScanListener listener) {
         this.listener = listener;
 
         BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
@@ -92,7 +98,7 @@ public class WifiScanner {
         }
     }
 
-    public void connectToWifi(String ssid, String passphrase) {
+    public void connectToWifi(String ssid, String passphrase, ConnectListener listener) {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
             // TODO: other way (may be just ask user to connect manually?)
             return;
@@ -113,13 +119,19 @@ public class WifiScanner {
             @Override
             public void onAvailable(Network network) {
                 Log.d("WIFI_CONNECT", "onAvailable");
-                // TODO: call some callback
+                listener.onConnected();
+            }
+
+            @Override
+            public void onLost(Network network) {
+                Log.d("WIFI_CONNECT", "onLost");
+                listener.onConnectLost();
             }
 
             @Override
             public void onUnavailable() {
                 Log.d("WIFI_CONNECT", "onUnavailable");
-                // TODO: call error callback
+                listener.onConnectFailed();
             }
         };
         connectivityManager.requestNetwork(request, networkCallback);

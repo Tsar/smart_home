@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -33,7 +35,7 @@ public class MainActivity extends Activity {
     private static final int SMART_HOME_DEVICE_AP_SSID_LENGTH = SMART_HOME_DEVICE_AP_SSID_PREFIX.length() + 6;
     private static final String SMART_HOME_DEVICE_AP_PASSPHRASE = "setup12345";
 
-    private WifiScanner wifiScanner;
+    private Wifi wifi;
 
     private ViewFlipper viewFlipper;
     private MenuItem mnAddNewDevice;
@@ -49,7 +51,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        wifiScanner = new WifiScanner(this);
+        wifi = new Wifi(this);
 
         viewFlipper = findViewById(R.id.viewFlipper);
         txtSearchTitle = findViewById(R.id.txtSearchTitle);
@@ -74,7 +76,27 @@ public class MainActivity extends Activity {
         lstDevices.setAdapter(lstDevicesAdapter);
         lstDevices.setOnItemClickListener((adapterView, view, position, id) -> {
             String ssid = (String)adapterView.getItemAtPosition(position);
-            wifiScanner.connectToWifi(ssid, SMART_HOME_DEVICE_AP_PASSPHRASE);
+            wifi.connectToWifi(ssid, SMART_HOME_DEVICE_AP_PASSPHRASE, new Wifi.ConnectListener() {
+                @Override
+                public void onConnected() {
+                    try {
+                        Http.Response response = Http.doRequest("http://192.168.4.1/ping", null, "12345", true);
+                        Log.d("HTTP OK", "[" + Arrays.toString(response.getData()) + "]");
+                    } catch (Http.Exception e) {
+                        Log.d("HTTP EXCEPTION", e.getMessage());
+                    }
+                }
+
+                @Override
+                public void onConnectFailed() {
+                    // TODO: handle
+                }
+
+                @Override
+                public void onConnectLost() {
+                    // TODO: handle
+                }
+            });
         });
     }
 
@@ -131,7 +153,7 @@ public class MainActivity extends Activity {
         viewFlipper.setDisplayedChild(Screens.FRESH_DEVICES);
         devices = new HashSet<>();
         lstDevicesAdapter.clear();
-        wifiScanner.startScan(new WifiScanner.WifiScanListener() {
+        wifi.scan(new Wifi.ScanListener() {
             @Override
             public void onWifiFound(String ssid) {
                 runOnUiThread(() -> {
@@ -154,7 +176,7 @@ public class MainActivity extends Activity {
     }
 
     public void onAddFreshDevice(View view) {
-        if (!wifiScanner.isWifiEnabled()) {
+        if (!wifi.isWifiEnabled()) {
             showOkDialog(tr(R.string.wifi_is_off), tr(R.string.enable_wifi_prompt));
             return;
         }
