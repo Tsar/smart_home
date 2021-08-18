@@ -11,5 +11,6 @@
     <include layout="@layout/add_new_device" />
     <include layout="@layout/fresh_devices" />
     <include layout="@layout/connecting_fresh_device" />
+    <include layout="@layout/home_network_settings" />
 
 </ViewFlipper>

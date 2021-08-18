@@ -33,12 +33,17 @@ public class Wifi {
     private final int SCAN_DURATION_MS = 30000;
 
     private final Context context;
+
     private final WifiManager wifiManager;
     private ScanListener listener;
+
+    private final ConnectivityManager connectivityManager;
+    ConnectivityManager.NetworkCallback networkCallback = null;
 
     public Wifi(Context context) {
         this.context = context.getApplicationContext();
         wifiManager = (WifiManager)this.context.getSystemService(Context.WIFI_SERVICE);
+        connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     public boolean isWifiEnabled() {
@@ -113,9 +118,8 @@ public class Wifi {
                 .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .setNetworkSpecifier(specifier)
                 .build();
-        final ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+        networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
                 Log.d("WIFI_CONNECT", "onAvailable");
@@ -135,8 +139,12 @@ public class Wifi {
             }
         };
         connectivityManager.requestNetwork(request, networkCallback);
+    }
 
-        // TODO later
-        //connectivityManager.unregisterNetworkCallback(networkCallback);
+    public void disconnect() {
+        if (networkCallback != null) {
+            connectivityManager.unregisterNetworkCallback(networkCallback);
+            networkCallback = null;
+        }
     }
 }

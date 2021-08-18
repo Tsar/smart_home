@@ -17,4 +17,8 @@
     <string name="connecting_to_device">Выполняется подключение к устройству…</string>
     <string name="connected_to_device">Подключение к устройству успешно выполнено.\n\nТеперь выберите свою домашнюю сеть или введите её название вручную.</string>
     <string name="input_network_manually">Ввести название сети вручную</string>
+    <string name="network_ssid">Название сети (SSID)</string>
+    <string name="passphrase">Пароль</string>
+    <string name="show_passphrase">Показать пароль</string>
+    <string name="connect_device">Подключить устройство Smart Home к этой сети</string>
 </resources>

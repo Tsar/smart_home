@@ -208,14 +208,16 @@ void handleSetupWiFi() {
     return;
   }
 
-  if (connectToWiFiOrEnableAP(server.arg("ssid").c_str(), server.arg("passphrase").c_str())) {
-    server.send(200, "text/plain", "WIFI_CONNECT_OK");
-    delay(10);
-    WiFi.softAPdisconnect(true);
-    Serial.println("Disabled access point because connected to wi-fi");
-  } else {
-    server.send(200, "text/plain", "WIFI_CONNECT_FAILED");
-  }
+  bool connectResult = connectToWiFiOrEnableAP(server.arg("ssid").c_str(), server.arg("passphrase").c_str());
+  server.send(200, "text/plain", connectResult ? "WIFI_CONNECT_OK" : "WIFI_CONNECT_FAILED");
+}
+
+void handleTurnOffAccessPoint() {
+  if (!checkPassword()) return;
+
+  WiFi.softAPdisconnect(true);
+  server.send(200, "text/plain", "AP_OFF_OK");
+  Serial.println("Disabled access point by request");
 }
 
 void handleSetBuiltinLED() {
@@ -353,6 +355,7 @@ void setup() {
 
   server.on("/ping", HTTP_GET, handlePing);
   server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
+  server.on("/turn_off_ap", HTTP_GET, handleTurnOffAccessPoint);
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
   server.on("/get_values", HTTP_GET, handleGetValues);
   server.on("/set_values", HTTP_ANY, handleSetValues);

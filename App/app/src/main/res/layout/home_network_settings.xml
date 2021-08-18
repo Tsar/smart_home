@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:text="@string/network_ssid" />
+
+    <EditText
+        android:id="@+id/edtNetworkSsid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:inputType="text"
+        android:textSize="20sp"
+        tools:ignore="Autofill,LabelFor" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:text="@string/passphrase" />
+
+    <EditText
+        android:id="@+id/edtPassphrase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:inputType="textPassword"
+        android:textSize="20sp"
+        tools:ignore="Autofill,LabelFor" />
+
+    <CheckBox
+        android:id="@+id/cbShowPassphrase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="@string/show_passphrase" />
+
+    <Button
+        android:id="@+id/btnConnectDevice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAllCaps="false"
+        android:textSize="18sp"
+        android:text="@string/connect_device"
+        android:onClick="onConnectDeviceToNetwork" />
+
+</LinearLayout>

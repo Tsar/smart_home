@@ -17,4 +17,8 @@
     <string name="connecting_to_device">Connecting to the device…</string>
     <string name="connected_to_device">Connected to the device successfully.\n\nNow choose your home network or input it\'s name manually.</string>
     <string name="input_network_manually">Input network name manually</string>
+    <string name="network_ssid">Network name (SSID)</string>
+    <string name="passphrase">Passphrase</string>
+    <string name="show_passphrase">Show passphrase</string>
+    <string name="connect_device">Connect Smart Home device to this network</string>
 </resources>
