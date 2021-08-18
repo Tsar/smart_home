@@ -6,6 +6,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.net.Network;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -78,10 +79,10 @@ public class MainActivity extends Activity {
             String ssid = (String)adapterView.getItemAtPosition(position);
             wifi.connectToWifi(ssid, SMART_HOME_DEVICE_AP_PASSPHRASE, new Wifi.ConnectListener() {
                 @Override
-                public void onConnected() {
+                public void onConnected(Network network) {
                     try {
-                        Http.Response response = Http.doRequest("http://192.168.4.1/ping", null, "12345", true);
-                        Log.d("HTTP OK", "[" + Arrays.toString(response.getData()) + "]");
+                        Http.Response response = Http.doRequest("http://192.168.4.1/ping", null, "12345", false, network);
+                        // TODO: next steps
                     } catch (Http.Exception e) {
                         Log.d("HTTP EXCEPTION", e.getMessage());
                     }

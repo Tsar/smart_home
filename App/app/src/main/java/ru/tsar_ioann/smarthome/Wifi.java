@@ -25,7 +25,7 @@ public class Wifi {
     }
 
     public interface ConnectListener {
-        void onConnected();
+        void onConnected(Network network);
         void onConnectFailed();
         void onConnectLost();
     }
@@ -119,7 +119,7 @@ public class Wifi {
             @Override
             public void onAvailable(Network network) {
                 Log.d("WIFI_CONNECT", "onAvailable");
-                listener.onConnected();
+                listener.onConnected(network);
             }
 
             @Override

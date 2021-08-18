@@ -1,5 +1,6 @@
 package ru.tsar_ioann.smarthome;
 
+import android.net.Network;
 import android.util.Log;
 
 import java.io.IOException;
@@ -54,6 +55,10 @@ public class Http {
     }
 
     public static Response doRequest(String url, byte[] data, String password, boolean hexLogs) throws Exception {
+        return doRequest(url, data, password, hexLogs, null);
+    }
+
+    public static Response doRequest(String url, byte[] data, String password, boolean hexLogs, Network network) throws Exception {
         URL req;
         try {
             req = new URL(url);
@@ -61,7 +66,13 @@ public class Http {
             throw new Exception("Malformed URL: " + e.getMessage());
         }
         try {
-            HttpURLConnection connection = (HttpURLConnection) req.openConnection();
+            HttpURLConnection connection;
+            if (network != null) {
+                connection = (HttpURLConnection)network.openConnection(req);
+            } else {
+                connection = (HttpURLConnection)req.openConnection();
+            }
+
             connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
             connection.setReadTimeout(READ_TIMEOUT_MS);
             connection.setUseCaches(false);
