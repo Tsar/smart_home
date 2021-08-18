@@ -317,6 +317,9 @@ public class MainActivity extends Activity {
     }
 
     public void onConnectDeviceToNetwork(View view) {
+        boolean edtNetworkSsidEnabled = edtNetworkSsid.isEnabled();
+        edtNetworkSsid.setEnabled(false);
+        edtPassphrase.setEnabled(false);
         btnConnectDevice.setEnabled(false);
         String data = "ssid=" + edtNetworkSsid.getText().toString()
                 + "&passphrase=" + edtPassphrase.getText().toString();
@@ -328,15 +331,35 @@ public class MainActivity extends Activity {
                 20000,  // give time to try connecting
                 temporaryNetwork,
                 new Http.Listener() {
+                    private void enableUI() {
+                        runOnUiThread(() -> {
+                            edtNetworkSsid.setEnabled(edtNetworkSsidEnabled);
+                            edtPassphrase.setEnabled(true);
+                            btnConnectDevice.setEnabled(true);
+                        });
+                    }
+
                     @Override
                     public void onResponse(Http.Response response) {
-                        Log.d("DEVICE_RESP", response.getDataAsStr());
+                        if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
+                            String respStr = response.getDataAsStr();
+                            if (respStr.equals("WIFI_CONNECT_OK")) {
+                                // TODO: next steps (may be device should send it's IP?)
+                            } else if (respStr.equals("WIFI_CONNECT_FAILED")) {
+                                enableUI();
+                                // TODO: handle properly
+                            } else {
+                                enableUI();
+                                // TODO: handle properly
+                            }
+                        }
                     }
 
                     @Override
                     public void onError(IOException exception) {
                         Log.d("DEVICE_RESP", "Exception: " + exception.getMessage());
-                        runOnUiThread(() -> btnConnectDevice.setEnabled(true));
+                        enableUI();
+                        // TODO: handle properly
                     }
                 }
         );
