@@ -10,7 +10,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:textAllCaps="false"
-        android:textSize="24sp"
+        android:textSize="20sp"
         android:text="@string/add_fresh_device"
         android:onClick="onAddFreshDevice" />
 
@@ -20,7 +20,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:textAllCaps="false"
-        android:textSize="24sp"
+        android:textSize="20sp"
         android:text="@string/add_configured_device"
         android:onClick="onAddConfiguredDevice" />
 

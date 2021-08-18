@@ -1,17 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Smart Home</string>
 
     <string name="add_new_device">Add new device</string>
     <string name="update_statuses">Update statuses</string>
-    <string name="add_fresh_device">Add fresh device</string>
-    <string name="add_configured_device">Add configured device</string>
+    <string name="add_fresh_device">&lt;big&gt;Add fresh device&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Choose this option to configure new device. Usually it works as Wi-Fi access point. Setup will start with finding new device and connecting it to your home Wi-Fi network.&lt;/small&gt;</string>
+    <string name="add_configured_device">&lt;big&gt;Add configured device&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Choose this option to add device, which is available for your smartphone and you know the IP address.&lt;/small&gt;</string>
     <string name="wifi_is_off">Wi-Fi is off</string>
     <string name="enable_wifi_prompt">Please enable Wi-Fi and try again.</string>
     <string name="searching_smart_home">Searching for fresh Smart Home devices…</string>
     <string name="you_declined_permission_request">You declined permission request, app can\'t use wi-fi</string>
     <string name="warning">Warning</string>
     <string name="permission_request_explanation">Now app will ask you for location permission. This is required to allow app to scan wi-fi. No location information will be gathered.\n\nIf you decline permission request, app will not be able to add fresh device.</string>
-    <string name="searching_finished">Search for fresh devices has finished.</string>
-    <string name="nothing_found">No devices found</string>
-    <string name="choose_device">If you see your device in the list, tap it</string>
+    <string name="search_finished_nothing_found">Search for fresh devices has finished.\n\nNo fresh devices were found.</string>
+    <string name="search_finished_choose_device">Search for fresh devices has finished.\n\nIf you see your device in the list, tap it.</string>
+    <string name="connecting_to_device">Connecting to the device…</string>
+    <string name="connected_to_device">Connected to the device successfully.\n\nNow choose your home network or input it\'s name manually.</string>
+    <string name="input_network_manually">Input network name manually</string>
 </resources>

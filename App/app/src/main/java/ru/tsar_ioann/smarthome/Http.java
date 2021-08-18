@@ -17,7 +17,7 @@ import java.util.List;
 public class Http {
     private static final String LOG_TAG = "Http";
 
-    private static final int CONNECT_TIMEOUT_MS = 300;
+    private static final int CONNECT_TIMEOUT_MS = 500;
     private static final int READ_TIMEOUT_MS = 2500;
 
     public static class Exception extends java.lang.Exception {
@@ -28,16 +28,17 @@ public class Http {
 
     public static class Response {
         private int httpCode;
-        private List<Byte> data;
+        private List<Byte> buffer;
+        private byte[] data = null;
 
         public Response(int httpCode) {
             this.httpCode = httpCode;
-            this.data = new ArrayList<>();
+            this.buffer = new ArrayList<>();
         }
 
         public void appendData(byte[] bytes, int len) {
             for (int i = 0; i < len; ++i) {
-                data.add(bytes[i]);
+                buffer.add(bytes[i]);
             }
         }
 
@@ -46,11 +47,17 @@ public class Http {
         }
 
         public byte[] getData() {
-            byte[] result = new byte[data.size()];
-            for (int i = 0; i < data.size(); ++i) {
-                result[i] = data.get(i);
+            if (data == null) {
+                data = new byte[buffer.size()];
+                for (int i = 0; i < buffer.size(); ++i) {
+                    data[i] = buffer.get(i);
+                }
             }
-            return result;
+            return data;
+        }
+
+        public String getDataAsStr() {
+            return new String(getData(), StandardCharsets.UTF_8);
         }
     }
 

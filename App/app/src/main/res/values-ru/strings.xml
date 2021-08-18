@@ -4,15 +4,17 @@
 
     <string name="add_new_device">Добавить устройство</string>
     <string name="update_statuses">Обновить состояния</string>
-    <string name="add_fresh_device">Добавить свежее устройство</string>
-    <string name="add_configured_device">Добавить настроенное устройство</string>
+    <string name="add_fresh_device">&lt;big&gt;Добавить свежее устройство&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Выбирайте эту опцию для настройки нового устройства. Обычно оно работает как точка доступа Wi-Fi. Настройка начнётся с поиска нового устройства и подключения его к Вашей домашней Wi-Fi сети.&lt;/small&gt;</string>
+    <string name="add_configured_device">&lt;big&gt;Добавить настроенное устройство&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Выбирайте эту опцию для добавления устройства, которое доступно Вашему смартфону по известному для Вас IP-адресу.&lt;/small&gt;</string>
     <string name="wifi_is_off">Wi-Fi выключен</string>
     <string name="enable_wifi_prompt">Включите Wi-Fi и попробуйте ещё раз.</string>
     <string name="searching_smart_home">Выполняется поиск свежих устройств Smart Home…</string>
     <string name="you_declined_permission_request">Вы отклонили запрос разрешения, приложение не может использовать wi-fi</string>
     <string name="warning">Предупреждение</string>
     <string name="permission_request_explanation">Сейчас приложение запросит разрешение на использование местоположения. Это необходимо, чтобы приложение получило доступ к сканированию wi-fi. Приложение не будет использовать информацию о местоположении.\n\nЕсли отклонить запрос разрешения, то приложение не сможет добавлять свежие устройства.</string>
-    <string name="searching_finished">Поиск свежих устройств завершён.</string>
-    <string name="nothing_found">Ничего не найдено</string>
-    <string name="choose_device">Если Вы видите своё устройство в списке, нажмите на него</string>
+    <string name="search_finished_nothing_found">Поиск свежих устройств завершён.\n\nСвежие устройства не найдены.</string>
+    <string name="search_finished_choose_device">Поиск свежих устройств завершён.\n\nЕсли Вы видите своё устройство в списке, нажмите на него.</string>
+    <string name="connecting_to_device">Выполняется подключение к устройству…</string>
+    <string name="connected_to_device">Подключение к устройству успешно выполнено.\n\nТеперь выберите свою домашнюю сеть или введите её название вручную.</string>
+    <string name="input_network_manually">Ввести название сети вручную</string>
 </resources>

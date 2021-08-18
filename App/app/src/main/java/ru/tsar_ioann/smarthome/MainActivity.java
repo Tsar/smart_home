@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.net.Network;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,7 +20,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
-import java.util.Arrays;
+import java.net.HttpURLConnection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,6 +29,7 @@ public class MainActivity extends Activity {
         public static final int MANAGEMENT = 0;
         public static final int ADD_NEW_DEVICE = 1;
         public static final int FRESH_DEVICES = 2;
+        public static final int CONNECTING_FRESH_DEVICE = 3;
     }
 
     private static final int PERMISSION_REQUEST_CODE = 1;
@@ -35,6 +37,8 @@ public class MainActivity extends Activity {
     private static final String SMART_HOME_DEVICE_AP_SSID_PREFIX = "SmartHomeDevice_";
     private static final int SMART_HOME_DEVICE_AP_SSID_LENGTH = SMART_HOME_DEVICE_AP_SSID_PREFIX.length() + 6;
     private static final String SMART_HOME_DEVICE_AP_PASSPHRASE = "setup12345";
+    private static final String SMART_HOME_DEVICE_AP_ADDRESS = "http://192.168.4.1";
+    private static final String SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD = "12345";
 
     private Wifi wifi;
 
@@ -42,10 +46,15 @@ public class MainActivity extends Activity {
     private MenuItem mnAddNewDevice;
     private MenuItem mnUpdateStatuses;
     private TextView txtSearchTitle;
-    private ListView lstDevices;
+    private TextView txtConnecting;
+    private Button btnSetNetwork;
+    private ListView lstNetworks;
 
     private ArrayAdapter<String> lstDevicesAdapter;
     private Set<String> devices;
+
+    private ArrayAdapter<String> lstNetworksAdapter;
+    private Set<String> networks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,14 +65,21 @@ public class MainActivity extends Activity {
 
         viewFlipper = findViewById(R.id.viewFlipper);
         txtSearchTitle = findViewById(R.id.txtSearchTitle);
-        lstDevices = findViewById(R.id.lstDevices);
+        ListView lstDevices = findViewById(R.id.lstDevices);
+        txtConnecting = findViewById(R.id.txtConnecting);
+        btnSetNetwork = findViewById(R.id.btnSetNetwork);
+        lstNetworks = findViewById(R.id.lstNetworks);
 
         Button btnAddFresh = findViewById(R.id.btnAddFresh);
         Button btnAddConfigured = findViewById(R.id.btnAddConfigured);
 
+        btnAddFresh.setText(Html.fromHtml(tr(R.string.add_fresh_device)));
+        btnAddConfigured.setText(Html.fromHtml(tr(R.string.add_configured_device)));
+
         Button[] allButtons = new Button[]{
                 btnAddFresh,
-                btnAddConfigured
+                btnAddConfigured,
+                btnSetNetwork
         };
 
         ColorStateList cslButtonBg = getResources().getColorStateList(R.color.button_bg);
@@ -76,15 +92,48 @@ public class MainActivity extends Activity {
         lstDevicesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
         lstDevices.setAdapter(lstDevicesAdapter);
         lstDevices.setOnItemClickListener((adapterView, view, position, id) -> {
-            String ssid = (String)adapterView.getItemAtPosition(position);
-            wifi.connectToWifi(ssid, SMART_HOME_DEVICE_AP_PASSPHRASE, new Wifi.ConnectListener() {
+            txtConnecting.setText(R.string.connecting_to_device);
+            btnSetNetwork.setVisibility(View.GONE);
+            lstNetworks.setVisibility(View.GONE);
+            viewFlipper.setDisplayedChild(Screens.CONNECTING_FRESH_DEVICE);
+
+            String deviceSsid = (String)adapterView.getItemAtPosition(position);
+            wifi.connectToWifi(deviceSsid, SMART_HOME_DEVICE_AP_PASSPHRASE, new Wifi.ConnectListener() {
                 @Override
                 public void onConnected(Network network) {
                     try {
-                        Http.Response response = Http.doRequest("http://192.168.4.1/ping", null, "12345", false, network);
-                        // TODO: next steps
+                        Http.Response response = Http.doRequest(SMART_HOME_DEVICE_AP_ADDRESS + "/ping", null, SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD, false, network);
+                        if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().equals("OK")) {
+                            runOnUiThread(() -> {
+                                txtConnecting.setText(R.string.connected_to_device);
+                                networks = new HashSet<>();
+                                lstNetworksAdapter.clear();
+
+                                btnSetNetwork.setVisibility(View.VISIBLE);
+                                lstNetworks.setVisibility(View.VISIBLE);
+
+                                wifi.scan(new Wifi.ScanListener() {
+                                    @Override
+                                    public void onWifiFound(String ssid) {
+                                        if (!ssid.isEmpty() && !ssid.equals(deviceSsid) && !networks.contains(ssid)) {
+                                            networks.add(ssid);
+                                            lstNetworksAdapter.add(ssid);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onScanFinished() {
+                                        // TODO: handle
+                                    }
+                                });
+                            });
+                        } else {
+                            Log.d("HTTP", "ping not OK");
+                            // TODO: handle
+                        }
                     } catch (Http.Exception e) {
                         Log.d("HTTP EXCEPTION", e.getMessage());
+                        // TODO: handle
                     }
                 }
 
@@ -99,6 +148,9 @@ public class MainActivity extends Activity {
                 }
             });
         });
+
+        lstNetworksAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
+        lstNetworks.setAdapter(lstNetworksAdapter);
     }
 
     private String tr(int resId) {
@@ -169,9 +221,9 @@ public class MainActivity extends Activity {
 
             @Override
             public void onScanFinished() {
-                runOnUiThread(() -> txtSearchTitle.setText(tr(R.string.searching_finished) + "\n" + tr(
-                        lstDevicesAdapter.getCount() > 0 ? R.string.choose_device : R.string.nothing_found
-                )));
+                runOnUiThread(() -> txtSearchTitle.setText(tr(lstDevicesAdapter.getCount() > 0
+                        ? R.string.search_finished_choose_device
+                        : R.string.search_finished_nothing_found)));
             }
         });
     }
