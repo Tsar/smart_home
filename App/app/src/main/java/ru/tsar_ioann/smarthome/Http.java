@@ -15,12 +15,12 @@ import java.util.List;
 public class Http {
     private static final String LOG_TAG = "Http";
 
-    private static final int CONNECT_TIMEOUT_MS = 500;
-    private static final int READ_TIMEOUT_MS = 2500;
+    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 300;
+    private static final int DEFAULT_READ_TIMEOUT_MS = 2500;
 
     public static class Response {
-        private int httpCode;
-        private List<Byte> buffer;
+        private final int httpCode;
+        private final List<Byte> buffer;
         private byte[] data = null;
 
         public Response(int httpCode) {
@@ -58,16 +58,16 @@ public class Http {
         void onError(IOException exception);
     }
 
-    public static void doAsyncRequest(String url, byte[] data, String password, boolean hexLogs, Listener listener) {
-        doAsyncRequest(url, data, password, hexLogs, null, listener);
+    public static void doAsyncRequest(String url, byte[] data, String password, Network network, Listener listener) {
+        doAsyncRequest(url, data, password, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS, network, listener);
     }
 
-    public static void doAsyncRequest(String url, byte[] data, String password, boolean hexLogs, Network network, Listener listener) {
+    public static void doAsyncRequest(String url, byte[] data, String password, int connectTimeoutMs, int readTimeoutMs, Network network, Listener listener) {
         new Thread() {
             @Override
             public void run() {
                 try {
-                    Response response = doRequest(url, data, password, hexLogs, network);
+                    Response response = doRequest(url, data, password, connectTimeoutMs, readTimeoutMs, network);
                     listener.onResponse(response);
                 } catch (IOException e) {
                     listener.onError(e);
@@ -76,11 +76,11 @@ public class Http {
         }.start();
     }
 
-    public static Response doRequest(String url, byte[] data, String password, boolean hexLogs) throws IOException {
-        return doRequest(url, data, password, hexLogs, null);
+    public static Response doRequest(String url, byte[] data, String password, Network network) throws IOException {
+        return doRequest(url, data, password, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS, network);
     }
 
-    public static Response doRequest(String url, byte[] data, String password, boolean hexLogs, Network network) throws IOException {
+    public static Response doRequest(String url, byte[] data, String password, int connectTimeoutMs, int readTimeoutMs, Network network) throws IOException {
         URL req = new URL(url);
         HttpURLConnection connection;
         if (network != null) {
@@ -89,8 +89,8 @@ public class Http {
             connection = (HttpURLConnection)req.openConnection();
         }
 
-        connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        connection.setReadTimeout(READ_TIMEOUT_MS);
+        connection.setConnectTimeout(connectTimeoutMs);
+        connection.setReadTimeout(readTimeoutMs);
         connection.setUseCaches(false);
 
         if (password != null) {
@@ -103,7 +103,7 @@ public class Http {
             OutputStream os = connection.getOutputStream();
             os.write(data, 0, data.length);
             os.close();
-            logData("Request data:  ", data, hexLogs);
+            logData("Request data:  ", data);
         } else {
             connection.setRequestMethod("GET");
         }
@@ -118,17 +118,14 @@ public class Http {
                 response.appendData(buffer, n);
             }
             is.close();
-            logData("Response data: ", response.getData(), hexLogs);
+            logData("Response data: ", response.getData());
         }
 
         connection.disconnect();
         return response;
     }
 
-    private static void logData(String prefix, byte[] data, boolean asHex) {
-        Log.d(LOG_TAG, prefix + (asHex
-                ? Utils.bytesToHex(data)
-                : new String(data, StandardCharsets.UTF_8)
-        ));
+    private static void logData(String prefix, byte[] data) {
+        Log.d(LOG_TAG, prefix + new String(data, StandardCharsets.UTF_8));
     }
 }

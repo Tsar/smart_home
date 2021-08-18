@@ -127,7 +127,6 @@ public class MainActivity extends Activity {
                                 SMART_HOME_DEVICE_AP_ADDRESS + "/ping",
                                 null,
                                 SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
-                                false,
                                 network
                         );
                         if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().equals("OK")) {
@@ -325,7 +324,8 @@ public class MainActivity extends Activity {
                 SMART_HOME_DEVICE_AP_ADDRESS + "/setup_wifi",
                 data.getBytes(),
                 SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
-                false,
+                500,
+                20000,  // give time to try connecting
                 temporaryNetwork,
                 new Http.Listener() {
                     @Override
@@ -336,6 +336,7 @@ public class MainActivity extends Activity {
                     @Override
                     public void onError(IOException exception) {
                         Log.d("DEVICE_RESP", "Exception: " + exception.getMessage());
+                        runOnUiThread(() -> btnConnectDevice.setEnabled(true));
                     }
                 }
         );
