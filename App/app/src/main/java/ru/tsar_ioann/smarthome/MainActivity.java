@@ -57,6 +57,7 @@ public class MainActivity extends Activity {
     private ListView lstNetworks;
     private EditText edtNetworkSsid;
     private EditText edtPassphrase;
+    private Button btnConnectDevice;
 
     private ArrayAdapter<String> lstDevicesAdapter;
     private Set<String> devices;
@@ -82,7 +83,7 @@ public class MainActivity extends Activity {
         edtNetworkSsid = findViewById(R.id.edtNetworkSsid);
         edtPassphrase = findViewById(R.id.edtPassphrase);
         CheckBox cbShowPassphrase = findViewById(R.id.cbShowPassphrase);
-        Button btnConnectDevice = findViewById(R.id.btnConnectDevice);
+        btnConnectDevice = findViewById(R.id.btnConnectDevice);
 
         btnAddFresh.setText(Html.fromHtml(tr(R.string.add_fresh_device)));
         btnAddConfigured.setText(Html.fromHtml(tr(R.string.add_configured_device)));
@@ -317,6 +318,7 @@ public class MainActivity extends Activity {
     }
 
     public void onConnectDeviceToNetwork(View view) {
+        btnConnectDevice.setEnabled(false);
         String data = "ssid=" + edtNetworkSsid.getText().toString()
                 + "&passphrase=" + edtPassphrase.getText().toString();
         Http.doAsyncRequest(

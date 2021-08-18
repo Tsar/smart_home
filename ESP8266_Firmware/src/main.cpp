@@ -44,6 +44,8 @@ volatile uint8_t nextEventId = EVENTS_COUNT;
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
+bool isAccessPointEnabled;
+
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
@@ -138,6 +140,8 @@ void fastBlinkForever() {
 }
 
 void enableAccessPoint() {
+  if (isAccessPointEnabled) return;
+
   uint8_t mac[WL_MAC_ADDR_LENGTH];
   WiFi.macAddress(mac);
   char softAPName[32] = {};
@@ -154,6 +158,7 @@ void enableAccessPoint() {
   const String ip = WiFi.softAPIP().toString();
   homeCfg.updateIP(ip);
   Serial.printf("Access point enabled, IP: %s\n", ip.c_str());
+  isAccessPointEnabled = true;
 }
 
 bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
@@ -216,8 +221,9 @@ void handleTurnOffAccessPoint() {
   if (!checkPassword()) return;
 
   WiFi.softAPdisconnect(true);
+  isAccessPointEnabled = false;
   server.send(200, "text/plain", "AP_OFF_OK");
-  Serial.println("Disabled access point by request");
+  Serial.println("Access point disabled by request");
 }
 
 void handleSetBuiltinLED() {
@@ -337,6 +343,7 @@ void setup() {
   WiFi.setAutoReconnect(true);
 
   WiFi.softAPdisconnect(true);
+  isAccessPointEnabled = false;
 
   station_config stationCfg;
   if (WiFi.getPersistent()) {

@@ -93,6 +93,10 @@ public class Http {
         connection.setReadTimeout(READ_TIMEOUT_MS);
         connection.setUseCaches(false);
 
+        if (password != null) {
+            connection.setRequestProperty("Password", password);
+        }
+
         if (data != null) {
             connection.setRequestMethod("POST");
             connection.setDoOutput(true);
@@ -102,10 +106,6 @@ public class Http {
             logData("Request data:  ", data, hexLogs);
         } else {
             connection.setRequestMethod("GET");
-        }
-
-        if (password != null) {
-            connection.setRequestProperty("Password", password);
         }
 
         int httpCode = connection.getResponseCode();
