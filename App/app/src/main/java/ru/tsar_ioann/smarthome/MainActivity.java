@@ -321,8 +321,8 @@ public class MainActivity extends Activity {
         edtNetworkSsid.setEnabled(false);
         edtPassphrase.setEnabled(false);
         btnConnectDevice.setEnabled(false);
-        String data = "ssid=" + edtNetworkSsid.getText().toString()
-                + "&passphrase=" + edtPassphrase.getText().toString();
+        String data = "ssid=" + Utils.urlEncode(edtNetworkSsid.getText().toString())
+                + "&passphrase=" + Utils.urlEncode(edtPassphrase.getText().toString());
         Http.doAsyncRequest(
                 SMART_HOME_DEVICE_AP_ADDRESS + "/setup_wifi",
                 data.getBytes(),
