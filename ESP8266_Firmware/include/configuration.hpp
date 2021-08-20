@@ -11,8 +11,6 @@ class Configuration {
     public:
         Configuration();
 
-        void updateIP(const String& ip);
-
         void load();
         void save() const;
 
@@ -31,8 +29,6 @@ class Configuration {
         void setDimmerValue(uint8_t index, int32_t value);
 
     private:
-        String ip_;
-
         String name_;
         String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
 

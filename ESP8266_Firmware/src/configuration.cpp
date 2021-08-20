@@ -74,10 +74,6 @@ Configuration::Configuration() {
     EEPROM.begin(4096);
 }
 
-void Configuration::updateIP(const String& ip) {
-    ip_ = ip;
-}
-
 void Configuration::load() {
     int pos = 0;
     name_ = readString(pos);
