@@ -215,6 +215,14 @@ void handleSetupWiFi() {
   server.send(200, "text/plain", connectResult ? "WIFI_CONNECT_OK" : "WIFI_CONNECT_FAILED");
 }
 
+void handleResetWiFi() {
+  if (!checkPassword()) return;
+
+  Serial.println("Reset wi-fi");
+  WiFi.disconnect(true);
+  enableAccessPoint();
+}
+
 void handleTurnOffAccessPoint() {
   if (!checkPassword()) return;
 
@@ -360,6 +368,7 @@ void setup() {
 
   server.on("/ping", HTTP_GET, handlePing);
   server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
+  server.on("/reset_wifi", HTTP_GET, handleResetWiFi);
   server.on("/turn_off_ap", HTTP_GET, handleTurnOffAccessPoint);
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
   server.on("/get_values", HTTP_GET, handleGetValues);
