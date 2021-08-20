@@ -157,6 +157,7 @@ void enableAccessPoint() {
 
   const String ip = WiFi.softAPIP().toString();
   Serial.printf("Access point enabled, IP: %s\n", ip.c_str());
+  digitalWrite(LED_BUILTIN, LOW);
   isAccessPointEnabled = true;
 }
 
