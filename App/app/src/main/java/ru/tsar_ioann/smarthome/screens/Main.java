@@ -1,11 +1,21 @@
 package ru.tsar_ioann.smarthome.screens;
 
+import android.app.Activity;
+import android.widget.ListView;
+
 import ru.tsar_ioann.smarthome.*;
 
 public class Main extends BaseScreen {
     public Main(CommonData commonData) {
         super(commonData);
         commonData.getWifi().disconnect();  // this is required for back button to work correctly
+
+        Activity activity = commonData.getActivity();
+        ListView lstDevices = activity.findViewById(R.id.lstDevices);
+
+        DevicesAdapter devicesAdapter = new DevicesAdapter(activity, commonData.getDevices().getList());
+        lstDevices.setAdapter(devicesAdapter);
+
         asyncRefresh();
     }
 

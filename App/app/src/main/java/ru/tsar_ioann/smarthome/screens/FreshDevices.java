@@ -19,11 +19,11 @@ public class FreshDevices extends BaseScreen {
 
         Activity activity = commonData.getActivity();
         TextView txtSearchTitle = activity.findViewById(R.id.txtSearchTitle);
-        ListView lstDevices = activity.findViewById(R.id.lstDevices);
+        ListView lstNewDevices = activity.findViewById(R.id.lstNewDevices);
 
-        ArrayAdapter<String> lstDevicesAdapter = new ArrayAdapter<>(activity, android.R.layout.simple_list_item_1);
-        lstDevices.setAdapter(lstDevicesAdapter);
-        lstDevices.setOnItemClickListener((adapterView, view, position, id) -> {
+        ArrayAdapter<String> lstNewDevicesAdapter = new ArrayAdapter<>(activity, android.R.layout.simple_list_item_1);
+        lstNewDevices.setAdapter(lstNewDevicesAdapter);
+        lstNewDevices.setOnItemClickListener((adapterView, view, position, id) -> {
             ConnectingFreshDevice screen = (ConnectingFreshDevice)commonData
                     .getScreenLauncher().launchScreen(ScreenId.CONNECTING_FRESH_DEVICE);
             screen.connectToDevice((String)adapterView.getItemAtPosition(position));
@@ -31,7 +31,7 @@ public class FreshDevices extends BaseScreen {
 
         txtSearchTitle.setText(tr(R.string.searching_smart_home));
         Set<String> devices = new HashSet<>();
-        lstDevicesAdapter.clear();
+        lstNewDevicesAdapter.clear();
         commonData.getWifi().scan(30, new Wifi.ScanListener() {
             @Override
             public void onWifiFound(String ssid) {
@@ -39,7 +39,7 @@ public class FreshDevices extends BaseScreen {
                     if (ssid.length() == SMART_HOME_DEVICE_AP_SSID_LENGTH && ssid.startsWith(SMART_HOME_DEVICE_AP_SSID_PREFIX)) {
                         if (!devices.contains(ssid)) {
                             devices.add(ssid);
-                            lstDevicesAdapter.add(ssid);
+                            lstNewDevicesAdapter.add(ssid);
                         }
                     }
                 });
@@ -47,7 +47,7 @@ public class FreshDevices extends BaseScreen {
 
             @Override
             public void onScanFinished() {
-                activity.runOnUiThread(() -> txtSearchTitle.setText(tr(lstDevicesAdapter.getCount() > 0
+                activity.runOnUiThread(() -> txtSearchTitle.setText(tr(lstNewDevicesAdapter.getCount() > 0
                         ? R.string.search_finished_choose_device
                         : R.string.search_finished_nothing_found))
                 );

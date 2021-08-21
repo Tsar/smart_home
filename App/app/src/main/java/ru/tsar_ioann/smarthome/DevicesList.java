@@ -11,8 +11,8 @@ public class DevicesList {
     private static final String KEY_NAME_PREFIX = "name-";
     private static final String KEY_IP_PREFIX = "ip-";
 
-    private SharedPreferences storage;
-    private List<DeviceInfo> deviceInfoList;
+    private final SharedPreferences storage;
+    private final List<DeviceInfo> deviceInfoList;
 
     public DevicesList(SharedPreferences devicesLocalStorage) {
         storage = devicesLocalStorage;
@@ -48,5 +48,9 @@ public class DevicesList {
     public void addDevice(DeviceInfo deviceInfo) {
         deviceInfoList.add(deviceInfo);
         saveStorage();
+    }
+
+    public List<DeviceInfo> getList() {
+        return deviceInfoList;
     }
 }
