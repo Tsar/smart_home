@@ -5,7 +5,13 @@ import ru.tsar_ioann.smarthome.*;
 public class Main extends BaseScreen {
     public Main(CommonData commonData) {
         super(commonData);
-        commonData.getWifi().disconnect();  // this is required for back button working correctly
+        commonData.getWifi().disconnect();  // this is required for back button to work correctly
+        asyncRefresh();
+    }
+
+    public void asyncRefresh() {
+        DevicesList devices = getCommonData().getDevices();
+        // TODO
     }
 
     @Override

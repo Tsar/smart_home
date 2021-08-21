@@ -255,7 +255,9 @@ void handleGetSetupWiFiState() {
 void handleResetWiFi() {
   if (!checkPassword()) return;
 
-  Serial.println("Reset wi-fi");
+  server.send(200, "text/plain", "OK");
+  delay(100);
+  Serial.println("Reset wi-fi by request");
   WiFi.disconnect(true);
   enableAccessPoint();
 }
@@ -263,9 +265,10 @@ void handleResetWiFi() {
 void handleTurnOffAccessPoint() {
   if (!checkPassword()) return;
 
+  server.send(200, "text/plain", "OK");
+  delay(100);
   WiFi.softAPdisconnect(true);
   isAccessPointEnabled = false;
-  server.send(200, "text/plain", "AP_OFF_OK");
   Serial.println("Access point disabled by request");
 }
 

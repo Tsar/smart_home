@@ -8,15 +8,19 @@ public class CommonData {
     private final Activity activity;
     private final Resources resources;
     private final Wifi wifi;
+    private final DevicesList devices;
     private ScreenLauncher screenLauncher;
 
+    // Used when adding new device
     private Network newDeviceNetwork = null;
     private DeviceInfo newDeviceInfo = null;
+    private String homeNetworkSsid = null;
 
-    public CommonData(Activity activity, Wifi wifi) {
+    public CommonData(Activity activity, Wifi wifi, DevicesList devices) {
         this.activity = activity;
         resources = activity.getResources();
         this.wifi = wifi;
+        this.devices = devices;
     }
 
     public void setScreenLauncher(ScreenLauncher screenLauncher) {
@@ -31,6 +35,10 @@ public class CommonData {
         this.newDeviceInfo = newDeviceInfo;
     }
 
+    public void setHomeNetworkSsid(String homeNetworkSsid) {
+        this.homeNetworkSsid = homeNetworkSsid;
+    }
+
     public Activity getActivity() {
         return activity;
     }
@@ -43,6 +51,10 @@ public class CommonData {
         return wifi;
     }
 
+    public DevicesList getDevices() {
+        return devices;
+    }
+
     public ScreenLauncher getScreenLauncher() {
         return screenLauncher;
     }
@@ -53,5 +65,9 @@ public class CommonData {
 
     public DeviceInfo getNewDeviceInfo() {
         return newDeviceInfo;
+    }
+
+    public String getHomeNetworkSsid() {
+        return homeNetworkSsid;
     }
 }

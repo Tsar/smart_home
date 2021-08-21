@@ -4,11 +4,16 @@ public class DeviceInfo {
     private final String macAddress;
     private String name;
     private String ipAddress;
-    private String homeNetworkSsid;
 
     public DeviceInfo(String macAddress, String name) {
         this.macAddress = macAddress;
         this.name = name;
+    }
+
+    public DeviceInfo(String macAddress, String name, String ipAddress) {
+        this.macAddress = macAddress;
+        this.name = name;
+        this.ipAddress = ipAddress;
     }
 
     public String getMacAddress() {
@@ -23,19 +28,11 @@ public class DeviceInfo {
         return ipAddress;
     }
 
-    public String getHomeNetworkSsid() {
-        return homeNetworkSsid;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
 
     public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
-    }
-
-    public void setHomeNetworkSsid(String homeNetworkSsid) {
-        this.homeNetworkSsid = homeNetworkSsid;
     }
 }

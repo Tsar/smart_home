@@ -6,6 +6,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import ru.tsar_ioann.smarthome.screens.AddNewDevice;
+import ru.tsar_ioann.smarthome.screens.Main;
 
 public class MainActivity extends Activity implements MenuVisibilityChanger {
     private ScreenLauncher screenLauncher;
@@ -19,7 +20,11 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
         setContentView(R.layout.activity_main);
 
         screenLauncher = new ScreenLauncher(
-                new CommonData(this, new Wifi(this)),
+                new CommonData(
+                        this,
+                        new Wifi(this),
+                        new DevicesList(getSharedPreferences("devices", MODE_PRIVATE))
+                ),
                 findViewById(R.id.viewFlipper),
                 this
         );
@@ -58,14 +63,15 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
     }
 
     public void onUpdateStatuses(MenuItem menuItem) {
-        // TODO
+        if (screenLauncher.getCurrentScreenId() == ScreenId.MAIN) {
+            ((Main)screenLauncher.getCurrentScreen()).asyncRefresh();
+        }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (screenLauncher.getCurrentScreenId() == ScreenId.ADD_NEW_DEVICE) {
-            AddNewDevice screen = (AddNewDevice)screenLauncher.getCurrentScreen();
-            screen.onRequestPermissionResults(requestCode, grantResults);
+            ((AddNewDevice)screenLauncher.getCurrentScreen()).onRequestPermissionResults(requestCode, grantResults);
         }
     }
 }

@@ -1,9 +1,12 @@
 package ru.tsar_ioann.smarthome.screens;
 
+import android.app.Activity;
 import android.widget.TextView;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import ru.tsar_ioann.smarthome.*;
 
@@ -11,11 +14,15 @@ public class DeviceConnected extends BaseScreen {
     public DeviceConnected(CommonData commonData) {
         super(commonData);
 
+        String networkSsid = commonData.getHomeNetworkSsid();
+        assert networkSsid != null;
+
+        Activity activity = commonData.getActivity();
+        TextView txtDeviceConnected = activity.findViewById(R.id.txtDeviceConnected);
+        txtDeviceConnected.setText(tr(R.string.device_connected_successfully, networkSsid));
+
         DeviceInfo deviceInfo = commonData.getNewDeviceInfo();
         assert deviceInfo != null;
-
-        TextView txtDeviceConnected = commonData.getActivity().findViewById(R.id.txtDeviceConnected);
-        txtDeviceConnected.setText(tr(R.string.device_connected_successfully, deviceInfo.getHomeNetworkSsid()));
 
         Http.doAsyncRequest(
                 "http://" + deviceInfo.getIpAddress() + "/get_info",
@@ -39,7 +46,13 @@ public class DeviceConnected extends BaseScreen {
                                         null
                                 );
 
-                                // TODO: CONTINUE MAIN FLOW
+                                new Timer().schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        commonData.getDevices().addDevice(deviceInfo);
+                                        activity.runOnUiThread(() -> commonData.getScreenLauncher().launchScreen(ScreenId.MAIN));
+                                    }
+                                }, 350);
                             } else {
                                 showErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
                             }

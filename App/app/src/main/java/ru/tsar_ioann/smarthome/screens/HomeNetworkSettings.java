@@ -84,7 +84,7 @@ public class HomeNetworkSettings extends BaseScreen {
                                                             null,
                                                             SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
                                                             deviceNetwork,
-                                                            15
+                                                            20
                                                     );
                                                     if (respState.getHttpCode() == HttpURLConnection.HTTP_OK) {
                                                         state = respState.getDataAsStr();
@@ -96,7 +96,7 @@ public class HomeNetworkSettings extends BaseScreen {
                                                     String ipAddress = state.substring(WIFI_STATE_SUCCESS_PREFIX.length());
 
                                                     commonData.getWifi().disconnect();
-                                                    commonData.getNewDeviceInfo().setHomeNetworkSsid(networkSsid);
+                                                    commonData.setHomeNetworkSsid(networkSsid);
                                                     commonData.getNewDeviceInfo().setIpAddress(ipAddress);
                                                     activity.runOnUiThread(() -> commonData
                                                             .getScreenLauncher().launchScreen(ScreenId.DEVICE_CONNECTED)
