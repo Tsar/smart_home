@@ -24,9 +24,6 @@
         android:layout_alignParentBottom="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAllCaps="false"
-        android:textSize="18sp"
-        android:text="@string/input_network_manually"
-        android:onClick="onInputNetworkManually" />
+        android:text="@string/input_network_manually" />
 
 </RelativeLayout>

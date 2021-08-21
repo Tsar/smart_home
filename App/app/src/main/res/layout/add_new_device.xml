@@ -9,19 +9,15 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:textAllCaps="false"
         android:textSize="20sp"
-        android:text="@string/add_fresh_device"
-        android:onClick="onAddFreshDevice" />
+        android:text="@string/add_fresh_device" />
 
     <Button
         android:id="@+id/btnAddConfigured"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:textAllCaps="false"
         android:textSize="20sp"
-        android:text="@string/add_configured_device"
-        android:onClick="onAddConfiguredDevice" />
+        android:text="@string/add_configured_device" />
 
 </LinearLayout>
