@@ -36,6 +36,9 @@ public class ScreenLauncher {
             case HOME_NETWORK_SETTINGS:
                 currentScreen = new HomeNetworkSettings(commonData);
                 break;
+            case DEVICE_CONNECTED:
+                currentScreen = new DeviceConnected(commonData);
+                break;
         }
         menuVisibilityChanger.setMenuVisibility(currentScreen.shouldMenuBeVisible());
         currentScreenId = screenId;

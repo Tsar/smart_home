@@ -43,10 +43,14 @@ public abstract class BaseScreen {
         builder.show();
     }
 
-    protected final void disconnectAndShowErrorAndGoToMainScreen(String message) {
-        commonData.getWifi().disconnect();
+    protected final void showErrorAndGoToMainScreen(String message) {
         commonData.getActivity().runOnUiThread(() -> showOkDialog(tr(R.string.error), message, (dialog, which) -> {
             commonData.getScreenLauncher().launchScreen(ScreenId.MAIN);
         }));
+    }
+
+    protected final void disconnectAndShowErrorAndGoToMainScreen(String message) {
+        commonData.getWifi().disconnect();
+        showErrorAndGoToMainScreen(message);
     }
 }

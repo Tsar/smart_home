@@ -64,9 +64,13 @@ public class Http {
             public void run() {
                 try {
                     Response response = doRequest(url, data, password, network, attempts);
-                    listener.onResponse(response);
+                    if (listener != null) {
+                        listener.onResponse(response);
+                    }
                 } catch (IOException e) {
-                    listener.onError(e);
+                    if (listener != null) {
+                        listener.onError(e);
+                    }
                 }
             }
         }.start();

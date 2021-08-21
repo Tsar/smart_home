@@ -10,7 +10,6 @@
         android:layout_alignParentTop="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
         android:text="@string/network_ssid" />
 
     <EditText
@@ -28,7 +27,6 @@
         android:layout_below="@id/edtNetworkSsid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
         android:text="@string/passphrase" />
 
     <EditText

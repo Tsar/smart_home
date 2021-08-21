@@ -51,7 +51,8 @@ public class HomeNetworkSettings extends BaseScreen {
             edtNetworkSsid.setEnabled(false);
             edtPassphrase.setEnabled(false);
             btnConnectDevice.setEnabled(false);
-            String data = "ssid=" + Utils.urlEncode(edtNetworkSsid.getText().toString())
+            String networkSsid = edtNetworkSsid.getText().toString();
+            String data = "ssid=" + Utils.urlEncode(networkSsid)
                     + "&passphrase=" + Utils.urlEncode(edtPassphrase.getText().toString());
             Http.doAsyncRequest(
                     SMART_HOME_DEVICE_AP_ADDRESS + "/setup_wifi",
@@ -93,8 +94,13 @@ public class HomeNetworkSettings extends BaseScreen {
 
                                                 if (state.startsWith(WIFI_STATE_SUCCESS_PREFIX)) {
                                                     String ipAddress = state.substring(WIFI_STATE_SUCCESS_PREFIX.length());
+
+                                                    commonData.getWifi().disconnect();
+                                                    commonData.getNewDeviceInfo().setHomeNetworkSsid(networkSsid);
                                                     commonData.getNewDeviceInfo().setIpAddress(ipAddress);
-                                                    // TODO: CONTINUE MAIN FLOW
+                                                    activity.runOnUiThread(() -> commonData
+                                                            .getScreenLauncher().launchScreen(ScreenId.DEVICE_CONNECTED)
+                                                    );
                                                 } else if (state.startsWith(WIFI_STATE_FAIL_PREFIX)) {
                                                     // TODO: use error code to make more details in error message
                                                     showErrorAndEnableUI(tr(R.string.device_could_not_connect_to_wifi));
