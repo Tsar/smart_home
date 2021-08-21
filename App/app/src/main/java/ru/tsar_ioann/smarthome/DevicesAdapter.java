@@ -53,12 +53,16 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
             dimmers[i].setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (!fromUser) {
-                        return;
-                    }
+                }
 
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
                     // interpolation is here only for first tests
-                    int value = (4000 - 8300) * progress / 1000 + 8300;
+                    int value = (4000 - 8300) * seekBar.getProgress() / 1000 + 8300;
 
                     Http.doAsyncRequest(
                             "http://" + ipAddress + "/set_values?dim" + finalI + "=" + value,
@@ -68,14 +72,6 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                             3,
                             null
                     );
-                }
-
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
                 }
             });
         }
