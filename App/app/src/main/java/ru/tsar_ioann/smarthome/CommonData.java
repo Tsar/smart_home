@@ -9,7 +9,9 @@ public class CommonData {
     private final Resources resources;
     private final Wifi wifi;
     private ScreenLauncher screenLauncher;
-    private Network deviceNetwork;
+
+    private Network newDeviceNetwork = null;
+    private DeviceInfo newDeviceInfo = null;
 
     public CommonData(Activity activity, Wifi wifi) {
         this.activity = activity;
@@ -21,8 +23,12 @@ public class CommonData {
         this.screenLauncher = screenLauncher;
     }
 
-    public void setDeviceNetwork(Network deviceNetwork) {
-        this.deviceNetwork = deviceNetwork;
+    public void setNewDeviceNetwork(Network newDeviceNetwork) {
+        this.newDeviceNetwork = newDeviceNetwork;
+    }
+
+    public void setNewDeviceInfo(DeviceInfo newDeviceInfo) {
+        this.newDeviceInfo = newDeviceInfo;
     }
 
     public Activity getActivity() {
@@ -41,7 +47,11 @@ public class CommonData {
         return screenLauncher;
     }
 
-    public Network getDeviceNetwork() {
-        return deviceNetwork;
+    public Network getNewDeviceNetwork() {
+        return newDeviceNetwork;
+    }
+
+    public DeviceInfo getNewDeviceInfo() {
+        return newDeviceInfo;
     }
 }

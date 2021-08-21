@@ -2,12 +2,7 @@ package ru.tsar_ioann.smarthome;
 
 import android.widget.ViewFlipper;
 
-import ru.tsar_ioann.smarthome.screens.AddNewDevice;
-import ru.tsar_ioann.smarthome.screens.BaseScreen;
-import ru.tsar_ioann.smarthome.screens.ConnectingFreshDevice;
-import ru.tsar_ioann.smarthome.screens.FreshDevices;
-import ru.tsar_ioann.smarthome.screens.HomeNetworkSettings;
-import ru.tsar_ioann.smarthome.screens.Main;
+import ru.tsar_ioann.smarthome.screens.*;
 
 public class ScreenLauncher {
     private ScreenId currentScreenId;

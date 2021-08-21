@@ -7,9 +7,7 @@ import android.text.Html;
 import android.widget.Button;
 import android.widget.Toast;
 
-import ru.tsar_ioann.smarthome.CommonData;
-import ru.tsar_ioann.smarthome.R;
-import ru.tsar_ioann.smarthome.ScreenId;
+import ru.tsar_ioann.smarthome.*;
 
 public class AddNewDevice extends BaseScreen {
     private static final String PERM = Manifest.permission.ACCESS_FINE_LOCATION;

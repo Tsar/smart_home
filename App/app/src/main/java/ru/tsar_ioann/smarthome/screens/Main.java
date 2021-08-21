@@ -1,6 +1,6 @@
 package ru.tsar_ioann.smarthome.screens;
 
-import ru.tsar_ioann.smarthome.CommonData;
+import ru.tsar_ioann.smarthome.*;
 
 public class Main extends BaseScreen {
     public Main(CommonData commonData) {

@@ -8,10 +8,7 @@ import android.widget.TextView;
 import java.util.HashSet;
 import java.util.Set;
 
-import ru.tsar_ioann.smarthome.CommonData;
-import ru.tsar_ioann.smarthome.R;
-import ru.tsar_ioann.smarthome.ScreenId;
-import ru.tsar_ioann.smarthome.Wifi;
+import ru.tsar_ioann.smarthome.*;
 
 public class FreshDevices extends BaseScreen {
     private static final String SMART_HOME_DEVICE_AP_SSID_PREFIX = "SmartHomeDevice_";

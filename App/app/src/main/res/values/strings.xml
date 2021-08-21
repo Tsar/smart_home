@@ -28,4 +28,5 @@
     <string name="device_connection_lost">Connection to the device was lost!\n\nAdding new device failed.</string>
     <string name="device_connect_failed">Failed to connect to the device!\n\nAdding new device failed.</string>
     <string name="device_could_not_connect_to_wifi">The device could not connect to chosen Wi-Fi network!\n\nPlease check that network name and passphrase are correct and the device is in range.</string>
+    <string name="recommend_static_ip">MAC address of the device:&lt;br /&gt;&lt;b&gt;%1$s&lt;/b&gt;&lt;br /&gt;&lt;br /&gt;It it recommended to set static IP for it in your home network. App detects devices with static IPs much faster on launch.</string>
 </resources>

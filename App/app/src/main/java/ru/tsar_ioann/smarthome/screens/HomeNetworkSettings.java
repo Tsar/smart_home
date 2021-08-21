@@ -2,23 +2,26 @@ package ru.tsar_ioann.smarthome.screens;
 
 import android.app.Activity;
 import android.net.Network;
+import android.text.Html;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import ru.tsar_ioann.smarthome.CommonData;
-import ru.tsar_ioann.smarthome.Http;
-import ru.tsar_ioann.smarthome.R;
-import ru.tsar_ioann.smarthome.Utils;
+import ru.tsar_ioann.smarthome.*;
 
 public class HomeNetworkSettings extends BaseScreen {
+    private static final String WIFI_STATE_IN_PROGRESS = "IN_PROGRESS";
+    private static final String WIFI_STATE_SUCCESS_PREFIX = "SUCCESS:";
+    private static final String WIFI_STATE_FAIL_PREFIX = "FAIL:";
+
     private final EditText edtNetworkSsid;
     private final EditText edtPassphrase;
 
@@ -30,6 +33,7 @@ public class HomeNetworkSettings extends BaseScreen {
         edtPassphrase = activity.findViewById(R.id.edtPassphrase);
         CheckBox cbShowPassphrase = activity.findViewById(R.id.cbShowPassphrase);
         Button btnConnectDevice = activity.findViewById(R.id.btnConnectDevice);
+        TextView txtStaticIpRecommendation = activity.findViewById(R.id.txtStaticIpRecommendation);
 
         cbShowPassphrase.setOnCheckedChangeListener((buttonView, isChecked) -> {
             final int selStart = edtPassphrase.getSelectionStart();
@@ -38,7 +42,10 @@ public class HomeNetworkSettings extends BaseScreen {
             edtPassphrase.setSelection(selStart, selEnd);
         });
 
-        Network deviceNetwork = commonData.getDeviceNetwork();
+        assert commonData.getNewDeviceInfo() != null;
+        txtStaticIpRecommendation.setText(Html.fromHtml(tr(R.string.recommend_static_ip, commonData.getNewDeviceInfo().getMacAddress())));
+
+        Network deviceNetwork = commonData.getNewDeviceNetwork();
         btnConnectDevice.setOnClickListener(v -> {
             boolean edtNetworkSsidEnabled = edtNetworkSsid.isEnabled();
             edtNetworkSsid.setEnabled(false);
@@ -69,8 +76,8 @@ public class HomeNetworkSettings extends BaseScreen {
                                         @Override
                                         public void run() {
                                             try {
-                                                String state = "IN_PROGRESS";
-                                                while (state.equals("IN_PROGRESS")) {  // TODO: fix possible infinite cycle
+                                                String state = WIFI_STATE_IN_PROGRESS;
+                                                while (state.equals(WIFI_STATE_IN_PROGRESS)) {  // TODO: fix possible infinite cycle
                                                     Http.Response respState = Http.doRequest(
                                                             SMART_HOME_DEVICE_AP_ADDRESS + "/get_setup_wifi_state",
                                                             null,
@@ -84,16 +91,19 @@ public class HomeNetworkSettings extends BaseScreen {
                                                 }
                                                 Log.d("DEVICE_RESP", "State: [" + state + "]");
 
-                                                if (state.startsWith("SUCCESS:")) {
+                                                if (state.startsWith(WIFI_STATE_SUCCESS_PREFIX)) {
+                                                    String ipAddress = state.substring(WIFI_STATE_SUCCESS_PREFIX.length());
+                                                    commonData.getNewDeviceInfo().setIpAddress(ipAddress);
                                                     // TODO: CONTINUE MAIN FLOW
-                                                } else if (state.startsWith("FAIL:")) {
+                                                } else if (state.startsWith(WIFI_STATE_FAIL_PREFIX)) {
                                                     // TODO: use error code to make more details in error message
                                                     showErrorAndEnableUI(tr(R.string.device_could_not_connect_to_wifi));
                                                 } else {
                                                     disconnectAndShowErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
                                                 }
-                                            } catch (IOException exception) {
-                                                // TODO: handle
+                                            } catch (IOException e) {
+                                                Log.d("DEVICE_RESP", "Exception: " + e.getMessage());
+                                                disconnectAndShowErrorAndGoToMainScreen(tr(R.string.device_bad_connect));
                                             }
                                         }
                                     }, 5000);

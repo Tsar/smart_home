@@ -3,9 +3,7 @@ package ru.tsar_ioann.smarthome.screens;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 
-import ru.tsar_ioann.smarthome.CommonData;
-import ru.tsar_ioann.smarthome.R;
-import ru.tsar_ioann.smarthome.ScreenId;
+import ru.tsar_ioann.smarthome.*;
 
 public abstract class BaseScreen {
     protected static final String SMART_HOME_DEVICE_AP_PASSPHRASE = "setup12345";
@@ -27,6 +25,10 @@ public abstract class BaseScreen {
 
     protected final String tr(int resId) {
         return commonData.getResources().getString(resId);
+    }
+
+    protected final String tr(int resId, Object... formatArgs) {
+        return commonData.getResources().getString(resId, formatArgs);
     }
 
     protected final void showOkDialog(String title, String message) {
