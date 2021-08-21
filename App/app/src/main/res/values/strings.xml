@@ -21,4 +21,11 @@
     <string name="passphrase">Passphrase</string>
     <string name="show_passphrase">Show passphrase</string>
     <string name="connect_device">Connect Smart Home device to this network</string>
+    <string name="error">Error</string>
+    <string name="device_unexpected_response">Device answers with unexpected response!\n\nAdding new device failed.</string>
+    <string name="device_bad_response_code">Device answers with bad response code!\n\nAdding new device failed.</string>
+    <string name="device_bad_connect">Connection problems occurred!\n\nAdding new device failed.</string>
+    <string name="device_connection_lost">Connection to the device was lost!\n\nAdding new device failed.</string>
+    <string name="device_connect_failed">Failed to connect to the device!\n\nAdding new device failed.</string>
+    <string name="device_could_not_connect_to_wifi">The device could not connect to chosen Wi-Fi network!\n\nPlease check that network name and passphrase are correct and the device is in range.</string>
 </resources>

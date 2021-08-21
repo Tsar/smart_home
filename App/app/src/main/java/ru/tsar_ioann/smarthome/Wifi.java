@@ -30,8 +30,6 @@ public class Wifi {
         void onConnectLost();
     }
 
-    private final int SCAN_DURATION_MS = 30000;
-
     private final Context context;
 
     private final WifiManager wifiManager;
@@ -50,7 +48,7 @@ public class Wifi {
         return wifiManager.isWifiEnabled();
     }
 
-    public void scan(ScanListener listener) {
+    public void scan(long durationSec, ScanListener listener) {
         this.listener = listener;
 
         BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
@@ -80,7 +78,7 @@ public class Wifi {
                 context.unregisterReceiver(wifiScanReceiver);
                 listener.onScanFinished();
             }
-        }, SCAN_DURATION_MS);
+        }, durationSec * 1000);
     }
 
     private void scanSuccess() {

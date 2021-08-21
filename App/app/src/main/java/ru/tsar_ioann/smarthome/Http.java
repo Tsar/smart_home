@@ -15,8 +15,8 @@ import java.util.List;
 public class Http {
     private static final String LOG_TAG = "Http";
 
-    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 300;
-    private static final int DEFAULT_READ_TIMEOUT_MS = 2500;
+    private static final int CONNECT_TIMEOUT_MS = 300;
+    private static final int READ_TIMEOUT_MS = 2500;
 
     public static class Response {
         private final int httpCode;
@@ -58,16 +58,12 @@ public class Http {
         void onError(IOException exception);
     }
 
-    public static void doAsyncRequest(String url, byte[] data, String password, Network network, Listener listener) {
-        doAsyncRequest(url, data, password, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS, network, listener);
-    }
-
-    public static void doAsyncRequest(String url, byte[] data, String password, int connectTimeoutMs, int readTimeoutMs, Network network, Listener listener) {
+    public static void doAsyncRequest(String url, byte[] data, String password, Network network, int attempts, Listener listener) {
         new Thread() {
             @Override
             public void run() {
                 try {
-                    Response response = doRequest(url, data, password, connectTimeoutMs, readTimeoutMs, network);
+                    Response response = doRequest(url, data, password, network, attempts);
                     listener.onResponse(response);
                 } catch (IOException e) {
                     listener.onError(e);
@@ -76,11 +72,24 @@ public class Http {
         }.start();
     }
 
-    public static Response doRequest(String url, byte[] data, String password, Network network) throws IOException {
-        return doRequest(url, data, password, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS, network);
+    public static Response doRequest(String url, byte[] data, String password, Network network, int attempts) throws IOException {
+        Http.Response response = new Http.Response(0);
+        int spentAttempts = 0;
+        while (response.getHttpCode() != HttpURLConnection.HTTP_OK && spentAttempts++ < attempts) {
+            try {
+                response = doRequest(url, data, password, network);
+            } catch (IOException e) {
+                if (spentAttempts == attempts) {
+                    throw e;
+                }
+                Log.d(LOG_TAG, "Skipping exception '" + e.getMessage() + "' because not all attempts were spent");
+            }
+        }
+        return response;
     }
 
-    public static Response doRequest(String url, byte[] data, String password, int connectTimeoutMs, int readTimeoutMs, Network network) throws IOException {
+    public static Response doRequest(String url, byte[] data, String password, Network network) throws IOException {
+        Log.d(LOG_TAG, "Making request to '" + url + "'");
         URL req = new URL(url);
         HttpURLConnection connection;
         if (network != null) {
@@ -89,8 +98,8 @@ public class Http {
             connection = (HttpURLConnection)req.openConnection();
         }
 
-        connection.setConnectTimeout(connectTimeoutMs);
-        connection.setReadTimeout(readTimeoutMs);
+        connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        connection.setReadTimeout(READ_TIMEOUT_MS);
         connection.setUseCaches(false);
 
         if (password != null) {
@@ -119,6 +128,8 @@ public class Http {
             }
             is.close();
             logData("Response data: ", response.getData());
+        } else {
+            Log.d(LOG_TAG, "Response code: " + httpCode);
         }
 
         connection.disconnect();

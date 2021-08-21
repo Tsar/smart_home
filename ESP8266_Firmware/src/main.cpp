@@ -44,7 +44,16 @@ volatile uint8_t nextEventId = EVENTS_COUNT;
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
-bool isAccessPointEnabled;
+enum class WiFiSetupState {
+  NONE,
+  IN_PROGRESS,
+  FAIL,
+  SUCCESS
+};
+
+WiFiSetupState wifiSetupState = WiFiSetupState::NONE;
+int8_t wifiConnectResult = 0;
+bool isAccessPointEnabled = false;
 
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
@@ -173,9 +182,9 @@ bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
     WiFi.begin();  // also works without this line
   }
 
-  const int8_t result = WiFi.waitForConnectResult(30000);
-  if (result != WL_CONNECTED) {
-    Serial.printf("Failed to connect, status: %d\n", result);
+  wifiConnectResult = WiFi.waitForConnectResult(30000);
+  if (wifiConnectResult != WL_CONNECTED) {
+    Serial.printf("Failed to connect, status: %d\n", wifiConnectResult);
     enableAccessPoint();
     return false;
   }
@@ -198,10 +207,10 @@ void sendBadRequest() {
   server.send(400, "text/plain", "Bad Request");
 }
 
-void handlePing() {
+void handleGetInfo() {
   if (!checkPassword()) return;
 
-  server.send(200, "text/plain", "OK");
+  server.send(200, "text/plain", "MAC=" + WiFi.macAddress() + ";NAME=" + homeCfg.getName());
 }
 
 void handleSetupWiFi() {
@@ -212,8 +221,35 @@ void handleSetupWiFi() {
     return;
   }
 
-  bool connectResult = connectToWiFiOrEnableAP(server.arg("ssid").c_str(), server.arg("passphrase").c_str());
-  server.send(200, "text/plain", connectResult ? "WIFI_CONNECT_OK" : "WIFI_CONNECT_FAILED");
+  wifiSetupState = WiFiSetupState::IN_PROGRESS;
+  server.send(200, "text/plain", "TRYING_TO_CONNECT");
+  delay(100);  // задержка нужна, чтобы успеть отправить ответ до попытки
+  wifiSetupState = connectToWiFiOrEnableAP(server.arg("ssid").c_str(), server.arg("passphrase").c_str())
+                      ? WiFiSetupState::SUCCESS
+                      : WiFiSetupState::FAIL;
+  // Если пытаться отправить ответ сервера здесь, то клиент получает ошибку:
+  // curl скажет "empty reply from server", android скажет "unexpected end of stream on com.android.okhttp.Address"
+}
+
+void handleGetSetupWiFiState() {
+  if (!checkPassword()) return;
+
+  String result;
+  switch (wifiSetupState) {
+    case WiFiSetupState::NONE:
+      result = "NONE";
+      break;
+    case WiFiSetupState::IN_PROGRESS:
+      result = "IN_PROGRESS";
+      break;
+    case WiFiSetupState::FAIL:
+      result = "FAIL:" + String(wifiConnectResult);
+      break;
+    case WiFiSetupState::SUCCESS:
+      result = "SUCCESS:" + WiFi.localIP().toString();
+      break;
+  }
+  server.send(200, "text/plain", result);
 }
 
 void handleResetWiFi() {
@@ -367,8 +403,9 @@ void setup() {
     enableAccessPoint();
   }
 
-  server.on("/ping", HTTP_GET, handlePing);
+  server.on("/get_info", HTTP_GET, handleGetInfo);
   server.on("/setup_wifi", HTTP_POST, handleSetupWiFi);
+  server.on("/get_setup_wifi_state", HTTP_GET, handleGetSetupWiFiState);
   server.on("/reset_wifi", HTTP_GET, handleResetWiFi);
   server.on("/turn_off_ap", HTTP_GET, handleTurnOffAccessPoint);
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);

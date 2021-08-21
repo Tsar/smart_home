@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends Activity {
     private static class Screens {
@@ -124,55 +126,60 @@ public class MainActivity extends Activity {
                     temporaryNetwork = network;
                     try {
                         Http.Response response = Http.doRequest(
-                                SMART_HOME_DEVICE_AP_ADDRESS + "/ping",
+                                SMART_HOME_DEVICE_AP_ADDRESS + "/get_info",
                                 null,
                                 SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
-                                network
+                                network,
+                                3
                         );
-                        if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().equals("OK")) {
-                            runOnUiThread(() -> {
-                                txtConnecting.setText(R.string.connected_to_device);
-                                networks = new HashSet<>();
-                                lstNetworksAdapter.clear();
+                        if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
+                            // TODO: parse answer properly
+                            if (response.getDataAsStr().startsWith("MAC=")) {
+                                runOnUiThread(() -> {
+                                    txtConnecting.setText(R.string.connected_to_device);
+                                    networks = new HashSet<>();
+                                    lstNetworksAdapter.clear();
 
-                                btnSetNetwork.setVisibility(View.VISIBLE);
-                                lstNetworks.setVisibility(View.VISIBLE);
+                                    btnSetNetwork.setVisibility(View.VISIBLE);
+                                    lstNetworks.setVisibility(View.VISIBLE);
 
-                                wifi.scan(new Wifi.ScanListener() {
-                                    @Override
-                                    public void onWifiFound(String ssid) {
-                                        if (!ssid.isEmpty() && !ssid.equals(deviceSsid) && !networks.contains(ssid)) {
-                                            networks.add(ssid);
-                                            lstNetworksAdapter.add(ssid);
+                                    wifi.scan(300, new Wifi.ScanListener() {
+                                        @Override
+                                        public void onWifiFound(String ssid) {
+                                            if (!ssid.isEmpty() && !ssid.equals(deviceSsid) && !networks.contains(ssid)) {
+                                                networks.add(ssid);
+                                                lstNetworksAdapter.add(ssid);
+                                            }
                                         }
-                                    }
 
-                                    @Override
-                                    public void onScanFinished() {
-                                        // TODO: handle
-                                    }
+                                        @Override
+                                        public void onScanFinished() {
+                                            // TODO: handle
+                                        }
+                                    });
                                 });
-                            });
+                            } else {
+                                showErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
+                            }
                         } else {
-                            Log.d("HTTP", "ping not OK");
-                            // TODO: handle
+                            showErrorAndGoToMainScreen(tr(R.string.device_bad_response_code));
                         }
                     } catch (IOException e) {
-                        Log.d("HTTP EXCEPTION", e.getMessage());
-                        // TODO: handle
+                        Log.d("DEVICE_RESP", "Exception: " + e.getMessage());
+                        showErrorAndGoToMainScreen(tr(R.string.device_bad_connect));
                     }
                 }
 
                 @Override
                 public void onConnectFailed() {
                     temporaryNetwork = null;
-                    // TODO: handle
+                    showErrorAndGoToMainScreen(tr(R.string.device_connect_failed));
                 }
 
                 @Override
                 public void onConnectLost() {
                     temporaryNetwork = null;
-                    // TODO: handle
+                    showErrorAndGoToMainScreen(tr(R.string.device_connection_lost));
                 }
             });
         });
@@ -182,6 +189,8 @@ public class MainActivity extends Activity {
         lstNetworks.setOnItemClickListener((adapterView, view, position, id) -> {
             String networkSsid = (String)adapterView.getItemAtPosition(position);
             edtNetworkSsid.setEnabled(false);
+            edtPassphrase.setEnabled(true);
+            btnConnectDevice.setEnabled(true);
             edtNetworkSsid.setText(networkSsid);
             edtPassphrase.setText("");
             viewFlipper.setDisplayedChild(Screens.HOME_NETWORK_SETTINGS);
@@ -217,6 +226,14 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void showErrorAndGoToMainScreen(String message) {
+        wifi.disconnect();
+        runOnUiThread(() -> showOkDialog(tr(R.string.error), message, (dialog, which) -> {
+            viewFlipper.setDisplayedChild(Screens.MANAGEMENT);
+            setMenuVisibility(true);
+        }));
+    }
+
     public void onAddNewDevice(MenuItem menuItem) {
         viewFlipper.setDisplayedChild(Screens.ADD_NEW_DEVICE);
         setMenuVisibility(false);
@@ -243,7 +260,7 @@ public class MainActivity extends Activity {
         viewFlipper.setDisplayedChild(Screens.FRESH_DEVICES);
         devices = new HashSet<>();
         lstDevicesAdapter.clear();
-        wifi.scan(new Wifi.ScanListener() {
+        wifi.scan(30, new Wifi.ScanListener() {
             @Override
             public void onWifiFound(String ssid) {
                 runOnUiThread(() -> {
@@ -310,6 +327,8 @@ public class MainActivity extends Activity {
 
     public void onInputNetworkManually(View view) {
         edtNetworkSsid.setEnabled(true);
+        edtPassphrase.setEnabled(true);
+        btnConnectDevice.setEnabled(true);
         edtNetworkSsid.setText("");
         edtPassphrase.setText("");
         viewFlipper.setDisplayedChild(Screens.HOME_NETWORK_SETTINGS);
@@ -327,39 +346,65 @@ public class MainActivity extends Activity {
                 SMART_HOME_DEVICE_AP_ADDRESS + "/setup_wifi",
                 data.getBytes(),
                 SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
-                500,
-                20000,  // give time to try connecting
                 temporaryNetwork,
+                3,
                 new Http.Listener() {
-                    private void enableUI() {
-                        runOnUiThread(() -> {
+                    private void showErrorAndEnableUI(String message) {
+                        runOnUiThread(() -> showOkDialog(tr(R.string.error), message, (dialog, which) -> {
                             edtNetworkSsid.setEnabled(edtNetworkSsidEnabled);
                             edtPassphrase.setEnabled(true);
                             btnConnectDevice.setEnabled(true);
-                        });
+                        }));
                     }
 
                     @Override
                     public void onResponse(Http.Response response) {
                         if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
-                            String respStr = response.getDataAsStr();
-                            if (respStr.equals("WIFI_CONNECT_OK")) {
-                                // TODO: next steps (may be device should send it's IP?)
-                            } else if (respStr.equals("WIFI_CONNECT_FAILED")) {
-                                enableUI();
-                                // TODO: handle properly
+                            if (response.getDataAsStr().equals("TRYING_TO_CONNECT")) {
+                                new Timer().schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            String state = "IN_PROGRESS";
+                                            while (state.equals("IN_PROGRESS")) {  // TODO: fix possible infinite cycle
+                                                Http.Response respState = Http.doRequest(
+                                                        SMART_HOME_DEVICE_AP_ADDRESS + "/get_setup_wifi_state",
+                                                        null,
+                                                        SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
+                                                        temporaryNetwork,
+                                                        15
+                                                );
+                                                if (respState.getHttpCode() == HttpURLConnection.HTTP_OK) {
+                                                    state = respState.getDataAsStr();
+                                                }
+                                            }
+                                            Log.d("DEVICE_RESP", "State: [" + state + "]");
+
+                                            if (state.startsWith("SUCCESS:")) {
+                                                // TODO: CONTINUE MAIN FLOW
+                                            } else if (state.startsWith("FAIL:")) {
+                                                // TODO: use error code to make more details in error message
+                                                showErrorAndEnableUI(tr(R.string.device_could_not_connect_to_wifi));
+                                            } else {
+                                                showErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
+                                            }
+                                        } catch (IOException exception) {
+                                            // TODO: handle
+                                        }
+                                    }
+                                }, 5000);
                             } else {
-                                enableUI();
-                                // TODO: handle properly
+                                showErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
                             }
+                        } else {
+                            showErrorAndGoToMainScreen(tr(R.string.device_bad_response_code));
                         }
                     }
 
                     @Override
                     public void onError(IOException exception) {
                         Log.d("DEVICE_RESP", "Exception: " + exception.getMessage());
-                        enableUI();
-                        // TODO: handle properly
+                        showErrorAndGoToMainScreen(tr(R.string.device_bad_connect));
                     }
                 }
         );
