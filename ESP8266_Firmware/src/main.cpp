@@ -21,7 +21,7 @@ volatile uint8_t outputAState;
 ICACHE_RAM_ATTR void startSwitchAB() {
   digitalWrite(OUTPUT_PIN_EN, HIGH);
   timerAction = TIMER_ACTION_SWITCH_AB;
-  timer1_write(1562);  // 5 ms
+  timer1_write(156250);  // 500 ms
 }
 
 ICACHE_RAM_ATTR void onInputRise() {
@@ -40,7 +40,7 @@ ICACHE_RAM_ATTR void onTimerISR() {
       digitalWrite(OUTPUT_PIN_A, outputAState);
       digitalWrite(OUTPUT_PIN_B, !outputAState);
       timerAction = TIMER_ACTION_EN_TO_LOW;
-      timer1_write(312500);  // 1 s
+      timer1_write(156250);  // 500 ms
       break;
     case TIMER_ACTION_EN_TO_LOW:
       digitalWrite(OUTPUT_PIN_EN, LOW);
