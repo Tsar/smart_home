@@ -19,9 +19,9 @@ volatile uint32_t inputFallTimeMs = 0;
 const uint8_t DIMMER_PINS[DIMMERS_COUNT] = {4, 5, 12};
 const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 9, 10};
 
-#define DIMMER_MAX_VALUE         1000  // 0 - диммер выключен, 1 - минимальная яркость, 1000 - максимальная яркость
+#define DIMMER_MAX_VALUE 1000
 
-volatile int32_t dimmerValues[DIMMERS_COUNT] = {};
+volatile int32_t dimmerValues[DIMMERS_COUNT] = {};  // 0 - диммер выключен, 1 - минимальная яркость, 1000 - максимальная яркость
 volatile int32_t targetDimmerValues[DIMMERS_COUNT] = {};
 
 const volatile smart_home::DimmerSettings* dimmersSettings;
