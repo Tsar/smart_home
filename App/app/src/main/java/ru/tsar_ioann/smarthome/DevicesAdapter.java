@@ -61,11 +61,8 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
 
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
-                    // interpolation is here only for first tests
-                    int value = (4000 - 8300) * seekBar.getProgress() / 1000 + 8300;
-
                     Http.doAsyncRequest(
-                            "http://" + ipAddress + "/set_values?dim" + finalI + "=" + value,
+                            "http://" + ipAddress + "/set_values?dim" + finalI + "=" + seekBar.getProgress(),
                             null,
                             "12345",  // TODO: work on this
                             null,
