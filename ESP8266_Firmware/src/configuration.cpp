@@ -70,6 +70,10 @@ void writeString(int& pos, const String& value) {
 
 }
 
+bool DimmerSettings::areValid() {
+    return valueChangeStep > 0 && maxLightnessMicros < minLightnessMicros && maxLightnessMicros > 0 && minLightnessMicros < 10000;
+}
+
 Configuration::Configuration() {
     EEPROM.begin(4096);
 }
@@ -113,7 +117,7 @@ void Configuration::resetAndSave() {
     }
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         setDimmerValue(i, 0);
-        setDimmerSettings(i, 10, 8300, 4000);
+        setDimmerSettings(i, DimmerSettings());
     }
 
     save();
@@ -155,10 +159,10 @@ const volatile DimmerSettings* Configuration::getDimmersSettings() const {
     return dimmersSettings_;
 }
 
-void Configuration::setDimmerSettings(uint8_t index, int32_t valueChangeStep, int32_t minLightnessMicros, int32_t maxLightnessMicros) {
-    dimmersSettings_[index].valueChangeStep = valueChangeStep;
-    dimmersSettings_[index].minLightnessMicros = minLightnessMicros;
-    dimmersSettings_[index].maxLightnessMicros = maxLightnessMicros;
+void Configuration::setDimmerSettings(uint8_t index, const DimmerSettings& settings) {
+    dimmersSettings_[index].valueChangeStep = settings.valueChangeStep;
+    dimmersSettings_[index].minLightnessMicros = settings.minLightnessMicros;
+    dimmersSettings_[index].maxLightnessMicros = settings.maxLightnessMicros;
 }
 
 }

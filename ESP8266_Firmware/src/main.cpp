@@ -378,6 +378,62 @@ void handleSetValues() {
   }
 }
 
+String generateDimmersSettingsString() {
+  String result;
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+    result += DIMMER_PREFIX + String(i) + "=" + String(dimmersSettings[i].valueChangeStep)
+                                        + "," + String(dimmersSettings[i].minLightnessMicros)
+                                        + "," + String(dimmersSettings[i].maxLightnessMicros) + "\n";
+  }
+  return result;
+}
+
+void handleGetDimmersSettings() {
+  if (!checkPassword()) return;
+
+  server.send(200, "text/plain", generateDimmersSettingsString());
+}
+
+void handleSetDimmersSettings() {
+  if (!checkPassword()) return;
+
+  bool changed = false;
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+    const String argName = DIMMER_PREFIX + String(i);
+    if (server.hasArg(argName)) {
+      const String settingsStr = server.arg(argName);
+      const int comma1Pos = settingsStr.indexOf(",");
+      if (comma1Pos < 0) {
+        sendBadRequest();
+        return;
+      }
+      const int comma2Pos = settingsStr.indexOf(",", comma1Pos + 1);
+      if (comma2Pos < 0) {
+        sendBadRequest();
+        return;
+      }
+      smart_home::DimmerSettings settings;
+      settings.valueChangeStep = settingsStr.substring(0, comma1Pos).toInt();
+      settings.minLightnessMicros = settingsStr.substring(comma1Pos + 1, comma2Pos).toInt();
+      settings.maxLightnessMicros = settingsStr.substring(comma2Pos + 1).toInt();
+      if (!settings.areValid()) {
+        sendBadRequest();
+        return;
+      }
+      homeCfg.setDimmerSettings(i, settings);
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    sendBadRequest();
+    return;
+  }
+
+  homeCfg.save();
+  server.send(200, "text/plain", "ACCEPTED\n" + generateDimmersSettingsString());
+}
+
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
 }
@@ -443,6 +499,8 @@ void setup() {
   server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
   server.on("/get_values", HTTP_GET, handleGetValues);
   server.on("/set_values", HTTP_ANY, handleSetValues);
+  server.on("/get_dimmers_settings", HTTP_GET, handleGetDimmersSettings);
+  server.on("/set_dimmers_settings", HTTP_ANY, handleSetDimmersSettings);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};

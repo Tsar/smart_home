@@ -8,9 +8,11 @@
 namespace smart_home {
 
 struct DimmerSettings {
-    int32_t valueChangeStep;     // на сколько может меняться значение dimmer value за 20 мс, дефолт = 10
-    int32_t minLightnessMicros;  // отступ в микросекундах для наименьшей яркости, дефолт = 8300
-    int32_t maxLightnessMicros;  // отступ в микросекундах для наибольшей яркости, дефолт = 4000
+    int32_t valueChangeStep = 10;       // на сколько может меняться значение dimmer value за 20 мс
+    int32_t minLightnessMicros = 8300;  // отступ в микросекундах для наименьшей яркости
+    int32_t maxLightnessMicros = 4000;  // отступ в микросекундах для наибольшей яркости
+
+    bool areValid();
 };
 
 class Configuration {
@@ -35,7 +37,7 @@ class Configuration {
         void setDimmerValue(uint8_t index, int32_t value);
 
         const volatile DimmerSettings* getDimmersSettings() const;
-        void setDimmerSettings(uint8_t index, int32_t valueChangeStep, int32_t minLightnessMicros, int32_t maxLightnessMicros);
+        void setDimmerSettings(uint8_t index, const DimmerSettings& settings);
 
     private:
         String name_;
