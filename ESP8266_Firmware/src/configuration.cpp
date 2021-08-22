@@ -106,7 +106,7 @@ void Configuration::resetAndSave() {
         setSwitcherValue(i, false);
     }
     for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-        setDimmerValue(i, 8100);
+        setDimmerValue(i, 0);
     }
 
     save();

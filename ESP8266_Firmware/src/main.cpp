@@ -19,10 +19,14 @@ volatile uint32_t inputFallTimeMs = 0;
 const uint8_t DIMMER_PINS[DIMMER_PINS_COUNT] = {4, 5, 12};
 const uint8_t SWITCHER_PINS[SWITCHER_PINS_COUNT] = {13, 15, 9, 10};
 
-#define MICROS_CHANGE_STEP 40
+#define DIMMER_MAX_VALUE         1000  // 0 - диммер выключен, 1 - минимальная яркость, 1000 - максимальная яркость
+#define DIMMER_VALUE_CHANGE_STEP 10    // на сколько может меняться значение за 20 мс
 
-volatile int32_t dimmerMicros[DIMMER_PINS_COUNT] = {};
-volatile int32_t targetDimmerMicros[DIMMER_PINS_COUNT] = {};
+volatile int32_t dimmerValues[DIMMER_PINS_COUNT] = {};
+volatile int32_t targetDimmerValues[DIMMER_PINS_COUNT] = {};
+
+volatile int32_t dimmerMicrosMin[DIMMER_PINS_COUNT] = {4000, 4000, 4000};  // наибольшая яркость
+volatile int32_t dimmerMicrosMax[DIMMER_PINS_COUNT] = {8300, 8300, 8300};  // наименьшая яркость
 
 struct Event {
   uint32_t ticks;  // число тиков таймера, начиная от input fall
@@ -36,10 +40,11 @@ struct Event {
 const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 50000, 50500};
 const uint8_t  EVENT_VALUES            [DIMMER_EVENTS_COUNT] = {HIGH, LOW, HIGH, LOW};
 
-#define EVENTS_COUNT (DIMMER_PINS_COUNT * DIMMER_EVENTS_COUNT)
+#define MAX_EVENTS_COUNT (DIMMER_PINS_COUNT * DIMMER_EVENTS_COUNT)
 
-volatile Event eventsQueue[EVENTS_COUNT];
-volatile uint8_t nextEventId = EVENTS_COUNT;
+volatile Event eventsQueue[MAX_EVENTS_COUNT];
+volatile uint8_t eventsQueueSize = 0;
+volatile uint8_t nextEventId = 0;
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
@@ -58,29 +63,41 @@ bool isAccessPointEnabled = false;
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const int32_t delta = targetDimmerMicros[i] - dimmerMicros[i];
+    const int32_t delta = targetDimmerValues[i] - dimmerValues[i];
     if (delta != 0) {
-      dimmerMicros[i] += std::abs(delta) > MICROS_CHANGE_STEP ? SIGN(delta) * MICROS_CHANGE_STEP : delta;
+      dimmerValues[i] += std::abs(delta) > DIMMER_VALUE_CHANGE_STEP ? SIGN(delta) * DIMMER_VALUE_CHANGE_STEP : delta;
     }
   }
+}
+
+// Переводит значение со слайдера в отступ импульса в микросекундах, см. dimmer_micros_adjustment.png
+ICACHE_RAM_ATTR uint32_t dimmerValueToMicros(int32_t value, int32_t microsMin, int32_t microsMax) {
+  return round(cos(PI * (value - 1) / 2 / (DIMMER_MAX_VALUE - 1)) * (microsMax - microsMin) + microsMin);
 }
 
 // Формируем новую очередь событий, начнутся со следующего input fall
 ICACHE_RAM_ATTR void createEventsQueue() {
   uint8_t ev = 0;
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    const uint32_t offsetTicks = 5 * dimmerMicros[i];
-    for (uint8_t j = 0; j < DIMMER_EVENTS_COUNT; ++j) {
-      eventsQueue[ev].pin = DIMMER_PINS[i];
-      eventsQueue[ev].ticks = offsetTicks + EVENT_ADDITIONAL_OFFSETS[j];
-      eventsQueue[ev].value = EVENT_VALUES[j];
-      ++ev;
+    if (dimmerValues[i] <= 0) {
+      // для подстраховки: пин по идее и без этого должен стоять в LOW
+      digitalWrite(DIMMER_PINS[i], LOW);
+    } else {
+      // добавляем 4 события для диммера в очередь
+      const uint32_t offsetTicks = 5 * dimmerValueToMicros(dimmerValues[i], dimmerMicrosMin[i], dimmerMicrosMax[i]);
+      for (uint8_t j = 0; j < DIMMER_EVENTS_COUNT; ++j) {
+        eventsQueue[ev].pin = DIMMER_PINS[i];
+        eventsQueue[ev].ticks = offsetTicks + EVENT_ADDITIONAL_OFFSETS[j];
+        eventsQueue[ev].value = EVENT_VALUES[j];
+        ++ev;
+      }
     }
   }
+  eventsQueueSize = ev;
 
-  // bubble sort is good enough for 12 elements
-  for (uint8_t i = 0; i < EVENTS_COUNT - 1; ++i) {
-    for (uint8_t j = 0; j < EVENTS_COUNT - i - 1; ++j) {
+  // bubble sort is good enough for 12 or less elements
+  for (uint8_t i = 0; i < eventsQueueSize - 1; ++i) {
+    for (uint8_t j = 0; j < eventsQueueSize - i - 1; ++j) {
       if (eventsQueue[j].ticks > eventsQueue[j + 1].ticks) {
         std::swap(eventsQueue[j].ticks, eventsQueue[j + 1].ticks);
         std::swap(eventsQueue[j].pin, eventsQueue[j + 1].pin);
@@ -98,24 +115,29 @@ ICACHE_RAM_ATTR void onInputFall() {
   inputFallTimeMs = now;
 
   nextEventId = 0;
-  timer1_write(eventsQueue[0].ticks);
+  if (eventsQueueSize > 0) {
+    timer1_write(eventsQueue[0].ticks);
+  } else {
+    smoothLightnessChange();
+    createEventsQueue();
+  }
 }
 
 ICACHE_RAM_ATTR void onTimerISR() {
-  if (nextEventId >= EVENTS_COUNT) return;
+  if (nextEventId >= eventsQueueSize) return;
 
   // выполнить event
   const auto& event = eventsQueue[nextEventId++];
   digitalWrite(event.pin, event.value);
 
   // выполнить все следующие event'ы с такой же меткой времени
-  while (nextEventId < EVENTS_COUNT && eventsQueue[nextEventId].ticks == event.ticks) {
+  while (nextEventId < eventsQueueSize && eventsQueue[nextEventId].ticks == event.ticks) {
     const auto& nextEvent = eventsQueue[nextEventId];
     digitalWrite(nextEvent.pin, nextEvent.value);
     ++nextEventId;
   }
 
-  if (nextEventId < EVENTS_COUNT) {
+  if (nextEventId < eventsQueueSize) {
     timer1_write(eventsQueue[nextEventId].ticks - event.ticks);  // аргумент будет >= 5
   } else {
     // после выполнения всех event'ов
@@ -124,11 +146,11 @@ ICACHE_RAM_ATTR void onTimerISR() {
   }
 }
 
-void fillDimmerMicros(bool fillCurrent = false) {
+void fillDimmerValues(bool fillCurrent = false) {
   for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
-    targetDimmerMicros[i] = homeCfg.getDimmerValue(i);
+    targetDimmerValues[i] = homeCfg.getDimmerValue(i);
     if (fillCurrent) {
-      dimmerMicros[i] = targetDimmerMicros[i];
+      dimmerValues[i] = targetDimmerValues[i];
     }
   }
 }
@@ -317,6 +339,10 @@ void handleSetValues() {
     const String argName = DIMMER_PREFIX + String(i);
     if (server.hasArg(argName)) {
       const int32_t value = server.arg(argName).toInt();
+      if (value < 0 || value > DIMMER_MAX_VALUE) {
+        sendBadRequest();
+        return;
+      }
       if (value != homeCfg.getDimmerValue(i)) {
         homeCfg.setDimmerValue(i, value);
         dimmersChanged = true;
@@ -338,7 +364,7 @@ void handleSetValues() {
 
   if (dimmersChanged || switchersChanged) {
     if (dimmersChanged) {
-      fillDimmerMicros();
+      fillDimmerValues();
     }
     if (switchersChanged) {
       applySwitcherValues();
@@ -368,7 +394,7 @@ void setup() {
 #endif
   homeCfg.load();
 
-  fillDimmerMicros(true);
+  fillDimmerValues(true);
   createEventsQueue();
   applySwitcherValues();
 
