@@ -24,13 +24,7 @@ const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 9, 10};
 volatile int32_t dimmerValues[DIMMERS_COUNT] = {};
 volatile int32_t targetDimmerValues[DIMMERS_COUNT] = {};
 
-struct DimmerSettings {
-  int32_t valueChangeStep = 10;       // на сколько может меняться значение dimmer value за 20 мс
-  int32_t minLightnessMicros = 8300;  // отступ в микросекундах для наименьшей яркости
-  int32_t maxLightnessMicros = 4000;  // отступ в микросекундах для наибольшей яркости
-};
-
-volatile DimmerSettings dimmersSettings[DIMMERS_COUNT];
+const volatile smart_home::DimmerSettings* dimmersSettings;
 
 struct Event {
   uint32_t ticks;  // число тиков таймера, начиная от input fall
@@ -402,6 +396,7 @@ void setup() {
 #endif
   homeCfg.load();
 
+  dimmersSettings = homeCfg.getDimmersSettings();
   fillDimmerValues(true);
   createEventsQueue();
   applySwitcherValues();

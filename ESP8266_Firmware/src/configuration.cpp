@@ -83,6 +83,9 @@ void Configuration::load() {
     }
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         dimmers_[i] = readInt32(pos);
+        dimmersSettings_[i].valueChangeStep = readInt32(pos);
+        dimmersSettings_[i].minLightnessMicros = readInt32(pos);
+        dimmersSettings_[i].maxLightnessMicros = readInt32(pos);
     }
 }
 
@@ -95,6 +98,9 @@ void Configuration::save() const {
     }
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         writeInt32(pos, dimmers_[i]);
+        writeInt32(pos, dimmersSettings_[i].valueChangeStep);
+        writeInt32(pos, dimmersSettings_[i].minLightnessMicros);
+        writeInt32(pos, dimmersSettings_[i].maxLightnessMicros);
     }
     EEPROM.commit();
 }
@@ -107,6 +113,7 @@ void Configuration::resetAndSave() {
     }
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         setDimmerValue(i, 0);
+        setDimmerSettings(i, 10, 8300, 4000);
     }
 
     save();
@@ -142,6 +149,16 @@ int32_t Configuration::getDimmerValue(uint8_t index) const {
 
 void Configuration::setDimmerValue(uint8_t index, int32_t value) {
     dimmers_[index] = value;
+}
+
+const volatile DimmerSettings* Configuration::getDimmersSettings() const {
+    return dimmersSettings_;
+}
+
+void Configuration::setDimmerSettings(uint8_t index, int32_t valueChangeStep, int32_t minLightnessMicros, int32_t maxLightnessMicros) {
+    dimmersSettings_[index].valueChangeStep = valueChangeStep;
+    dimmersSettings_[index].minLightnessMicros = minLightnessMicros;
+    dimmersSettings_[index].maxLightnessMicros = maxLightnessMicros;
 }
 
 }
