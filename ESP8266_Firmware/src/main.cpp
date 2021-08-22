@@ -16,17 +16,17 @@
 
 volatile uint32_t inputFallTimeMs = 0;
 
-const uint8_t DIMMER_PINS[DIMMER_PINS_COUNT] = {4, 5, 12};
-const uint8_t SWITCHER_PINS[SWITCHER_PINS_COUNT] = {13, 15, 9, 10};
+const uint8_t DIMMER_PINS[DIMMERS_COUNT] = {4, 5, 12};
+const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 9, 10};
 
 #define DIMMER_MAX_VALUE         1000  // 0 - диммер выключен, 1 - минимальная яркость, 1000 - максимальная яркость
 #define DIMMER_VALUE_CHANGE_STEP 10    // на сколько может меняться значение за 20 мс
 
-volatile int32_t dimmerValues[DIMMER_PINS_COUNT] = {};
-volatile int32_t targetDimmerValues[DIMMER_PINS_COUNT] = {};
+volatile int32_t dimmerValues[DIMMERS_COUNT] = {};
+volatile int32_t targetDimmerValues[DIMMERS_COUNT] = {};
 
-volatile int32_t dimmerMicrosMin[DIMMER_PINS_COUNT] = {4000, 4000, 4000};  // наибольшая яркость
-volatile int32_t dimmerMicrosMax[DIMMER_PINS_COUNT] = {8300, 8300, 8300};  // наименьшая яркость
+volatile int32_t dimmerMicrosMin[DIMMERS_COUNT] = {4000, 4000, 4000};  // наибольшая яркость
+volatile int32_t dimmerMicrosMax[DIMMERS_COUNT] = {8300, 8300, 8300};  // наименьшая яркость
 
 struct Event {
   uint32_t ticks;  // число тиков таймера, начиная от input fall
@@ -40,7 +40,7 @@ struct Event {
 const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 50000, 50500};
 const uint8_t  EVENT_VALUES            [DIMMER_EVENTS_COUNT] = {HIGH, LOW, HIGH, LOW};
 
-#define MAX_EVENTS_COUNT (DIMMER_PINS_COUNT * DIMMER_EVENTS_COUNT)
+#define MAX_EVENTS_COUNT (DIMMERS_COUNT * DIMMER_EVENTS_COUNT)
 
 volatile Event eventsQueue[MAX_EVENTS_COUNT];
 volatile uint8_t eventsQueueSize = 0;
@@ -62,7 +62,7 @@ bool isAccessPointEnabled = false;
 
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     const int32_t delta = targetDimmerValues[i] - dimmerValues[i];
     if (delta != 0) {
       dimmerValues[i] += std::abs(delta) > DIMMER_VALUE_CHANGE_STEP ? SIGN(delta) * DIMMER_VALUE_CHANGE_STEP : delta;
@@ -78,7 +78,7 @@ ICACHE_RAM_ATTR uint32_t dimmerValueToMicros(int32_t value, int32_t microsMin, i
 // Формируем новую очередь событий, начнутся со следующего input fall
 ICACHE_RAM_ATTR void createEventsQueue() {
   uint8_t ev = 0;
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     if (dimmerValues[i] <= 0) {
       // для подстраховки: пин по идее и без этого должен стоять в LOW
       digitalWrite(DIMMER_PINS[i], LOW);
@@ -147,7 +147,7 @@ ICACHE_RAM_ATTR void onTimerISR() {
 }
 
 void fillDimmerValues(bool fillCurrent = false) {
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     targetDimmerValues[i] = homeCfg.getDimmerValue(i);
     if (fillCurrent) {
       dimmerValues[i] = targetDimmerValues[i];
@@ -156,7 +156,7 @@ void fillDimmerValues(bool fillCurrent = false) {
 }
 
 void applySwitcherValues() {
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
     digitalWrite(SWITCHER_PINS[i], homeCfg.getSwitcherValue(i) ? HIGH : LOW);
   }
 }
@@ -316,10 +316,10 @@ void handleSetBuiltinLED() {
 
 String generateValuesString() {
   String result;
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     result += DIMMER_PREFIX + String(i) + ": " + String(homeCfg.getDimmerValue(i)) + "\n";
   }
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
     result += SWITCHER_PREFIX + String(i) + ": " + (homeCfg.getSwitcherValue(i) ? "on" : "off") + "\n";
   }
   return result;
@@ -335,7 +335,7 @@ void handleSetValues() {
   if (!checkPassword()) return;
 
   bool dimmersChanged = false;
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     const String argName = DIMMER_PREFIX + String(i);
     if (server.hasArg(argName)) {
       const int32_t value = server.arg(argName).toInt();
@@ -351,7 +351,7 @@ void handleSetValues() {
   }
 
   bool switchersChanged = false;
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
     const String argName = SWITCHER_PREFIX + String(i);
     if (server.hasArg(argName)) {
       const bool value = server.arg(argName).toInt();
@@ -381,11 +381,11 @@ void handleNotFound() {
 }
 
 void setup() {
-  for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     pinMode(DIMMER_PINS[i], OUTPUT);
     digitalWrite(DIMMER_PINS[i], LOW);
   }
-  for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
     pinMode(SWITCHER_PINS[i], OUTPUT);
   }
 

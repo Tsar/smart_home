@@ -2,8 +2,8 @@
 
 #include <WString.h>
 
-#define SWITCHER_PINS_COUNT 4
-#define DIMMER_PINS_COUNT   3
+#define SWITCHERS_COUNT 4
+#define DIMMERS_COUNT   3
 
 namespace smart_home {
 
@@ -32,8 +32,8 @@ class Configuration {
         String name_;
         String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
 
-        bool switchers_[SWITCHER_PINS_COUNT];
-        int32_t dimmers_[DIMMER_PINS_COUNT];
+        bool switchers_[SWITCHERS_COUNT];
+        int32_t dimmers_[DIMMERS_COUNT];
 };
 
 }

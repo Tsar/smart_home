@@ -78,10 +78,10 @@ void Configuration::load() {
     int pos = 0;
     name_ = readString(pos);
     password_ = readString(pos);
-    for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         switchers_[i] = readBool(pos);
     }
-    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         dimmers_[i] = readInt32(pos);
     }
 }
@@ -90,10 +90,10 @@ void Configuration::save() const {
     int pos = 0;
     writeString(pos, name_);
     writeString(pos, password_);
-    for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         writeBool(pos, switchers_[i]);
     }
-    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         writeInt32(pos, dimmers_[i]);
     }
     EEPROM.commit();
@@ -102,10 +102,10 @@ void Configuration::save() const {
 void Configuration::resetAndSave() {
     setName("new-device");
     setPassword("12345");
-    for (uint8_t i = 0; i < SWITCHER_PINS_COUNT; ++i) {
+    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         setSwitcherValue(i, false);
     }
-    for (uint8_t i = 0; i < DIMMER_PINS_COUNT; ++i) {
+    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         setDimmerValue(i, 0);
     }
 
