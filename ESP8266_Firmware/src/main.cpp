@@ -156,7 +156,8 @@ ICACHE_RAM_ATTR void onTimerISR() {
   }
 
   if (nextEventId < eventsQueueSize) {
-    timer1_write(eventsQueue[nextEventId].ticks - event.ticks);  // аргумент будет >= 5
+    const uint32_t ticksTillNextEvent = eventsQueue[nextEventId].ticks - event.ticks;  // в случае корректной работы всегда будет >= 5
+    timer1_write(ticksTillNextEvent >= 5 ? ticksTillNextEvent : 5);                    // но подстрахуемся
   } else {
     // после выполнения всех event'ов
     smoothLightnessChange();
