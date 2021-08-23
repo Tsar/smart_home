@@ -73,6 +73,7 @@ ICACHE_RAM_ATTR void smoothLightnessChange() {
 
 #ifdef COSINE_FORMULA
 // Не удаётся использовать обычный cos, прошивка начинает крешиться (видимо, потому что он не в RAM)
+// Источник этой реализации: https://stackoverflow.com/a/28050328
 ICACHE_RAM_ATTR double fastCos(double x) {
     constexpr double tp = 1. / (2. * PI);
     x *= tp;
