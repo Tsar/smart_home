@@ -19,10 +19,8 @@ class Configuration {
     public:
         Configuration();
 
-        void load();
+        void loadOrReset(bool& resetHappened);
         void save() const;
-
-        void resetAndSave();
 
         String getName() const;
         void setName(const String& name);
@@ -40,6 +38,8 @@ class Configuration {
         void setDimmerSettings(uint8_t index, const DimmerSettings& settings);
 
     private:
+        void resetAndSave();
+
         String name_;
         String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
 

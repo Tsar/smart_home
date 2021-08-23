@@ -2,6 +2,9 @@
 
 #include <EEPROM.h>
 
+#define CONFIGURATION_MAGIC 0x37B9AFBE
+#define CONFIGURATION_FORMAT_VERSION 1  // увеличивать при изменении формата конфигурации
+
 namespace smart_home {
 
 namespace {
@@ -78,8 +81,18 @@ Configuration::Configuration() {
     EEPROM.begin(4096);
 }
 
-void Configuration::load() {
+void Configuration::loadOrReset(bool& resetHappened) {
     int pos = 0;
+
+    const int32_t magic = readInt32(pos);
+    const int32_t formatVersion = readInt32(pos);
+    if (magic != CONFIGURATION_MAGIC || formatVersion != CONFIGURATION_FORMAT_VERSION) {
+        resetAndSave();
+        resetHappened = true;
+        return;
+    }
+    resetHappened = false;
+
     name_ = readString(pos);
     password_ = readString(pos);
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
@@ -95,6 +108,8 @@ void Configuration::load() {
 
 void Configuration::save() const {
     int pos = 0;
+    writeInt32(pos, CONFIGURATION_MAGIC);
+    writeInt32(pos, CONFIGURATION_FORMAT_VERSION);
     writeString(pos, name_);
     writeString(pos, password_);
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {

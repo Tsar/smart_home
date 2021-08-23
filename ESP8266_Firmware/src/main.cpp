@@ -5,8 +5,6 @@
 
 #define SIGN(val) (val > 0 ? 1 : (val < 0 ? -1 : 0))
 
-//#define RESET_CONFIGURATION  // Usage: uncomment; build & upload & run; comment; build & upload & run
-
 #define HTTP_SERVER_PORT 80
 
 #define DIMMER_PREFIX   "dim"
@@ -466,10 +464,8 @@ void setup() {
     pinMode(SWITCHER_PINS[i], OUTPUT);
   }
 
-#ifdef RESET_CONFIGURATION
-  homeCfg.resetAndSave();
-#endif
-  homeCfg.load();
+  bool resetCfgHappened;
+  homeCfg.loadOrReset(resetCfgHappened);
 
   dimmersSettings = homeCfg.getDimmersSettings();
   fillDimmerValues(true);
@@ -486,7 +482,10 @@ void setup() {
   digitalWrite(LED_BUILTIN, LOW);
 
   Serial.begin(115200);
-  Serial.printf("\nDevice name: %s, HTTP password: '%s'\n", homeCfg.getName().c_str(), homeCfg.getPassword().c_str());
+  Serial.printf("\n%s\nDevice name: %s, HTTP password: '%s'\n",
+                resetCfgHappened ? "\nCONFIGURATION RESET HAPPENED!" : "Configuration loaded successfully",
+                homeCfg.getName().c_str(), homeCfg.getPassword().c_str()
+  );
 
   // Just to be sure
   WiFi.setAutoConnect(true);
