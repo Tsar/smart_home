@@ -483,7 +483,7 @@ void setup() {
 
   Serial.begin(115200);
   Serial.printf("\n%s\nDevice name: %s, HTTP password: '%s'\n",
-                resetCfgHappened ? "\nCONFIGURATION RESET HAPPENED!" : "Configuration loaded successfully",
+                resetCfgHappened ? "CONFIGURATION RESET HAPPENED!" : "Configuration loaded successfully",
                 homeCfg.getName().c_str(), homeCfg.getPassword().c_str()
   );
 
