@@ -75,7 +75,7 @@ ICACHE_RAM_ATTR void smoothLightnessChange() {
 ICACHE_RAM_ATTR double fastCos(double x) {
     constexpr double tp = 1. / (2. * PI);
     x *= tp;
-    x -= 0.25 + static_cast<int>(x + 0.25);
+    x -= 0.25 + static_cast<int>(x + 0.25);  // using static_cast instead of floor, because in our case following is always true: x + 0.25 > 0
     x *= 16. * (std::abs(x) - 0.5);
     x += 0.225 * x * (std::abs(x) - 1.);
     return x;
