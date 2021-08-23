@@ -69,11 +69,29 @@ ICACHE_RAM_ATTR void smoothLightnessChange() {
   }
 }
 
+#define COSINE_FORMULA  // если закомментировать, то будет линейная интерполяция
+
+#ifdef COSINE_FORMULA
+// Не удаётся использовать обычный cos, прошивка начинает крешиться (видимо, потому что он не в RAM)
+ICACHE_RAM_ATTR double fastCos(double x) {
+    constexpr double tp = 1. / (2. * PI);
+    x *= tp;
+    x -= 0.25 + static_cast<int>(x + 0.25);
+    x *= 16. * (std::abs(x) - 0.5);
+    x += 0.225 * x * (std::abs(x) - 1.);
+    return x;
+}
+#endif
+
 // Переводит значение со слайдера в отступ импульса в микросекундах, см. dimmer_micros_adjustment.png
 ICACHE_RAM_ATTR uint32_t dimmerValueToMicros(int32_t value, uint8_t dimmerId) {
   const int32_t minLM = dimmersSettings[dimmerId].minLightnessMicros;  // дефолт = 8300
   const int32_t maxLM = dimmersSettings[dimmerId].maxLightnessMicros;  // дефолт = 4000
-  return round(cos(PI * (value - 1) / 2 / (DIMMER_MAX_VALUE - 1)) * (minLM - maxLM) + maxLM);
+#ifdef COSINE_FORMULA
+  return fastCos(PI * (value - 1) / 2 / (DIMMER_MAX_VALUE - 1)) * (minLM - maxLM) + maxLM + 0.5;
+#else
+  return static_cast<double>(value - 1) * (maxLM - minLM) / (DIMMER_MAX_VALUE - 1) + minLM;
+#endif
 }
 
 // Формируем новую очередь событий, начнутся со следующего input fall
