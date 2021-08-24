@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <WiFiUdp.h>
 
 #include "configuration.hpp"
 
@@ -55,6 +56,15 @@ enum class WiFiSetupState {
 WiFiSetupState wifiSetupState = WiFiSetupState::NONE;
 int8_t wifiConnectResult = 0;
 bool isAccessPointEnabled = false;
+
+// Для обнаружения
+const String UDP_SCAN_REQUEST = "SMART_HOME_SCAN";  // should fit udpInputBuffer
+const IPAddress UDP_MULTICAST_IP(227, 16, 119, 203);
+#define UDP_MULTICAST_PORT 25061
+#define UDP_RESPONSE_PORT  25062
+
+WiFiUDP udp;
+char udpInputBuffer[32];
 
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
@@ -213,6 +223,7 @@ void enableAccessPoint() {
 
 bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
   digitalWrite(LED_BUILTIN, LOW);
+  udp.stop();
 
   if (ssid != 0) {
     Serial.printf("Connecting to wi-fi: SSID [%s], passphrase [%s]\n", ssid, passphrase);
@@ -230,9 +241,17 @@ bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
     return false;
   }
 
-  const String ip = WiFi.localIP().toString();
-  Serial.printf("Connected, IP: %s\n", ip.c_str());
+  const auto& ip = WiFi.localIP();
+  Serial.printf("Connected, IP: %s\n", ip.toString().c_str());
   digitalWrite(LED_BUILTIN, HIGH);
+
+  const bool listeningMulticast = udp.beginMulticast(ip, UDP_MULTICAST_IP, UDP_MULTICAST_PORT);
+  if (listeningMulticast) {
+    Serial.printf("Started listening UDP multicast on %s:%d\n", UDP_MULTICAST_IP.toString().c_str(), UDP_MULTICAST_PORT);
+  } else {
+    Serial.println("Failed to start listening UDP multicast");
+  }
+
   return true;
 }
 
@@ -456,6 +475,21 @@ void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
 }
 
+void udpHandlePacket() {
+  int packetSize = udp.parsePacket();
+  if (packetSize == static_cast<int>(UDP_SCAN_REQUEST.length())) {
+    int len = udp.read(udpInputBuffer, packetSize);
+    udpInputBuffer[len] = 0;
+    if (UDP_SCAN_REQUEST == String(udpInputBuffer)) {
+      const String response = "MAC=" + WiFi.macAddress();
+      udp.beginPacket(udp.remoteIP(), UDP_RESPONSE_PORT);  // unicast back
+      udp.write(response.c_str());
+      udp.endPacket();
+      Serial.println("Handled UDP scan request");
+    }
+  }
+}
+
 void setup() {
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     pinMode(DIMMER_PINS[i], OUTPUT);
@@ -531,4 +565,5 @@ void setup() {
 
 void loop() {
   server.handleClient();
+  udpHandlePacket();
 }
