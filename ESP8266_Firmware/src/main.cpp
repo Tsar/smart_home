@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
+#include "lwip/igmp.h"
 
 #include "configuration.hpp"
 
@@ -65,6 +66,7 @@ const IPAddress UDP_MULTICAST_IP(227, 16, 119, 203);
 
 WiFiUDP udp;
 char udpInputBuffer[32];
+uint32_t udpScanCounter = 0;
 
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
@@ -471,6 +473,26 @@ void handleSetDimmersSettings() {
   server.send(200, "text/plain", "ACCEPTED\n" + generateDimmersSettingsString());
 }
 
+void handleRejoinMulticastGroup() {
+  if (!checkPassword()) return;
+
+  const auto& ip = WiFi.localIP();
+  if (server.hasArg("leave") && server.arg("leave").toInt()) {
+    Serial.print("Will leave group before join ... ");
+    Serial.println(igmp_leavegroup(ip, UDP_MULTICAST_IP) == ERR_OK ? "Done" : "igmp_leavegroup failed");
+  }
+  if (server.hasArg("delay")) {
+    const long ms = server.arg("delay").toInt();
+    Serial.printf("Delay %ld ms ... ", ms);
+    delay(ms);
+    Serial.println("Done");
+  }
+  Serial.print("Join group ... ");
+  const bool joinGroupOk = igmp_joingroup(ip, UDP_MULTICAST_IP) == ERR_OK;
+  Serial.printf("igmp_joingroup %s\n", joinGroupOk ? "OK" : "failed");
+  server.send(200, "text/plain", joinGroupOk ? "OK" : "FAILED");
+}
+
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
 }
@@ -485,7 +507,7 @@ void udpHandlePacket() {
       udp.beginPacket(udp.remoteIP(), UDP_RESPONSE_PORT);  // unicast back
       udp.write(response.c_str());
       udp.endPacket();
-      Serial.println("Handled UDP scan request");
+      Serial.printf("Handled UDP scan request #%d\n", ++udpScanCounter);
     }
   }
 }
@@ -554,6 +576,7 @@ void setup() {
   server.on("/set_values", HTTP_ANY, handleSetValues);
   server.on("/get_dimmers_settings", HTTP_GET, handleGetDimmersSettings);
   server.on("/set_dimmers_settings", HTTP_ANY, handleSetDimmersSettings);
+  server.on("/rejoin_multicast_group", HTTP_GET, handleRejoinMulticastGroup);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};
