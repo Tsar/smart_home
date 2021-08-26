@@ -33,7 +33,6 @@ public class HomeNetworkSettings extends BaseScreen {
         edtPassphrase = activity.findViewById(R.id.edtPassphrase);
         CheckBox cbShowPassphrase = activity.findViewById(R.id.cbShowPassphrase);
         Button btnConnectDevice = activity.findViewById(R.id.btnConnectDevice);
-        TextView txtStaticIpRecommendation = activity.findViewById(R.id.txtStaticIpRecommendation);
 
         cbShowPassphrase.setOnCheckedChangeListener((buttonView, isChecked) -> {
             final int selStart = edtPassphrase.getSelectionStart();
@@ -43,7 +42,6 @@ public class HomeNetworkSettings extends BaseScreen {
         });
 
         assert commonData.getNewDeviceInfo() != null;
-        txtStaticIpRecommendation.setText(Html.fromHtml(tr(R.string.recommend_static_ip, commonData.getNewDeviceInfo().getMacAddress())));
 
         Network deviceNetwork = commonData.getNewDeviceNetwork();
         btnConnectDevice.setOnClickListener(v -> {

@@ -61,9 +61,22 @@ public class DevicesList implements DeviceInfo.Listener {
     }
 
     public void addDevice(DeviceInfo deviceInfo) {
+        String macAddress = deviceInfo.getMacAddress();
+
+        if (deviceMap.containsKey(macAddress)) {
+            DeviceInfo existingDeviceInfo = deviceMap.get(macAddress);
+            if (existingDeviceInfo != null) {
+                existingDeviceInfo.setName(deviceInfo.getName());
+                existingDeviceInfo.setIpAddress(deviceInfo.getIpAddress());
+                saveStorage();
+                // TODO: tell user that new device wasn't added, just existing device was updated
+                return;
+            }
+        }
+
         deviceInfo.setListener(this);
         deviceInfoList.add(deviceInfo);
-        deviceMap.put(deviceInfo.getMacAddress(), deviceInfo);
+        deviceMap.put(macAddress, deviceInfo);
         saveStorage();
     }
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
@@ -7,14 +7,12 @@
 
     <TextView
         android:id="@+id/txtNetworkSsid"
-        android:layout_alignParentTop="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/network_ssid" />
 
     <EditText
         android:id="@+id/edtNetworkSsid"
-        android:layout_below="@id/txtNetworkSsid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fontFamily="monospace"
@@ -24,14 +22,12 @@
 
     <TextView
         android:id="@+id/txtPassphrase"
-        android:layout_below="@id/edtNetworkSsid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/passphrase" />
 
     <EditText
         android:id="@+id/edtPassphrase"
-        android:layout_below="@id/txtPassphrase"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fontFamily="monospace"
@@ -41,7 +37,6 @@
 
     <CheckBox
         android:id="@+id/cbShowPassphrase"
-        android:layout_below="@id/edtPassphrase"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="16sp"
@@ -49,17 +44,8 @@
 
     <Button
         android:id="@+id/btnConnectDevice"
-        android:layout_below="@id/cbShowPassphrase"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/connect_device" />
 
-    <TextView
-        android:id="@+id/txtStaticIpRecommendation"
-        android:layout_alignParentBottom="true"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="18sp"
-        android:text="@string/recommend_static_ip" />
-
-</RelativeLayout>
+</LinearLayout>

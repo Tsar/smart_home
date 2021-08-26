@@ -34,6 +34,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
 
         Udp.asyncListen(UDP_LISTEN_PORT, new Udp.Listener() {
             private static final String LOG_TAG = "UdpListener";
+            private static final String MAC_PREFIX = "MAC=";
 
             @Override
             public boolean finish() {
@@ -42,9 +43,13 @@ public class Main extends BaseScreen implements DevicesList.Listener {
 
             @Override
             public void onReceive(String message, String senderIp, int senderPort) {
-                String macAddress = ResponseParser.parseMac(message);
-                if (macAddress == null) {
-                    Log.d(LOG_TAG, "Failed to parse MAC address from message: " + message);
+                if (!message.startsWith(MAC_PREFIX)) {
+                    Log.d(LOG_TAG, "Bad message format: " + message);
+                    return;
+                }
+                String macAddress = message.substring(MAC_PREFIX.length());
+                if (!Utils.isValidMacAddress(macAddress)) {
+                    Log.d(LOG_TAG, "Invalid MAC address: " + macAddress);
                     return;
                 }
                 DeviceInfo device = devices.getDeviceByMacAddress(macAddress);

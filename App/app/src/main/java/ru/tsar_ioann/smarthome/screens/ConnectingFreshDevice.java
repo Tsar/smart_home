@@ -9,6 +9,8 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import org.json.JSONException;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.HashSet;
@@ -54,7 +56,7 @@ public class ConnectingFreshDevice extends BaseScreen {
                 commonData.setNewDeviceNetwork(network);
                 try {
                     Http.Response response = Http.doRequest(
-                            SMART_HOME_DEVICE_AP_ADDRESS + "/get_info",
+                            SMART_HOME_DEVICE_AP_ADDRESS + "/get_info?minimal",
                             null,
                             SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
                             network,
@@ -62,8 +64,8 @@ public class ConnectingFreshDevice extends BaseScreen {
                     );
 
                     if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
-                        DeviceInfo deviceInfo = ResponseParser.parseMacAndName(response.getDataAsStr());
-                        if (deviceInfo != null) {
+                        try {
+                            DeviceInfo deviceInfo = DeviceInfo.parseMinimalJson(response.getDataAsStr());
                             commonData.setNewDeviceInfo(deviceInfo);
                             commonData.getActivity().runOnUiThread(() -> {
                                 txtConnecting.setText(R.string.connected_to_device);
@@ -88,7 +90,7 @@ public class ConnectingFreshDevice extends BaseScreen {
                                     }
                                 });
                             });
-                        } else {
+                        } catch (JSONException | DeviceInfo.InvalidMacAddressException e) {
                             disconnectAndShowErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
                         }
                     } else {
