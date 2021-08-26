@@ -27,9 +27,9 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
         }
 
         // Lookup view for data population
-        final TextView txtDeviceName = (TextView)convertView.findViewById(R.id.txtDeviceName);
-        final TextView txtDeviceMac = (TextView)convertView.findViewById(R.id.txtDeviceMac);
-        final TextView txtDeviceIp = (TextView)convertView.findViewById(R.id.txtDeviceIp);
+        final TextView txtDeviceName = convertView.findViewById(R.id.txtDeviceName);
+        final TextView txtDeviceMac = convertView.findViewById(R.id.txtDeviceMac);
+        final TextView txtDeviceIp = convertView.findViewById(R.id.txtDeviceIp);
         final SeekBar[] dimmers = new SeekBar[]{
                 convertView.findViewById(R.id.dim0),
                 convertView.findViewById(R.id.dim1),
