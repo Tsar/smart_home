@@ -40,7 +40,7 @@ public class Udp {
                         socket.receive(packet);
                         listener.onReceive(
                                 new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8),
-                                packet.getAddress().toString(),
+                                packet.getAddress().getHostAddress(),
                                 packet.getPort()
                         );
                     } catch (SocketTimeoutException e) {

@@ -15,8 +15,8 @@ import java.util.List;
 public class Http {
     private static final String LOG_TAG = "Http";
 
-    private static final int CONNECT_TIMEOUT_MS = 300;
-    private static final int READ_TIMEOUT_MS = 2500;
+    private static final int CONNECT_TIMEOUT_MS = 3000;
+    private static final int READ_TIMEOUT_MS = 6000;
 
     public static class Response {
         private final int httpCode;

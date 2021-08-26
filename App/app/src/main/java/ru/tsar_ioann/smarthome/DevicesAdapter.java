@@ -43,10 +43,13 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
         };
 
         // Populate the data into the template view using the data object
+        String ipAddress = device.getIpAddress();
+        String httpPassword = device.getHttpPassword();
+
         txtDeviceName.setText(device.getName());
         txtDeviceMac.setText(device.getMacAddress());
-        String ipAddress = device.getIpAddress();
         txtDeviceIp.setText(ipAddress);
+        txtDeviceIp.setEnabled(device.isDiscovered());
 
         for (int i = 0; i < dimmers.length; ++i) {
             int finalI = i;
@@ -64,7 +67,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                     Http.doAsyncRequest(
                             "http://" + ipAddress + "/set_values?dim" + finalI + "=" + seekBar.getProgress(),
                             null,
-                            "12345",  // TODO: work on this
+                            httpPassword,
                             null,
                             3,
                             null
@@ -79,7 +82,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 Http.doAsyncRequest(
                         "http://" + ipAddress + "/set_values?sw" + finalI + "=" + (isChecked ? 1 : 0),
                         null,
-                        "12345",  // TODO: work on this
+                        httpPassword,
                         null,
                         3,
                         null
