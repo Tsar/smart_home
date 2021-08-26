@@ -284,7 +284,31 @@ void sendBadRequest() {
 void handleGetInfo() {
   if (!checkPassword()) return;
 
-  server.send(200, "text/plain", "MAC=" + WiFi.macAddress() + ";NAME=" + homeCfg.getName());
+  String result = "{\n  \"mac\": \"" + WiFi.macAddress() + "\",\n  \"name\": \"" + homeCfg.getName() + "\"";
+  if (!server.hasArg("minimal")) {
+    result += ",\n  \"values\": {\n    \"";
+    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+      result += DIMMER_PREFIX + String(i) + "\": " + String(homeCfg.getDimmerValue(i)) + ",\n    \"";
+    }
+    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
+      result += SWITCHER_PREFIX + String(i) + "\": " + (homeCfg.getSwitcherValue(i) ? "1" : "0") + (i + 1 == SWITCHERS_COUNT ? "" : ",\n    \"");
+    }
+    result += "\n  },\n  \"micros\": {\n    \"";
+    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+      int32_t value = homeCfg.getDimmerValue(i);
+      result += DIMMER_PREFIX + String(i) + "\": " + String(value > 0 ? dimmerValueToMicros(value, i) : -1) + (i + 1 == DIMMERS_COUNT ? "" : ",\n    \"");
+    }
+    result += "\n  },\n  \"dimmers_settings\": {\n    \"";
+    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+      result += DIMMER_PREFIX + String(i) + "\": {\n      \"value_change_step\": " + String(dimmersSettings[i].valueChangeStep)
+                                              + ",\n      \"min_lightness_micros\": " + String(dimmersSettings[i].minLightnessMicros)
+                                              + ",\n      \"max_lightness_micros\": " + String(dimmersSettings[i].maxLightnessMicros)
+                                              + "\n    }" + (i + 1 == DIMMERS_COUNT ? "" : ",\n    \"");
+    }
+    result += "\n  },\n  \"order\": {\n    \"dimmers\": [0, 1, 2],\n    \"switchers\": [0, 1, 2, 3]\n  }";  // TODO: dynamic order
+  }
+  result += "\n}\n";
+  server.send(200, "application/json", result);
 }
 
 void handleSetupWiFi() {
@@ -346,44 +370,6 @@ void handleTurnOffAccessPoint() {
   Serial.println("Access point disabled by request");
 }
 
-void handleSetBuiltinLED() {
-  if (!checkPassword()) return;
-
-  if (!server.hasArg("state")) {
-    sendBadRequest();
-    return;
-  }
-
-  const auto state = server.arg("state");
-  if (state == "on") {
-    digitalWrite(LED_BUILTIN, LOW);
-    server.send(200, "text/plain", "LED_IS_ON");
-  } else if (state == "off") {
-    digitalWrite(LED_BUILTIN, HIGH);
-    server.send(200, "text/plain", "LED_IS_OFF");
-  } else {
-    sendBadRequest();
-  }
-}
-
-String generateValuesString() {
-  String result;
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    int32_t value = homeCfg.getDimmerValue(i);
-    result += DIMMER_PREFIX + String(i) + "=" + String(value) + (value > 0 ? "->" + String(dimmerValueToMicros(value, i)) : "") + "\n";
-  }
-  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    result += SWITCHER_PREFIX + String(i) + "=" + (homeCfg.getSwitcherValue(i) ? "1" : "0") + "\n";
-  }
-  return result;
-}
-
-void handleGetValues() {
-  if (!checkPassword()) return;
-
-  server.send(200, "text/plain", generateValuesString());
-}
-
 void handleSetValues() {
   if (!checkPassword()) return;
 
@@ -423,26 +409,10 @@ void handleSetValues() {
       applySwitcherValues();
     }
     homeCfg.save();
-    server.send(200, "text/plain", "ACCEPTED\n" + generateValuesString());
+    server.send(200, "text/plain", "ACCEPTED\n");
   } else {
     server.send(200, "text/plain", "NOTHING_CHANGED\n");
   }
-}
-
-String generateDimmersSettingsString() {
-  String result;
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    result += DIMMER_PREFIX + String(i) + "=" + String(dimmersSettings[i].valueChangeStep)
-                                        + "," + String(dimmersSettings[i].minLightnessMicros)
-                                        + "," + String(dimmersSettings[i].maxLightnessMicros) + "\n";
-  }
-  return result;
-}
-
-void handleGetDimmersSettings() {
-  if (!checkPassword()) return;
-
-  server.send(200, "text/plain", generateDimmersSettingsString());
 }
 
 void handleSetDimmersSettings() {
@@ -482,7 +452,7 @@ void handleSetDimmersSettings() {
   }
 
   homeCfg.save();
-  server.send(200, "text/plain", "ACCEPTED\n" + generateDimmersSettingsString());
+  server.send(200, "text/plain", "ACCEPTED\n");
 }
 
 void handleNotFound() {
@@ -563,10 +533,7 @@ void setup() {
   server.on("/get_setup_wifi_state", HTTP_GET, handleGetSetupWiFiState);
   server.on("/reset_wifi", HTTP_GET, handleResetWiFi);
   server.on("/turn_off_ap", HTTP_GET, handleTurnOffAccessPoint);
-  server.on("/set_builtin_led", HTTP_POST, handleSetBuiltinLED);
-  server.on("/get_values", HTTP_GET, handleGetValues);
   server.on("/set_values", HTTP_ANY, handleSetValues);
-  server.on("/get_dimmers_settings", HTTP_GET, handleGetDimmersSettings);
   server.on("/set_dimmers_settings", HTTP_ANY, handleSetDimmersSettings);
   server.onNotFound(handleNotFound);
 
