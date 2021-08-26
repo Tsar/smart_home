@@ -53,16 +53,20 @@ public class DeviceInfo {
     }
 
     public void setName(String name) {
-        this.name = name;
-        if (listener != null) {
-            listener.onDeviceInfoChanged();
+        synchronized (this) {
+            this.name = name;
+            if (listener != null) {
+                listener.onDeviceInfoChanged();
+            }
         }
     }
 
     public void setIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
-        if (listener != null) {
-            listener.onDeviceInfoChanged();
+        synchronized (this) {
+            this.ipAddress = ipAddress;
+            if (listener != null) {
+                listener.onDeviceInfoChanged();
+            }
         }
     }
 
@@ -101,20 +105,22 @@ public class DeviceInfo {
                             Log.d(LOG_TAG, "Discover failed: could not parse response");
                             return;
                         }
-                        if (info.getMacAddress().equals(macAddress)) {
-                            if (!info.getName().equals(name)) {
-                                name = info.getName();
-                                if (listener != null) {
-                                    listener.onDeviceInfoChanged();
+                        synchronized (this) {
+                            if (info.getMacAddress().equals(macAddress)) {
+                                if (!info.getName().equals(name)) {
+                                    name = info.getName();
+                                    if (listener != null) {
+                                        listener.onDeviceInfoChanged();
+                                    }
                                 }
+                                if (!discovered && listener != null) {
+                                    listener.onDeviceDiscovered();
+                                }
+                                discovered = true;
+                                Log.d(LOG_TAG, "Device " + macAddress + " discovered");
+                            } else {
+                                Log.d(LOG_TAG, "Discover failed: MAC address differs");
                             }
-                            discovered = true;
-                            if (listener != null) {
-                                listener.onDeviceDiscovered();
-                            }
-                            Log.d(LOG_TAG, "Device " + macAddress + " discovered");
-                        } else {
-                            Log.d(LOG_TAG, "Discover failed: MAC address differs");
                         }
                     }
 
