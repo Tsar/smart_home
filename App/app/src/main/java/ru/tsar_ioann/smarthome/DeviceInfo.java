@@ -7,6 +7,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Arrays;
 import java.util.Iterator;
 
 public class DeviceInfo {
@@ -82,6 +83,7 @@ public class DeviceInfo {
     private DeviceInfo(String macAddress, String name) {
         this.macAddress = macAddress;
         this.name = name;
+        Arrays.fill(this.dimmerValues, 500);
     }
 
     public DeviceInfo(String macAddress, String name, String ipAddress, Listener listener) {
@@ -89,6 +91,7 @@ public class DeviceInfo {
         this.name = name;
         this.ipAddress = ipAddress;
         this.listener = listener;
+        Arrays.fill(this.dimmerValues, 500);
     }
 
     public String getMacAddress() {

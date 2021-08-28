@@ -14,7 +14,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="" />
+            android:layout_gravity="center_vertical"
+            android:textSize="24sp" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -26,7 +27,6 @@
                 android:id="@+id/txtDeviceMac"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text=""
                 android:textAlignment="textEnd"
                 android:textSize="14sp" />
 
@@ -34,7 +34,6 @@
                 android:id="@+id/txtDeviceIp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text=""
                 android:textAlignment="textEnd"
                 android:textSize="14sp" />
 
@@ -44,7 +43,6 @@
 
     <SeekBar
         android:id="@+id/dim0"
-        android:max="1000"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
@@ -52,7 +50,6 @@
 
     <SeekBar
         android:id="@+id/dim1"
-        android:max="1000"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="7dp"
@@ -60,7 +57,6 @@
 
     <SeekBar
         android:id="@+id/dim2"
-        android:max="1000"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="7dp"
@@ -98,7 +94,7 @@
         <View
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="0.4" />
+            android:layout_weight="0.55" />
 
     </LinearLayout>
 

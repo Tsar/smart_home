@@ -7,6 +7,7 @@
         <item name="android:buttonStyle">@style/ButtonStyle</item>
         <item name="android:textViewStyle">@style/TextViewStyle</item>
         <item name="android:seekBarStyle">@style/SeekBarStyle</item>
+        <item name="android:switchStyle">@style/SwitchStyle</item>
     </style>
     <style name="ButtonStyle" parent="android:style/Widget.Material.Button">
         <item name="android:textColor">@color/button_text</item>
@@ -21,5 +22,13 @@
         <item name="android:thumb">@drawable/seekbar_thumb</item>
         <item name="android:paddingStart">20dip</item>
         <item name="android:paddingEnd">20dip</item>
+        <item name="android:max">1000</item>
+        <item name="android:progress">500</item>
+    </style>
+    <style name="SwitchStyle" parent="android:style/Widget.Material.CompoundButton.Switch">
+        <item name="android:scaleX">1.5</item>
+        <item name="android:scaleY">1.5</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">16dp</item>
     </style>
 </resources>
