@@ -33,4 +33,9 @@
     <string name="input_device_ip_manually">Input device\'s IP address manually</string>
     <string name="search_configured_finished_nothing_found">Search for configured devices has finished.\n\nConfigured and not added earlier devices were not found.</string>
     <string name="search_configured_finished_choose_device">Search for configured devices has finished.\n\nIf you see needed device in the list, tap it.</string>
+    <string name="ip_address_and_port">IP address and port</string>
+    <string name="ip_address_is_static_or_external">IP address is static or external</string>
+    <string name="management_password">Management password</string>
+    <string name="show_password">Show password</string>
+    <string name="add_smart_home_device">Add Smart Home device</string>
 </resources>

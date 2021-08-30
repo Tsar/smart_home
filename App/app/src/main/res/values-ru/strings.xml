@@ -33,4 +33,9 @@
     <string name="input_device_ip_manually">Ввести IP адрес устройства вручную</string>
     <string name="search_configured_finished_nothing_found">Поиск настроенных устройств завершён.\n\nНастроенные и не добавленные ранее устройства не найдены.</string>
     <string name="search_configured_finished_choose_device">Поиск настроенных устройств завершён.\n\nЕсли Вы видите нужное устройство в списке, нажмите на него.</string>
+    <string name="ip_address_and_port">IP адрес и порт</string>
+    <string name="ip_address_is_static_or_external">IP адрес постоянный или внешний</string>
+    <string name="management_password">Пароль для управления</string>
+    <string name="show_password">Показать пароль</string>
+    <string name="add_smart_home_device">Добавить устройство Smart Home</string>
 </resources>

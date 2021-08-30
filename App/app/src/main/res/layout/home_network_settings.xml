@@ -6,7 +6,6 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/txtNetworkSsid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/network_ssid" />
@@ -15,13 +14,10 @@
         android:id="@+id/edtNetworkSsid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
         android:inputType="text"
-        android:textSize="20sp"
         tools:ignore="Autofill,LabelFor" />
 
     <TextView
-        android:id="@+id/txtPassphrase"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/passphrase" />
@@ -30,9 +26,7 @@
         android:id="@+id/edtPassphrase"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
         android:inputType="textPassword"
-        android:textSize="20sp"
         tools:ignore="Autofill,LabelFor" />
 
     <CheckBox

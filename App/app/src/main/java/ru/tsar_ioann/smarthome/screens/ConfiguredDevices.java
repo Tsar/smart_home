@@ -7,6 +7,7 @@ import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -37,6 +38,7 @@ public class ConfiguredDevices extends BaseScreen {
         activity = commonData.getActivity();
         TextView txtSearchingConfigured = activity.findViewById(R.id.txtSearchingConfigured);
         ListView lstConfiguredDevices = activity.findViewById(R.id.lstConfiguredDevices);
+        Button btnInputIP = activity.findViewById(R.id.btnInputIP);
 
         txtSearchingConfigured.setText(tr(R.string.searching_configured_devices));
 
@@ -93,9 +95,13 @@ public class ConfiguredDevices extends BaseScreen {
 
         lstConfiguredDevices.setOnItemClickListener((adapterView, view, position, id) -> {
             timerMulticastRepeater.cancel();
-            // TODO: launch next screen
-            //commonData.getScreenLauncher().launchScreen(ScreenId.XXX);
+            DeviceInfo chosenDevice = (DeviceInfo)adapterView.getItemAtPosition(position);
+            ConfiguredDeviceParams screen = (ConfiguredDeviceParams)commonData
+                    .getScreenLauncher().launchScreen(ScreenId.CONFIGURED_DEVICE_PARAMS);
+            screen.setIpAddressAndPort(chosenDevice.getIpAddress(), 80);
         });
+
+        btnInputIP.setOnClickListener(v -> commonData.getScreenLauncher().launchScreen(ScreenId.CONFIGURED_DEVICE_PARAMS));
     }
 
     @Override

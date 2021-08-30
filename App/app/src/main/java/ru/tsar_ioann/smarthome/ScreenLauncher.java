@@ -42,6 +42,9 @@ public class ScreenLauncher {
             case CONFIGURED_DEVICES:
                 currentScreen = new ConfiguredDevices(commonData);
                 break;
+            case CONFIGURED_DEVICE_PARAMS:
+                currentScreen = new ConfiguredDeviceParams(commonData);
+                break;
         }
         menuVisibilityChanger.setMenuVisibility(currentScreen.shouldMenuBeVisible());
         currentScreenId = screenId;
