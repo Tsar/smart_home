@@ -28,7 +28,6 @@
     <style name="SwitchStyle" parent="android:style/Widget.Material.CompoundButton.Switch">
         <item name="android:scaleX">1.5</item>
         <item name="android:scaleY">1.5</item>
-        <item name="android:paddingTop">10dp</item>
-        <item name="android:paddingBottom">16dp</item>
+        <item name="android:padding">10dp</item>
     </style>
 </resources>

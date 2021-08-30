@@ -67,34 +67,50 @@
         android:layout_height="match_parent"
         android:orientation="horizontal">
 
+        <View
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
         <Switch
             android:id="@+id/sw0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <View
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
         <Switch
             android:id="@+id/sw1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <View
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
         <Switch
             android:id="@+id/sw2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <View
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
         <Switch
             android:id="@+id/sw3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="0.55" />
+            android:layout_weight="1" />
 
     </LinearLayout>
 
