@@ -87,8 +87,7 @@ public class DeviceInfo {
     }
 
     public DeviceInfo(String macAddress, String name, String ipAddress, Listener listener) {
-        this.macAddress = macAddress;
-        this.name = name;
+        this(macAddress, name);
         this.ipAddress = ipAddress;
         this.listener = listener;
         Arrays.fill(this.dimmerValues, 500);

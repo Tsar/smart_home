@@ -18,6 +18,7 @@ public abstract class BaseScreen {
 
     public abstract int getViewFlipperChildId();
     public abstract boolean shouldMenuBeVisible();
+    public void handleUdpDeviceInfo(String macAddress, String name, String ipAddress, int port) {}
 
     protected final CommonData getCommonData() {
         return commonData;

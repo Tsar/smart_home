@@ -15,7 +15,7 @@ import java.net.HttpURLConnection;
 import java.util.List;
 
 public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
-    private Activity activity;
+    private final Activity activity;
 
     public DevicesAdapter(Activity activity, List<DeviceInfo> devices) {
         super(activity, 0, devices);

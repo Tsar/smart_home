@@ -4,16 +4,10 @@ import android.app.Activity;
 import android.util.Log;
 import android.widget.ListView;
 
-import java.io.IOException;
-import java.net.SocketException;
-
 import ru.tsar_ioann.smarthome.*;
 
 public class Main extends BaseScreen implements DevicesList.Listener {
-    private static final String UDP_SCAN_REQUEST = "SMART_HOME_SCAN";
-    private static final String UDP_MULTICAST_IP = "227.16.119.203";
-    private static final int UDP_MULTICAST_PORT = 25061;
-    private static final int UDP_LISTEN_PORT = 25062;
+    private static final String LOG_TAG = "Main";
 
     private final Activity activity;
     private final DevicesList devices;
@@ -32,56 +26,6 @@ public class Main extends BaseScreen implements DevicesList.Listener {
         devicesAdapter = new DevicesAdapter(activity, commonData.getDevices().getList());
         lstDevices.setAdapter(devicesAdapter);
 
-        Udp.asyncListen(UDP_LISTEN_PORT, new Udp.Listener() {
-            private static final String LOG_TAG = "UdpListener";
-            private static final String MAC_PREFIX = "MAC=";
-
-            @Override
-            public boolean finish() {
-                return false;
-            }
-
-            @Override
-            public void onReceive(String message, String senderIp, int senderPort) {
-                if (!message.startsWith(MAC_PREFIX)) {
-                    Log.d(LOG_TAG, "Bad message format: " + message);
-                    return;
-                }
-                String macAddress = message.substring(MAC_PREFIX.length());
-                if (!Utils.isValidMacAddress(macAddress)) {
-                    Log.d(LOG_TAG, "Invalid MAC address: " + macAddress);
-                    return;
-                }
-                DeviceInfo device = devices.getDeviceByMacAddress(macAddress);
-                if (device == null) {
-                    Log.d(LOG_TAG, "Received MAC address which we do not know: " + macAddress);
-                    return;
-                }
-                if (device.isDiscovered()) {
-                    Log.d(LOG_TAG, "Got info about device which is already discovered (" + macAddress + ")");
-                    return;
-                }
-                if (device.getIpAddress().equals(senderIp)) {
-                    Log.d(LOG_TAG, "Got info about device which has not changed it's IP (" + macAddress + ")");
-                    return;
-                }
-
-                Log.d(LOG_TAG, "Device with MAC address " + macAddress + " has changed IP to " + senderIp + ", trying to discover");
-                device.setIpAddress(senderIp);
-                device.asyncTryToDiscover();
-            }
-
-            @Override
-            public void onError(IOException exception) {
-                Log.d(LOG_TAG, "Error on receiving UDP: " + exception.getMessage());
-            }
-
-            @Override
-            public void onFatalError(SocketException exception) {
-                Log.d(LOG_TAG, "Failed to start listening UDP: " + exception.getMessage());
-            }
-        });
-
         asyncRefresh();
     }
 
@@ -89,7 +33,32 @@ public class Main extends BaseScreen implements DevicesList.Listener {
         devices.rediscoverAll();
         devicesAdapter.notifyDataSetChanged();
 
-        Udp.asyncMulticastNoThrow(UDP_MULTICAST_IP, UDP_MULTICAST_PORT, UDP_SCAN_REQUEST);
+        Udp.asyncMulticastNoThrow(
+                UdpSettings.UDP_MULTICAST_IP,
+                UdpSettings.UDP_MULTICAST_PORT,
+                UdpSettings.UDP_SCAN_REQUEST
+        );
+    }
+
+    @Override
+    public void handleUdpDeviceInfo(String macAddress, String name, String ipAddress, int port) {
+        DeviceInfo device = devices.getDeviceByMacAddress(macAddress);
+        if (device == null) {
+            Log.d(LOG_TAG, "Received MAC address which we do not know: " + macAddress);
+            return;
+        }
+        if (device.isDiscovered()) {
+            Log.d(LOG_TAG, "Got info about device which is already discovered (" + macAddress + ")");
+            return;
+        }
+        if (device.getIpAddress().equals(ipAddress)) {
+            Log.d(LOG_TAG, "Got info about device which has not changed it's IP (" + macAddress + ")");
+            return;
+        }
+
+        Log.d(LOG_TAG, "Device with MAC address " + macAddress + " has changed IP to " + ipAddress + ", trying to discover");
+        device.setIpAddress(ipAddress);
+        device.asyncTryToDiscover();
     }
 
     @Override

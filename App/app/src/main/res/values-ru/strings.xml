@@ -5,10 +5,10 @@
     <string name="add_new_device">Добавить устройство</string>
     <string name="update_statuses">Обновить состояния</string>
     <string name="add_fresh_device">&lt;big&gt;Добавить свежее устройство&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Выбирайте эту опцию для настройки нового устройства. Обычно оно работает как точка доступа Wi-Fi. Настройка начнётся с поиска нового устройства и подключения его к Вашей домашней Wi-Fi сети.&lt;/small&gt;</string>
-    <string name="add_configured_device">&lt;big&gt;Добавить настроенное устройство&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Выбирайте эту опцию для добавления устройства, которое доступно Вашему смартфону по известному для Вас IP-адресу.&lt;/small&gt;</string>
+    <string name="add_configured_device">&lt;big&gt;Добавить настроенное устройство&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Выбирайте эту опцию для добавления устройства, которое доступно Вашему смартфону в той сети, к которой он сейчас подключен, или по внешнему IP адресу.&lt;/small&gt;</string>
     <string name="wifi_is_off">Wi-Fi выключен</string>
     <string name="enable_wifi_prompt">Включите Wi-Fi и попробуйте ещё раз.</string>
-    <string name="searching_smart_home">Выполняется поиск свежих устройств Smart Home…</string>
+    <string name="searching_fresh_devices">Выполняется поиск свежих устройств Smart Home…</string>
     <string name="you_declined_permission_request">Вы отклонили запрос разрешения, приложение не может использовать wi-fi</string>
     <string name="warning">Предупреждение</string>
     <string name="permission_request_explanation">Сейчас приложение запросит разрешение на использование местоположения. Это необходимо, чтобы приложение получило доступ к сканированию wi-fi. Приложение не будет использовать информацию о местоположении.\n\nЕсли отклонить запрос разрешения, то приложение не сможет добавлять свежие устройства.</string>
@@ -29,4 +29,8 @@
     <string name="device_connect_failed">Не удалось подключиться к устройству!\n\nПопытка добавить новое устройство не удалась.</string>
     <string name="device_could_not_connect_to_wifi">Устройство не смогло подключиться к выбранной Wi-Fi сети!\n\nПроверьте, что название сети и пароль правильные и что устройство находится в зоне действия сети.</string>
     <string name="device_connected_successfully">Устройство Smart Home успешно подключилось к сети %1$s.\n\nТеперь подключите свой смартфон к этой же сети, если он сейчас сам не подключится к ней автоматически.</string>
+    <string name="searching_configured_devices">Выполняется поиск настроенных и не добавленных ранее устройств Smart Home в Вашей локальной сети…</string>
+    <string name="input_device_ip_manually">Ввести IP адрес устройства вручную</string>
+    <string name="search_configured_finished_nothing_found">Поиск настроенных устройств завершён.\n\nНастроенные и не добавленные ранее устройства не найдены.</string>
+    <string name="search_configured_finished_choose_device">Поиск настроенных устройств завершён.\n\nЕсли Вы видите нужное устройство в списке, нажмите на него.</string>
 </resources>

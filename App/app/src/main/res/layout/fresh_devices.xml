@@ -8,7 +8,7 @@
         android:id="@+id/txtSearchTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/searching_smart_home" />
+        android:text="@string/searching_fresh_devices" />
 
     <ListView
         android:id="@+id/lstNewDevices"

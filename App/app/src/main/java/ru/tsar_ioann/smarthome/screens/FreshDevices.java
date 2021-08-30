@@ -29,7 +29,7 @@ public class FreshDevices extends BaseScreen {
             screen.connectToDevice((String)adapterView.getItemAtPosition(position));
         });
 
-        txtSearchTitle.setText(tr(R.string.searching_smart_home));
+        txtSearchTitle.setText(tr(R.string.searching_fresh_devices));
         Set<String> devices = new HashSet<>();
         lstNewDevicesAdapter.clear();
         commonData.getWifi().scan(30, new Wifi.ScanListener() {

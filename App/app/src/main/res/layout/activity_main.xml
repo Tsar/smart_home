@@ -13,5 +13,6 @@
     <include layout="@layout/connecting_fresh_device" />
     <include layout="@layout/home_network_settings" />
     <include layout="@layout/device_connected" />
+    <include layout="@layout/configured_devices" />
 
 </ViewFlipper>

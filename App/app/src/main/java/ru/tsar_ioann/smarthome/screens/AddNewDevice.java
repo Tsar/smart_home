@@ -13,8 +13,12 @@ public class AddNewDevice extends BaseScreen {
     private static final String PERM = Manifest.permission.ACCESS_FINE_LOCATION;
     private static final int PERMISSION_REQUEST_CODE = 1;
 
+    private final ScreenLauncher screenLauncher;
+
     public AddNewDevice(CommonData commonData) {
         super(commonData);
+
+        screenLauncher = commonData.getScreenLauncher();
 
         Activity activity = commonData.getActivity();
         Button btnAddFresh = activity.findViewById(R.id.btnAddFresh);
@@ -42,19 +46,17 @@ public class AddNewDevice extends BaseScreen {
                 return;
             }
 
-            commonData.getScreenLauncher().launchScreen(ScreenId.FRESH_DEVICES);
+            screenLauncher.launchScreen(ScreenId.FRESH_DEVICES);
         });
 
-        btnAddConfigured.setOnClickListener(v -> {
-            // TODO
-        });
+        btnAddConfigured.setOnClickListener(v -> screenLauncher.launchScreen(ScreenId.CONFIGURED_DEVICES));
     }
 
     public void onRequestPermissionResults(int requestCode, int[] grantResults) {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             // If request is cancelled, the result arrays are empty
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getCommonData().getScreenLauncher().launchScreen(ScreenId.FRESH_DEVICES);
+                screenLauncher.launchScreen(ScreenId.FRESH_DEVICES);
             } else {
                 Toast.makeText(
                         getCommonData().getActivity(),

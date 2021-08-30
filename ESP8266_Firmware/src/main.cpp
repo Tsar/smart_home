@@ -465,7 +465,7 @@ void udpHandlePacket() {
     int len = udp.read(udpInputBuffer, packetSize);
     udpInputBuffer[len] = 0;
     if (UDP_SCAN_REQUEST == String(udpInputBuffer)) {
-      const String response = "MAC=" + WiFi.macAddress();
+      const String response = "MAC=" + WiFi.macAddress() + "\nNAME=" + homeCfg.getName();
       udp.beginPacket(udp.remoteIP(), UDP_RESPONSE_PORT);  // unicast back
       udp.write(response.c_str());
       udp.endPacket();

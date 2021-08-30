@@ -2,8 +2,12 @@ package ru.tsar_ioann.smarthome;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import java.io.IOException;
+import java.net.SocketException;
 
 import ru.tsar_ioann.smarthome.screens.AddNewDevice;
 import ru.tsar_ioann.smarthome.screens.Main;
@@ -29,6 +33,51 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
                 this
         );
         screenLauncher.launchScreen(ScreenId.MAIN);
+
+        Udp.asyncListen(UdpSettings.UDP_LISTEN_PORT, new Udp.Listener() {
+            private static final String LOG_TAG = "UdpListener";
+            private static final String MAC_PREFIX = "MAC=";
+            private static final String NAME_PREFIX = "NAME=";
+
+            @Override
+            public boolean finish() {
+                return false;
+            }
+
+            @Override
+            public void onReceive(String message, String senderIp, int senderPort) {
+                final String[] lines = message.split("\n");
+                if (lines.length != 2) {
+                    Log.d(LOG_TAG, "Bad lines count in response: expected 2, got " + lines.length);
+                    return;
+                }
+                if (!lines[0].startsWith(MAC_PREFIX)) {
+                    Log.d(LOG_TAG, "Bad line with MAC: " + lines[0]);
+                    return;
+                }
+                if (!lines[1].startsWith(NAME_PREFIX)) {
+                    Log.d(LOG_TAG, "Bad line with name: " + lines[1]);
+                    return;
+                }
+                String macAddress = lines[0].substring(MAC_PREFIX.length());
+                if (!Utils.isValidMacAddress(macAddress)) {
+                    Log.d(LOG_TAG, "Invalid MAC address: " + macAddress);
+                    return;
+                }
+                String name = lines[1].substring(NAME_PREFIX.length());
+                screenLauncher.getCurrentScreen().handleUdpDeviceInfo(macAddress, name, senderIp, senderPort);
+            }
+
+            @Override
+            public void onError(IOException exception) {
+                Log.d(LOG_TAG, "Error on receiving UDP: " + exception.getMessage());
+            }
+
+            @Override
+            public void onFatalError(SocketException exception) {
+                Log.d(LOG_TAG, "Failed to start listening UDP: " + exception.getMessage());
+            }
+        });
     }
 
     @Override

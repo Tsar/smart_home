@@ -23,4 +23,4 @@ while True:
     data, addr = sock.recvfrom(1024)
     print('[%s] Received message [%s] from [%s]' % (datetime.now().strftime('%d.%m.%Y %H:%M:%S'), data, addr))
     if data == b'SMART_HOME_SCAN':
-        sock.sendto(b'MAC=XX:XX:XX:XX:XX:XX', (addr[0], 25062))
+        sock.sendto(b'MAC=XX:XX:XX:XX:XX:XX\nNAME=fake-device', (addr[0], 25062))

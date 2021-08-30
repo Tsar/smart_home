@@ -5,10 +5,10 @@
     <string name="add_new_device">Add new device</string>
     <string name="update_statuses">Update statuses</string>
     <string name="add_fresh_device">&lt;big&gt;Add fresh device&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Choose this option to configure new device. Usually it works as Wi-Fi access point. Setup will start with finding new device and connecting it to your home Wi-Fi network.&lt;/small&gt;</string>
-    <string name="add_configured_device">&lt;big&gt;Add configured device&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Choose this option to add device, which is available for your smartphone and you know the IP address.&lt;/small&gt;</string>
+    <string name="add_configured_device">&lt;big&gt;Add configured device&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Choose this option to add device, which is available for your smartphone in the currently connected network or by external IP address.&lt;/small&gt;</string>
     <string name="wifi_is_off">Wi-Fi is off</string>
     <string name="enable_wifi_prompt">Please enable Wi-Fi and try again.</string>
-    <string name="searching_smart_home">Searching for fresh Smart Home devices…</string>
+    <string name="searching_fresh_devices">Searching for fresh Smart Home devices…</string>
     <string name="you_declined_permission_request">You declined permission request, app can\'t use wi-fi</string>
     <string name="warning">Warning</string>
     <string name="permission_request_explanation">Now app will ask you for location permission. This is required to allow app to scan wi-fi. No location information will be gathered.\n\nIf you decline permission request, app will not be able to add fresh device.</string>
@@ -29,4 +29,8 @@
     <string name="device_connect_failed">Failed to connect to the device!\n\nAdding new device failed.</string>
     <string name="device_could_not_connect_to_wifi">The device could not connect to chosen Wi-Fi network!\n\nPlease check that network name and passphrase are correct and the device is in range.</string>
     <string name="device_connected_successfully">Smart Home device has successfully connected to network %1$s.\n\nNow you should connect your smartphone to the same network if it will not do that automatically.</string>
+    <string name="searching_configured_devices">Searching for configured and not added earlier Smart Home devices in your local network…</string>
+    <string name="input_device_ip_manually">Input device\'s IP address manually</string>
+    <string name="search_configured_finished_nothing_found">Search for configured devices has finished.\n\nConfigured and not added earlier devices were not found.</string>
+    <string name="search_configured_finished_choose_device">Search for configured devices has finished.\n\nIf you see needed device in the list, tap it.</string>
 </resources>

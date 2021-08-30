@@ -2,13 +2,11 @@ package ru.tsar_ioann.smarthome.screens;
 
 import android.app.Activity;
 import android.net.Network;
-import android.text.Html;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
