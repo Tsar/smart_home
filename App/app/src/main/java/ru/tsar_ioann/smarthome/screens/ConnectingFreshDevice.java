@@ -55,7 +55,7 @@ public class ConnectingFreshDevice extends BaseScreen {
             public void onConnected(Network network) {
                 commonData.setNewDeviceNetwork(network);
                 try {
-                    Http.Response response = Http.doRequest(
+                    Http.Response response = Http.request(
                             SMART_HOME_DEVICE_AP_ADDRESS + "/get_info?minimal",
                             null,
                             SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,

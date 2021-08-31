@@ -50,7 +50,7 @@ public class HomeNetworkSettings extends BaseScreen {
             String networkSsid = edtNetworkSsid.getText().toString();
             String data = "ssid=" + Utils.urlEncode(networkSsid)
                     + "&passphrase=" + Utils.urlEncode(edtPassphrase.getText().toString());
-            Http.doAsyncRequest(
+            Http.asyncRequest(
                     SMART_HOME_DEVICE_AP_ADDRESS + "/setup_wifi",
                     data.getBytes(),
                     SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
@@ -75,7 +75,7 @@ public class HomeNetworkSettings extends BaseScreen {
                                             try {
                                                 String state = WIFI_STATE_IN_PROGRESS;
                                                 while (state.equals(WIFI_STATE_IN_PROGRESS)) {  // TODO: fix possible infinite cycle
-                                                    Http.Response respState = Http.doRequest(
+                                                    Http.Response respState = Http.request(
                                                             SMART_HOME_DEVICE_AP_ADDRESS + "/get_setup_wifi_state",
                                                             null,
                                                             SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,

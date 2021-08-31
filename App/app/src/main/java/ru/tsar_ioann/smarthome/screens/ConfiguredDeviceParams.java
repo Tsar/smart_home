@@ -56,7 +56,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
             btnAddDevice.setEnabled(false);
 
             final DeviceInfo deviceIpAndPortInfo = new DeviceInfo(null, null, ipAddress, Integer.parseInt(portStr), null);
-            Http.doAsyncRequest(
+            Http.asyncRequest(
                     deviceIpAndPortInfo.getHttpAddress() + "/get_info?minimal",
                     null,
                     edtCfgDevPassword.getText().toString(),

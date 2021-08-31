@@ -204,7 +204,7 @@ public class DeviceInfo {
             Log.d(LOG_TAG, "Discover failed: IP address is not set");
             return;
         }
-        Http.doAsyncRequest(
+        Http.asyncRequest(
                 getHttpAddress() + "/get_info",
                 null,
                 httpPassword,

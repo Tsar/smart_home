@@ -60,12 +60,12 @@ public class Http {
         void onError(IOException exception);
     }
 
-    public static void doAsyncRequest(String url, byte[] data, String password, Network network, int attempts, Listener listener) {
+    public static void asyncRequest(String url, byte[] data, String password, Network network, int attempts, Listener listener) {
         new Thread() {
             @Override
             public void run() {
                 try {
-                    Response response = doRequest(url, data, password, network, attempts);
+                    Response response = request(url, data, password, network, attempts);
                     if (listener != null) {
                         listener.onResponse(response);
                     }
@@ -78,12 +78,12 @@ public class Http {
         }.start();
     }
 
-    public static Response doRequest(String url, byte[] data, String password, Network network, int attempts) throws IOException {
+    public static Response request(String url, byte[] data, String password, Network network, int attempts) throws IOException {
         Http.Response response = new Http.Response(0);
         int spentAttempts = 0;
         while (response.getHttpCode() != HttpURLConnection.HTTP_OK && spentAttempts++ < attempts) {
             try {
-                response = doRequest(url, data, password, network);
+                response = request(url, data, password, network);
             } catch (IOException e) {
                 if (spentAttempts == attempts) {
                     throw e;
@@ -94,7 +94,7 @@ public class Http {
         return response;
     }
 
-    public static Response doRequest(String url, byte[] data, String password, Network network) throws IOException {
+    public static Response request(String url, byte[] data, String password, Network network) throws IOException {
         Log.d(LOG_TAG, "Making request to '" + url + "'");
         URL req = new URL(url);
         HttpURLConnection connection;
