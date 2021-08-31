@@ -40,7 +40,16 @@ public abstract class BaseScreen {
         AlertDialog.Builder builder = new AlertDialog.Builder(commonData.getActivity());
         builder.setTitle(title);
         builder.setMessage(message);
-        builder.setPositiveButton("OK", listener);
+        builder.setPositiveButton(tr(R.string.ok), listener);
+        builder.show();
+    }
+
+    protected final void showYesNoDialog(String title, String message, DialogInterface.OnClickListener yesListener, DialogInterface.OnClickListener noListener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(commonData.getActivity());
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setPositiveButton(tr(R.string.yes), yesListener);
+        builder.setNegativeButton(tr(R.string.no), noListener);
         builder.show();
     }
 

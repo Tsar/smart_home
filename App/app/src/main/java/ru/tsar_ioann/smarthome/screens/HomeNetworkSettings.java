@@ -43,7 +43,7 @@ public class HomeNetworkSettings extends BaseScreen {
 
         Network deviceNetwork = commonData.getNewDeviceNetwork();
         btnConnectDevice.setOnClickListener(v -> {
-            boolean edtNetworkSsidEnabled = edtNetworkSsid.isEnabled();
+            final boolean edtNetworkSsidWasEnabled = edtNetworkSsid.isEnabled();
             edtNetworkSsid.setEnabled(false);
             edtPassphrase.setEnabled(false);
             btnConnectDevice.setEnabled(false);
@@ -59,7 +59,7 @@ public class HomeNetworkSettings extends BaseScreen {
                     new Http.Listener() {
                         private void showErrorAndEnableUI(String message) {
                             activity.runOnUiThread(() -> showOkDialog(tr(R.string.error), message, (dialog, which) -> {
-                                edtNetworkSsid.setEnabled(edtNetworkSsidEnabled);
+                                edtNetworkSsid.setEnabled(edtNetworkSsidWasEnabled);
                                 edtPassphrase.setEnabled(true);
                                 btnConnectDevice.setEnabled(true);
                             }));
@@ -93,7 +93,7 @@ public class HomeNetworkSettings extends BaseScreen {
 
                                                     commonData.getWifi().disconnect();
                                                     commonData.setHomeNetworkSsid(networkSsid);
-                                                    commonData.getNewDeviceInfo().setIpAddress(ipAddress);
+                                                    commonData.getNewDeviceInfo().setIpAddressAndPort(ipAddress, Http.DEFAULT_PORT);
                                                     activity.runOnUiThread(() -> commonData
                                                             .getScreenLauncher().launchScreen(ScreenId.DEVICE_CONNECTED)
                                                     );

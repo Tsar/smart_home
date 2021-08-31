@@ -21,6 +21,7 @@ public class DeviceInfo {
     private final String macAddress;
     private String name;
     private String ipAddress = null;
+    private int port = Http.DEFAULT_PORT;
     private String httpPassword = "12345";  // work on this
     private boolean discovered = false;
     private Listener listener = null;
@@ -86,9 +87,10 @@ public class DeviceInfo {
         Arrays.fill(this.dimmerValues, 500);
     }
 
-    public DeviceInfo(String macAddress, String name, String ipAddress, Listener listener) {
+    public DeviceInfo(String macAddress, String name, String ipAddress, int port, Listener listener) {
         this(macAddress, name);
         this.ipAddress = ipAddress;
+        this.port = port;
         this.listener = listener;
         Arrays.fill(this.dimmerValues, 500);
     }
@@ -103,6 +105,18 @@ public class DeviceInfo {
 
     public String getIpAddress() {
         return ipAddress;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public String getHttpAddress() {
+        return "http://" + getHttpAddressWithoutPrefix();
+    }
+
+    public String getHttpAddressWithoutPrefix() {
+        return ipAddress + (port != Http.DEFAULT_PORT ? ":" + port : "");
     }
 
     public String getHttpPassword() {
@@ -130,9 +144,10 @@ public class DeviceInfo {
         }
     }
 
-    public void setIpAddress(String ipAddress) {
+    public void setIpAddressAndPort(String ipAddress, int port) {
         synchronized (this) {
             this.ipAddress = ipAddress;
+            this.port = port;
             if (listener != null) {
                 listener.onDeviceInfoChanged();
             }
@@ -190,7 +205,7 @@ public class DeviceInfo {
             return;
         }
         Http.doAsyncRequest(
-                "http://" + ipAddress + "/get_info",
+                getHttpAddress() + "/get_info",
                 null,
                 httpPassword,
                 null,

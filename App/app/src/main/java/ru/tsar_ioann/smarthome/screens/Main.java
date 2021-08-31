@@ -57,7 +57,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
         }
 
         Log.d(LOG_TAG, "Device with MAC address " + macAddress + " has changed IP to " + ipAddress + ", trying to discover");
-        device.setIpAddress(ipAddress);
+        device.setIpAddressAndPort(ipAddress, Http.DEFAULT_PORT);
         device.asyncTryToDiscover();
     }
 

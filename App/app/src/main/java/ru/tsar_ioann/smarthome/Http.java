@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Http {
+    public static final int DEFAULT_PORT = 80;
+
     private static final String LOG_TAG = "Http";
 
     private static final int CONNECT_TIMEOUT_MS = 2500;

@@ -98,7 +98,7 @@ public class ConfiguredDevices extends BaseScreen {
             DeviceInfo chosenDevice = (DeviceInfo)adapterView.getItemAtPosition(position);
             ConfiguredDeviceParams screen = (ConfiguredDeviceParams)commonData
                     .getScreenLauncher().launchScreen(ScreenId.CONFIGURED_DEVICE_PARAMS);
-            screen.setIpAddressAndPort(chosenDevice.getIpAddress(), 80);
+            screen.setIpAddressAndPort(chosenDevice.getIpAddress(), Http.DEFAULT_PORT);
         });
 
         btnInputIP.setOnClickListener(v -> commonData.getScreenLauncher().launchScreen(ScreenId.CONFIGURED_DEVICE_PARAMS));
@@ -110,7 +110,7 @@ public class ConfiguredDevices extends BaseScreen {
         if (!configuredDevices.contains(macAddress)) {
             Log.d(LOG_TAG, "Got info about new configured device: " + deviceInfoStrForLog);
             configuredDevices.add(macAddress);
-            configuredDevicesList.add(new DeviceInfo(macAddress, name, ipAddress, null));
+            configuredDevicesList.add(new DeviceInfo(macAddress, name, ipAddress, Http.DEFAULT_PORT, null));
             activity.runOnUiThread(lstConfiguredDevicesAdapter::notifyDataSetChanged);
         } else {
             Log.d(LOG_TAG, "Got info about already found or added device: " + deviceInfoStrForLog);

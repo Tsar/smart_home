@@ -49,13 +49,11 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
         };
 
         // Populate the data into the template view using the data object
-        String ipAddress = device.getIpAddress();
-        String httpPassword = device.getHttpPassword();
-
         txtDeviceName.setText(device.getName());
         txtDeviceMac.setText(device.getMacAddress());
-        txtDeviceIp.setText(ipAddress);
+        txtDeviceIp.setText(device.getHttpAddressWithoutPrefix());
 
+        final String httpPassword = device.getHttpPassword();
         final boolean discovered = device.isDiscovered();
 
         for (int i = 0; i < dimmers.length; ++i) {
@@ -78,7 +76,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     seekBar.setEnabled(false);
                     Http.doAsyncRequest(
-                            "http://" + ipAddress + "/set_values?dim" + finalI + "=" + seekBar.getProgress(),
+                            device.getHttpAddress() + "/set_values?dim" + finalI + "=" + seekBar.getProgress(),
                             null,
                             httpPassword,
                             null,
@@ -123,7 +121,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                     CompoundButton.OnCheckedChangeListener checkedChangeListener = this;
                     buttonView.setEnabled(false);
                     Http.doAsyncRequest(
-                            "http://" + ipAddress + "/set_values?sw" + finalI + "=" + (isChecked ? 1 : 0),
+                            device.getHttpAddress() + "/set_values?sw" + finalI + "=" + (isChecked ? 1 : 0),
                             null,
                             httpPassword,
                             null,

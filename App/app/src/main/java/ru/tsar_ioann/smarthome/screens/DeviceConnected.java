@@ -27,7 +27,7 @@ public class DeviceConnected extends BaseScreen {
         assert deviceInfo != null;
 
         Http.doAsyncRequest(
-                "http://" + deviceInfo.getIpAddress() + "/get_info?minimal",
+                deviceInfo.getHttpAddress() + "/get_info?minimal",
                 null,
                 SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
                 null,
@@ -41,7 +41,7 @@ public class DeviceConnected extends BaseScreen {
                                 if (deviceInfo.getMacAddress().equals(deviceInfoAgain.getMacAddress())) {
                                     // Disable access point on device
                                     Http.doAsyncRequest(
-                                            "http://" + deviceInfo.getIpAddress() + "/turn_off_ap",
+                                            deviceInfo.getHttpAddress() + "/turn_off_ap",
                                             null,
                                             SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
                                             null,

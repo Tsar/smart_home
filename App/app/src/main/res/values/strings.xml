@@ -29,7 +29,7 @@
     <string name="device_connect_failed">Failed to connect to the device!\n\nAdding new device failed.</string>
     <string name="device_could_not_connect_to_wifi">The device could not connect to chosen Wi-Fi network!\n\nPlease check that network name and passphrase are correct and the device is in range.</string>
     <string name="device_connected_successfully">Smart Home device has successfully connected to network %1$s.\n\nNow you should connect your smartphone to the same network if it will not do that automatically.</string>
-    <string name="searching_configured_devices">Searching for configured and not added earlier Smart Home devices in your local network…</string>
+    <string name="searching_configured_devices">Searching for configured and not added earlier Smart Home devices in your current network…</string>
     <string name="input_device_ip_manually">Input device\'s IP address manually</string>
     <string name="search_configured_finished_nothing_found">Search for configured devices has finished.\n\nConfigured and not added earlier devices were not found.</string>
     <string name="search_configured_finished_choose_device">Search for configured devices has finished.\n\nIf you see needed device in the list, tap it.</string>
@@ -38,4 +38,12 @@
     <string name="management_password">Management password</string>
     <string name="show_password">Show password</string>
     <string name="add_smart_home_device">Add Smart Home device</string>
+    <string name="invalid_ip_or_port">Invalid IP address or port!</string>
+    <string name="invalid_password">Invalid password!</string>
+    <string name="device_already_added">This device is already added!</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="question">Question</string>
+    <string name="device_already_added_with_other_ip">This device is already added, but with another IP address and/or port.\n\nWould you like to update them?</string>
 </resources>
