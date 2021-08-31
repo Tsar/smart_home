@@ -13,7 +13,9 @@ public class Main extends BaseScreen implements DevicesList.Listener {
     private final DevicesList devices;
     private final DevicesAdapter devicesAdapter;
 
-    public Main(CommonData commonData) {
+    private boolean setupMode = false;
+
+    public Main(CommonData commonData, MenuVisibilityChanger menuVisibilityChanger) {
         super(commonData);
         commonData.getWifi().disconnect();  // this is required for back button to work correctly
 
@@ -23,8 +25,10 @@ public class Main extends BaseScreen implements DevicesList.Listener {
 
         ListView lstDevices = activity.findViewById(R.id.lstDevices);
 
-        devicesAdapter = new DevicesAdapter(activity, commonData.getDevices().getList());
+        devicesAdapter = new DevicesAdapter(activity, commonData.getDevices());
         lstDevices.setAdapter(devicesAdapter);
+
+        menuVisibilityChanger.setMenuVisibility(true, !devices.getList().isEmpty(), true);
 
         asyncRefresh();
     }
@@ -38,6 +42,11 @@ public class Main extends BaseScreen implements DevicesList.Listener {
                 UdpSettings.UDP_MULTICAST_PORT,
                 UdpSettings.UDP_SCAN_REQUEST
         );
+    }
+
+    public void toggleSetupMode() {
+        setupMode = !setupMode;
+        devicesAdapter.setSettingsButtonsVisible(setupMode);
     }
 
     @Override

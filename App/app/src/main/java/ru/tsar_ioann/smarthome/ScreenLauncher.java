@@ -20,9 +20,12 @@ public class ScreenLauncher {
     }
 
     public BaseScreen launchScreen(ScreenId screenId) {
+        if (screenId != ScreenId.MAIN) {
+            menuVisibilityChanger.setMenuVisibility(false, false, false);
+        }
         switch (screenId) {
             case MAIN:
-                currentScreen = new Main(commonData);
+                currentScreen = new Main(commonData, menuVisibilityChanger);
                 break;
             case ADD_NEW_DEVICE:
                 currentScreen = new AddNewDevice(commonData);
@@ -46,7 +49,6 @@ public class ScreenLauncher {
                 currentScreen = new ConfiguredDeviceParams(commonData);
                 break;
         }
-        menuVisibilityChanger.setMenuVisibility(currentScreen.shouldMenuBeVisible());
         currentScreenId = screenId;
         viewFlipper.setDisplayedChild(currentScreen.getViewFlipperChildId());
         return currentScreen;

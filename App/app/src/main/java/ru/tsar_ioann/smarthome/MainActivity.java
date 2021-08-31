@@ -16,7 +16,11 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
     private ScreenLauncher screenLauncher;
 
     private MenuItem mnAddNewDevice = null;
+    private MenuItem mnSetup = null;
     private MenuItem mnUpdateStatuses = null;
+    private boolean mnAddNewDeviceVisible = true;
+    private boolean mnSetupVisible = true;
+    private boolean mnUpdateStatusesVisible = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,12 +85,19 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
     }
 
     @Override
-    public void setMenuVisibility(boolean visible) {
+    public void setMenuVisibility(boolean addVisible, boolean setupVisible, boolean updateVisible) {
+        mnAddNewDeviceVisible = addVisible;
+        mnSetupVisible = setupVisible;
+        mnUpdateStatusesVisible = updateVisible;
+
         if (mnAddNewDevice != null) {
-            mnAddNewDevice.setVisible(visible);
+            mnAddNewDevice.setVisible(addVisible);
+        }
+        if (mnSetup != null) {
+            mnSetup.setVisible(setupVisible);
         }
         if (mnUpdateStatuses != null) {
-            mnUpdateStatuses.setVisible(visible);
+            mnUpdateStatuses.setVisible(updateVisible);
         }
     }
 
@@ -94,7 +105,9 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu, menu);
         mnAddNewDevice = menu.findItem(R.id.mnAddNewDevice);
+        mnSetup = menu.findItem(R.id.mnSetup);
         mnUpdateStatuses = menu.findItem(R.id.mnUpdateStatuses);
+        setMenuVisibility(mnAddNewDeviceVisible, mnSetupVisible, mnUpdateStatusesVisible);
         return true;
     }
 
@@ -109,6 +122,12 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
 
     public void onAddNewDevice(MenuItem menuItem) {
         screenLauncher.launchScreen(ScreenId.ADD_NEW_DEVICE);
+    }
+
+    public void onSetup(MenuItem menuItem) {
+        if (screenLauncher.getCurrentScreenId() == ScreenId.MAIN) {
+            ((Main)screenLauncher.getCurrentScreen()).toggleSetupMode();
+        }
     }
 
     public void onUpdateStatuses(MenuItem menuItem) {

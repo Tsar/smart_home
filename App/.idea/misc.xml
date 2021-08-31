@@ -14,6 +14,7 @@
         <entry key="../../../Android/Sdk/platforms/android-30/data/res/drawable/switch_track_material.xml" value="0.4390625" />
         <entry key="../../../Android/Sdk/platforms/android-30/data/res/layout/simple_list_item_1.xml" value="0.365036231884058" />
         <entry key="../../../Android/Sdk/platforms/android-30/data/res/layout/simple_list_item_2.xml" value="0.42291666666666666" />
+        <entry key="app/src/main/res/drawable/arrow_up.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/plus_sign.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/seekbar_thumb.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/seekbar_thumb_pressed_to_unpressed.xml" value="0.4390625" />
@@ -21,6 +22,7 @@
         <entry key="app/src/main/res/drawable/seekbar_thumb_unpressed_to_pressed.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/seekbar_thumb_unpressed_to_pressed_animation.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/seekbar_thumb_unpressed_to_pressed_thumb_0_animation.xml" value="0.4390625" />
+        <entry key="app/src/main/res/drawable/settings_icon.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/thumb_image.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/update_arrow.xml" value="0.4390625" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.4053442028985507" />

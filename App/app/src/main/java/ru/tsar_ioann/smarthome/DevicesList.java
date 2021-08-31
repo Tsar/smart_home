@@ -98,6 +98,16 @@ public class DevicesList implements DeviceInfo.Listener {
         return deviceMap.get(macAddress);
     }
 
+    public void swap(int n1, int n2) {
+        if (n1 < 0 || n1 >= deviceInfoList.size() || n2 < 0 || n2 >= deviceInfoList.size() || n1 == n2) {
+            return;
+        }
+        DeviceInfo temp = deviceInfoList.get(n1);
+        deviceInfoList.set(n1, deviceInfoList.get(n2));
+        deviceInfoList.set(n2, temp);
+        saveStorage();
+    }
+
     @Override
     public void onDeviceInfoChanged() {
         if (listener != null) {

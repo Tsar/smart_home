@@ -3,6 +3,7 @@
     <string name="app_name">Smart Home</string>
 
     <string name="add_new_device">Add new device</string>
+    <string name="settings">Settings</string>
     <string name="update_statuses">Update statuses</string>
     <string name="add_fresh_device">&lt;big&gt;Add fresh device&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Choose this option to configure new device. Usually it works as Wi-Fi access point. Setup will start with finding new device and connecting it to your home Wi-Fi network.&lt;/small&gt;</string>
     <string name="add_configured_device">&lt;big&gt;Add configured device&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Choose this option to add device, which is available for your smartphone in the currently connected network or by external IP address.&lt;/small&gt;</string>

@@ -3,6 +3,7 @@
     <string name="app_name">Умный Дом</string>
 
     <string name="add_new_device">Добавить устройство</string>
+    <string name="settings">Настройки</string>
     <string name="update_statuses">Обновить состояния</string>
     <string name="add_fresh_device">&lt;big&gt;Добавить свежее устройство&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Выбирайте эту опцию для настройки нового устройства. Обычно оно работает как точка доступа Wi-Fi. Настройка начнётся с поиска нового устройства и подключения его к Вашей домашней Wi-Fi сети.&lt;/small&gt;</string>
     <string name="add_configured_device">&lt;big&gt;Добавить настроенное устройство&lt;/big&gt;&lt;small&gt;&lt;br /&gt;&lt;br /&gt;Выбирайте эту опцию для добавления устройства, которое доступно Вашему смартфону в той сети, к которой он сейчас подключен, или по внешнему IP адресу.&lt;/small&gt;</string>

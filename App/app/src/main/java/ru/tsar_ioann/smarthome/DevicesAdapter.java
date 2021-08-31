@@ -1,11 +1,14 @@
 package ru.tsar_ioann.smarthome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -16,10 +19,19 @@ import java.util.List;
 
 public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
     private final Activity activity;
+    private final DevicesList devicesList;
 
-    public DevicesAdapter(Activity activity, List<DeviceInfo> devices) {
-        super(activity, 0, devices);
+    private boolean settingsButtonsVisible = false;
+
+    public DevicesAdapter(Activity activity, DevicesList devicesList) {
+        super(activity, 0, devicesList.getList());
         this.activity = activity;
+        this.devicesList = devicesList;
+    }
+
+    public void setSettingsButtonsVisible(boolean visible) {
+        settingsButtonsVisible = visible;
+        notifyDataSetChanged();
     }
 
     @Override
@@ -47,6 +59,36 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 convertView.findViewById(R.id.sw2),
                 convertView.findViewById(R.id.sw3),
         };
+
+        final LinearLayout layoutSettingsButtons = convertView.findViewById(R.id.layoutSettingsButtons);
+        if (settingsButtonsVisible) {
+            layoutSettingsButtons.setVisibility(View.VISIBLE);
+            final ImageButton btnMoveUp = convertView.findViewById(R.id.btnMoveUp);
+            final ImageButton btnSettings = convertView.findViewById(R.id.btnSettings);
+            final ImageButton btnMoveDown = convertView.findViewById(R.id.btnMoveDown);
+
+            btnMoveUp.setEnabled(position > 0);
+            btnMoveDown.setEnabled(position < getCount() - 1);
+
+            btnMoveUp.setOnClickListener(v -> {
+                devicesList.swap(position, position - 1);
+                notifyDataSetChanged();
+            });
+            btnMoveDown.setOnClickListener(v -> {
+                devicesList.swap(position, position + 1);
+                notifyDataSetChanged();
+            });
+            btnSettings.setOnClickListener(v -> {
+                // TODO: remove alert and implement device settings screen
+                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                builder.setTitle("Извините");
+                builder.setMessage("Этот функционал ещё не реализован!");
+                builder.setPositiveButton("OK", null);
+                builder.show();
+            });
+        } else {
+            layoutSettingsButtons.setVisibility(View.GONE);
+        }
 
         // Populate the data into the template view using the data object
         txtDeviceName.setText(device.getName());
