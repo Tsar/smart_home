@@ -2,10 +2,8 @@ package ru.tsar_ioann.smarthome.screens;
 
 import android.app.Activity;
 import android.net.Network;
-import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 
 import java.io.IOException;
@@ -29,15 +27,9 @@ public class HomeNetworkSettings extends BaseScreen {
         Activity activity = commonData.getActivity();
         edtNetworkSsid = activity.findViewById(R.id.edtNetworkSsid);
         edtPassphrase = activity.findViewById(R.id.edtPassphrase);
-        CheckBox cbShowPassphrase = activity.findViewById(R.id.cbShowPassphrase);
         Button btnConnectDevice = activity.findViewById(R.id.btnConnectDevice);
 
-        cbShowPassphrase.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            final int selStart = edtPassphrase.getSelectionStart();
-            final int selEnd = edtPassphrase.getSelectionEnd();
-            edtPassphrase.setTransformationMethod(isChecked ? null : new PasswordTransformationMethod());
-            edtPassphrase.setSelection(selStart, selEnd);
-        });
+        setupShowPasswordCheckBox(activity.findViewById(R.id.cbShowPassphrase), edtPassphrase);
 
         assert commonData.getNewDeviceInfo() != null;
 

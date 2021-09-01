@@ -3,7 +3,6 @@ package ru.tsar_ioann.smarthome.screens;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.text.InputFilter;
-import android.text.method.PasswordTransformationMethod;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -29,15 +28,9 @@ public class ConfiguredDeviceParams extends BaseScreen {
         edtCfgDevPort = activity.findViewById(R.id.edtCfgDevPort);
         CheckBox cbCfgDevIpIsStatic = activity.findViewById(R.id.cbCfgDevIpIsStatic);
         edtCfgDevPassword = activity.findViewById(R.id.edtCfgDevPassword);
-        CheckBox cbShowCfgDevPassword = activity.findViewById(R.id.cbShowCfgDevPassword);
         Button btnAddDevice = activity.findViewById(R.id.btnAddDevice);
 
-        cbShowCfgDevPassword.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            final int selStart = edtCfgDevPassword.getSelectionStart();
-            final int selEnd = edtCfgDevPassword.getSelectionEnd();
-            edtCfgDevPassword.setTransformationMethod(isChecked ? null : new PasswordTransformationMethod());
-            edtCfgDevPassword.setSelection(selStart, selEnd);
-        });
+        setupShowPasswordCheckBox(activity.findViewById(R.id.cbShowCfgDevPassword), edtCfgDevPassword);
 
         btnAddDevice.setOnClickListener(v -> {
             String ipAddress = edtCfgDevIpAddress.getText().toString();

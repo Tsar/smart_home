@@ -2,6 +2,9 @@ package ru.tsar_ioann.smarthome.screens;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.text.method.PasswordTransformationMethod;
+import android.widget.CheckBox;
+import android.widget.EditText;
 
 import ru.tsar_ioann.smarthome.*;
 
@@ -58,5 +61,14 @@ public abstract class BaseScreen {
     protected final void disconnectAndShowErrorAndGoToMainScreen(String message) {
         commonData.getWifi().disconnect();
         showErrorAndGoToMainScreen(message);
+    }
+
+    protected final void setupShowPasswordCheckBox(CheckBox cbShowPassword, EditText edtPassword) {
+        cbShowPassword.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            final int selStart = edtPassword.getSelectionStart();
+            final int selEnd = edtPassword.getSelectionEnd();
+            edtPassword.setTransformationMethod(isChecked ? null : new PasswordTransformationMethod());
+            edtPassword.setSelection(selStart, selEnd);
+        });
     }
 }
