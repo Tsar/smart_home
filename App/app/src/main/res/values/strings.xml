@@ -47,4 +47,8 @@
     <string name="no">No</string>
     <string name="question">Question</string>
     <string name="device_already_added_with_other_ip">This device is already added, but with another IP address and/or port.\n\nWould you like to update them?</string>
+    <string name="device_settings">Device settings</string>
+    <string name="connection_settings">Connection settings</string>
+    <string name="save">Save</string>
+    <string name="name">Name</string>
 </resources>

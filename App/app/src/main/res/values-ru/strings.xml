@@ -47,4 +47,8 @@
     <string name="no">Нет</string>
     <string name="question">Вопрос</string>
     <string name="device_already_added_with_other_ip">Это устройство уже добавлено, но с другим IP адресом и/или портом.\n\nВы хотите обновить эти данные?</string>
+    <string name="device_settings">Настройки устройства</string>
+    <string name="connection_settings">Настройки подключения</string>
+    <string name="save">Сохранить</string>
+    <string name="name">Название</string>
 </resources>
