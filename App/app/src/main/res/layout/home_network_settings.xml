@@ -1,45 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/network_ssid" />
+        android:orientation="vertical">
 
-    <EditText
-        android:id="@+id/edtNetworkSsid"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="text"
-        tools:ignore="Autofill,LabelFor" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/network_ssid" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/passphrase" />
+        <EditText
+            android:id="@+id/edtNetworkSsid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            tools:ignore="Autofill,LabelFor" />
 
-    <EditText
-        android:id="@+id/edtPassphrase"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textPassword"
-        tools:ignore="Autofill,LabelFor" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/passphrase" />
 
-    <CheckBox
-        android:id="@+id/cbShowPassphrase"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:text="@string/show_passphrase" />
+        <EditText
+            android:id="@+id/edtPassphrase"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"
+            tools:ignore="Autofill,LabelFor" />
 
-    <Button
-        android:id="@+id/btnConnectDevice"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/connect_device" />
+        <CheckBox
+            android:id="@+id/cbShowPassphrase"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:text="@string/show_passphrase" />
 
-</LinearLayout>
+        <Button
+            android:id="@+id/btnConnectDevice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/connect_device" />
+
+    </LinearLayout>
+
+</ScrollView>

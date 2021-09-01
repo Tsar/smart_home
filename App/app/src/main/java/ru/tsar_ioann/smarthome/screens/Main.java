@@ -25,7 +25,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
 
         ListView lstDevices = activity.findViewById(R.id.lstDevices);
 
-        devicesAdapter = new DevicesAdapter(activity, commonData.getDevices());
+        devicesAdapter = new DevicesAdapter(activity, commonData.getDevices(), commonData.getScreenLauncher());
         lstDevices.setAdapter(devicesAdapter);
 
         menuVisibilityChanger.setMenuVisibility(true, !devices.getList().isEmpty(), true);

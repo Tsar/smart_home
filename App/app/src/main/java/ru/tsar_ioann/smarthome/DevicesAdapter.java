@@ -17,16 +17,20 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.List;
 
+import ru.tsar_ioann.smarthome.screens.DeviceSettings;
+
 public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
     private final Activity activity;
     private final DevicesList devicesList;
+    private final ScreenLauncher screenLauncher;
 
     private boolean settingsButtonsVisible = false;
 
-    public DevicesAdapter(Activity activity, DevicesList devicesList) {
+    public DevicesAdapter(Activity activity, DevicesList devicesList, ScreenLauncher screenLauncher) {
         super(activity, 0, devicesList.getList());
         this.activity = activity;
         this.devicesList = devicesList;
+        this.screenLauncher = screenLauncher;
     }
 
     public void setSettingsButtonsVisible(boolean visible) {
@@ -79,12 +83,8 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 notifyDataSetChanged();
             });
             btnSettings.setOnClickListener(v -> {
-                // TODO: remove alert and implement device settings screen
-                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-                builder.setTitle("Извините");
-                builder.setMessage("Этот функционал ещё не реализован!");
-                builder.setPositiveButton("OK", null);
-                builder.show();
+                DeviceSettings screen = (DeviceSettings)screenLauncher.launchScreen(ScreenId.DEVICE_SETTINGS);
+                screen.setDevice(device);
             });
         } else {
             layoutSettingsButtons.setVisibility(View.GONE);

@@ -15,5 +15,6 @@
     <include layout="@layout/device_connected" />
     <include layout="@layout/configured_devices" />
     <include layout="@layout/configured_device_params" />
+    <include layout="@layout/device_settings" />
 
 </ViewFlipper>
