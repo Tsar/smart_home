@@ -16,15 +16,16 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textColor="@color/button_text_for_pressed_tab"
-            android:backgroundTint="@color/button_bg_for_pressed_tab"
-            android:text="@string/device_settings" />
+            android:text="@string/device_settings"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/btnConnectionSettings"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/connection_settings" />
+            android:text="@string/connection_settings"
+            style="?android:attr/buttonBarButtonStyle" />
 
     </LinearLayout>
 

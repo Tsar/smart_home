@@ -30,15 +30,7 @@ public class DeviceSettings extends BaseScreen {
         final Resources resources = getCommonData().getResources();
         final Resources.Theme theme = getCommonData().getActivity().getTheme();
         mustBePressed.setTextColor(resources.getColorStateList(R.color.button_text_for_pressed_tab, theme));
-        mustBePressed.setBackgroundTintList(resources.getColorStateList(R.color.button_bg_for_pressed_tab, theme));
         mustBeUnpressed.setTextColor(resources.getColorStateList(R.color.button_text, theme));
-        mustBeUnpressed.setBackgroundTintList(resources.getColorStateList(R.color.button_bg, theme));
-
-        // This dirty trick redraws buttons, otherwise background color gets stuck
-        mustBePressed.setEnabled(false);
-        mustBePressed.setEnabled(true);
-        mustBeUnpressed.setEnabled(false);
-        mustBeUnpressed.setEnabled(true);
     }
 
     public void setDevice(DeviceInfo device) {
