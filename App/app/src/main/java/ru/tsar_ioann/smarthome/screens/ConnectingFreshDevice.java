@@ -50,15 +50,15 @@ public class ConnectingFreshDevice extends BaseScreen {
 
         CommonData commonData = getCommonData();
         Wifi wifi = commonData.getWifi();
-        wifi.connectToWifi(deviceSsid, SMART_HOME_DEVICE_AP_PASSPHRASE, new Wifi.ConnectListener() {
+        wifi.connectToWifi(deviceSsid, DeviceInfo.ACCESS_POINT_PASSPHRASE, new Wifi.ConnectListener() {
             @Override
             public void onConnected(Network network) {
                 commonData.setNewDeviceNetwork(network);
                 try {
                     Http.Response response = Http.request(
-                            SMART_HOME_DEVICE_AP_ADDRESS + "/get_info?minimal",
+                            DeviceInfo.ACCESS_POINT_ADDRESS + "/get_info?minimal",
                             null,
-                            SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
+                            DeviceInfo.DEFAULT_HTTP_PASSWORD,
                             network,
                             3
                     );

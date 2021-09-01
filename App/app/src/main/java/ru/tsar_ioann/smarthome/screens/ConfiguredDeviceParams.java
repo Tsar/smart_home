@@ -46,6 +46,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
                 showOkDialog(tr(R.string.error), tr(R.string.invalid_ip_or_port));
                 return;
             }
+            String httpPassword = edtCfgDevPassword.getText().toString();
 
             final boolean edtCfgDevIpAddressWasEnabled = edtCfgDevIpAddress.isEnabled();
             final boolean edtCfgDevPortWasEnabled = edtCfgDevIpAddress.isEnabled();
@@ -55,11 +56,11 @@ public class ConfiguredDeviceParams extends BaseScreen {
             edtCfgDevPassword.setEnabled(false);
             btnAddDevice.setEnabled(false);
 
-            final DeviceInfo deviceIpAndPortInfo = new DeviceInfo(null, null, ipAddress, Integer.parseInt(portStr), null);
+            final DeviceInfo deviceIpPortPwdInfo = new DeviceInfo(null, null, ipAddress, Integer.parseInt(portStr), httpPassword, null);
             Http.asyncRequest(
-                    deviceIpAndPortInfo.getHttpAddress() + "/get_info?minimal",
+                    deviceIpPortPwdInfo.getHttpAddress() + "/get_info?minimal",
                     null,
-                    edtCfgDevPassword.getText().toString(),
+                    deviceIpPortPwdInfo.getHttpPassword(),
                     null,
                     5,
                     new Http.Listener() {
@@ -81,7 +82,9 @@ public class ConfiguredDeviceParams extends BaseScreen {
                             if (respCode == HttpURLConnection.HTTP_OK) {
                                 try {
                                     DeviceInfo deviceInfo = DeviceInfo.parseMinimalJson(response.getDataAsStr());
-                                    deviceInfo.setIpAddressAndPort(deviceIpAndPortInfo.getIpAddress(), deviceIpAndPortInfo.getPort());
+                                    deviceInfo.setIpAddressAndPort(deviceIpPortPwdInfo.getIpAddress(), deviceIpPortPwdInfo.getPort());
+                                    deviceInfo.setHttpPassword(deviceIpPortPwdInfo.getHttpAddress());
+
                                     DeviceInfo existingDeviceWithSameMac = commonData.getDevices().getDeviceByMacAddress(deviceInfo.getMacAddress());
                                     if (existingDeviceWithSameMac != null) {
                                         if (existingDeviceWithSameMac.getIpAddress().equals(deviceInfo.getIpAddress())

@@ -6,10 +6,6 @@ import android.content.DialogInterface;
 import ru.tsar_ioann.smarthome.*;
 
 public abstract class BaseScreen {
-    protected static final String SMART_HOME_DEVICE_AP_PASSPHRASE = "setup12345";
-    protected static final String SMART_HOME_DEVICE_AP_ADDRESS = "http://192.168.4.1";
-    protected static final String SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD = "12345";
-
     private final CommonData commonData;
 
     public BaseScreen(CommonData commonData) {

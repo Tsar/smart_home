@@ -29,7 +29,7 @@ public class DeviceConnected extends BaseScreen {
         Http.asyncRequest(
                 deviceInfo.getHttpAddress() + "/get_info?minimal",
                 null,
-                SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
+                DeviceInfo.DEFAULT_HTTP_PASSWORD,
                 null,
                 500,
                 new Http.Listener() {
@@ -43,7 +43,7 @@ public class DeviceConnected extends BaseScreen {
                                     Http.asyncRequest(
                                             deviceInfo.getHttpAddress() + "/turn_off_ap",
                                             null,
-                                            SMART_HOME_DEVICE_DEFAULT_HTTP_PASSWORD,
+                                            DeviceInfo.DEFAULT_HTTP_PASSWORD,
                                             null,
                                             3,
                                             null

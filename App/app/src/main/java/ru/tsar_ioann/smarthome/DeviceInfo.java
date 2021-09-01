@@ -11,6 +11,10 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 public class DeviceInfo {
+    public static final String ACCESS_POINT_ADDRESS = "http://192.168.4.1";
+    public static final String ACCESS_POINT_PASSPHRASE = "setup12345";
+    public static final String DEFAULT_HTTP_PASSWORD = "12345";
+
     private static final String LOG_TAG = "DeviceInfo";
 
     private static final int DIMMERS_COUNT = 3;
@@ -22,7 +26,8 @@ public class DeviceInfo {
     private String name;
     private String ipAddress = null;
     private int port = Http.DEFAULT_PORT;
-    private String httpPassword = "12345";  // work on this
+    private String httpPassword = DEFAULT_HTTP_PASSWORD;
+
     private boolean discovered = false;
     private Listener listener = null;
 
@@ -87,10 +92,11 @@ public class DeviceInfo {
         Arrays.fill(this.dimmerValues, 500);
     }
 
-    public DeviceInfo(String macAddress, String name, String ipAddress, int port, Listener listener) {
+    public DeviceInfo(String macAddress, String name, String ipAddress, int port, String httpPassword, Listener listener) {
         this(macAddress, name);
         this.ipAddress = ipAddress;
         this.port = port;
+        this.httpPassword = httpPassword;
         this.listener = listener;
         Arrays.fill(this.dimmerValues, 500);
     }

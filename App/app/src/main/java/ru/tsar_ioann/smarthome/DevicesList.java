@@ -13,6 +13,7 @@ public class DevicesList implements DeviceInfo.Listener {
     private static final String KEY_NAME_PREFIX = "name-";
     private static final String KEY_IP_PREFIX = "ip-";
     private static final String KEY_PORT_PREFIX = "port-";
+    private static final String KEY_PASSWORD_PREFIX = "pwd-";
 
     private final SharedPreferences storage;
     private final List<DeviceInfo> deviceInfoList;
@@ -41,11 +42,12 @@ public class DevicesList implements DeviceInfo.Listener {
             String name = storage.getString(KEY_NAME_PREFIX + i, null);
             String ipAddress = storage.getString(KEY_IP_PREFIX + i, null);
             int port = storage.getInt(KEY_PORT_PREFIX + i, Http.DEFAULT_PORT);
+            String httpPassword = storage.getString(KEY_PASSWORD_PREFIX + i, DeviceInfo.DEFAULT_HTTP_PASSWORD);
             if (macAddress == null || name == null || ipAddress == null) {
                 // TODO: more reasonable reaction
                 throw new RuntimeException("Devices local storage is broken!");
             }
-            DeviceInfo device = new DeviceInfo(macAddress, name, ipAddress, port, this);
+            DeviceInfo device = new DeviceInfo(macAddress, name, ipAddress, port, httpPassword, this);
             deviceInfoList.add(device);
             deviceMap.put(device.getMacAddress(), device);
         }
@@ -54,10 +56,12 @@ public class DevicesList implements DeviceInfo.Listener {
     private void saveStorage() {
         SharedPreferences.Editor editor = storage.edit();
         for (int i = 0; i < deviceInfoList.size(); ++i) {
-            editor.putString(KEY_MAC_PREFIX + i, deviceInfoList.get(i).getMacAddress());
-            editor.putString(KEY_NAME_PREFIX + i, deviceInfoList.get(i).getName());
-            editor.putString(KEY_IP_PREFIX + i, deviceInfoList.get(i).getIpAddress());
-            editor.putInt(KEY_PORT_PREFIX + i, deviceInfoList.get(i).getPort());
+            DeviceInfo device = deviceInfoList.get(i);
+            editor.putString(KEY_MAC_PREFIX + i, device.getMacAddress());
+            editor.putString(KEY_NAME_PREFIX + i, device.getName());
+            editor.putString(KEY_IP_PREFIX + i, device.getIpAddress());
+            editor.putInt(KEY_PORT_PREFIX + i, device.getPort());
+            editor.putString(KEY_PASSWORD_PREFIX + i, device.getHttpPassword());
         }
         editor.putInt(KEY_COUNT, deviceInfoList.size());
         editor.apply();
