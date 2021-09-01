@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.text.InputFilter;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ViewFlipper;
 
@@ -15,6 +16,7 @@ public class DeviceSettings extends BaseScreen {
     private final EditText edtName;
     private final EditText edtIpAddress;
     private final EditText edtPort;
+    private final CheckBox cbIpIsStatic;
     private final EditText edtPassword;
 
     public DeviceSettings(CommonData commonData) {
@@ -29,6 +31,7 @@ public class DeviceSettings extends BaseScreen {
         edtName = activity.findViewById(R.id.edtName);
         edtIpAddress = activity.findViewById(R.id.edtIpAddress);
         edtPort = activity.findViewById(R.id.edtPort);
+        cbIpIsStatic = activity.findViewById(R.id.cbIpIsStatic);
         edtPassword = activity.findViewById(R.id.edtPassword);
 
         setupShowPasswordCheckBox(activity.findViewById(R.id.cbShowPassword), edtPassword);
@@ -62,6 +65,7 @@ public class DeviceSettings extends BaseScreen {
         edtName.setText(device.getName());
         edtIpAddress.setText(device.getIpAddress());
         edtPort.setText(Integer.toString(device.getPort()));
+        cbIpIsStatic.setChecked(device.isPermanentIp());
         edtPassword.setText(device.getHttpPassword());
     }
 

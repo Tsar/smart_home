@@ -13,6 +13,7 @@ public class DevicesList implements DeviceInfo.Listener {
     private static final String KEY_NAME_PREFIX = "name-";
     private static final String KEY_IP_PREFIX = "ip-";
     private static final String KEY_PORT_PREFIX = "port-";
+    private static final String KEY_PERMANENT_IP_PREFIX = "permanent-ip-";
     private static final String KEY_PASSWORD_PREFIX = "pwd-";
 
     private final SharedPreferences storage;
@@ -42,12 +43,13 @@ public class DevicesList implements DeviceInfo.Listener {
             String name = storage.getString(KEY_NAME_PREFIX + i, null);
             String ipAddress = storage.getString(KEY_IP_PREFIX + i, null);
             int port = storage.getInt(KEY_PORT_PREFIX + i, Http.DEFAULT_PORT);
+            boolean permanentIp = storage.getBoolean(KEY_PERMANENT_IP_PREFIX + i, false);
             String httpPassword = storage.getString(KEY_PASSWORD_PREFIX + i, DeviceInfo.DEFAULT_HTTP_PASSWORD);
             if (macAddress == null || name == null || ipAddress == null) {
                 // TODO: more reasonable reaction
                 throw new RuntimeException("Devices local storage is broken!");
             }
-            DeviceInfo device = new DeviceInfo(macAddress, name, ipAddress, port, httpPassword, this);
+            DeviceInfo device = new DeviceInfo(macAddress, name, ipAddress, port, permanentIp, httpPassword, this);
             deviceInfoList.add(device);
             deviceMap.put(device.getMacAddress(), device);
         }
@@ -61,6 +63,7 @@ public class DevicesList implements DeviceInfo.Listener {
             editor.putString(KEY_NAME_PREFIX + i, device.getName());
             editor.putString(KEY_IP_PREFIX + i, device.getIpAddress());
             editor.putInt(KEY_PORT_PREFIX + i, device.getPort());
+            editor.putBoolean(KEY_PERMANENT_IP_PREFIX + i, device.isPermanentIp());
             editor.putString(KEY_PASSWORD_PREFIX + i, device.getHttpPassword());
         }
         editor.putInt(KEY_COUNT, deviceInfoList.size());
@@ -73,8 +76,13 @@ public class DevicesList implements DeviceInfo.Listener {
         if (deviceMap.containsKey(macAddress)) {
             DeviceInfo existingDeviceInfo = deviceMap.get(macAddress);
             if (existingDeviceInfo != null) {
-                existingDeviceInfo.setName(deviceInfo.getName());
-                existingDeviceInfo.setIpAddressAndPort(deviceInfo.getIpAddress(), deviceInfo.getPort());
+                existingDeviceInfo.setParams(
+                        deviceInfo.getName(),
+                        deviceInfo.getIpAddress(),
+                        deviceInfo.getPort(),
+                        deviceInfo.isPermanentIp(),
+                        deviceInfo.getHttpPassword()
+                );
                 saveStorage();
                 // TODO: tell user that new device wasn't added, just existing device was updated
                 return;

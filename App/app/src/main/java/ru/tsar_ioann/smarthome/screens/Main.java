@@ -57,16 +57,20 @@ public class Main extends BaseScreen implements DevicesList.Listener {
             return;
         }
         if (device.isDiscovered()) {
-            Log.d(LOG_TAG, "Got info about device which is already discovered (" + macAddress + ")");
+            Log.d(LOG_TAG, "Got info about device which is already discovered (MAC: " + macAddress + ")");
+            return;
+        }
+        if (device.isPermanentIp()) {
+            Log.d(LOG_TAG, "Got info about device which has permanent IP (MAC: " + macAddress + ")");
             return;
         }
         if (device.getIpAddress().equals(ipAddress)) {
-            Log.d(LOG_TAG, "Got info about device which has not changed it's IP (" + macAddress + ")");
+            Log.d(LOG_TAG, "Got info about device which has not changed it's IP (MAC: " + macAddress + ")");
             return;
         }
 
         Log.d(LOG_TAG, "Device with MAC address " + macAddress + " has changed IP to " + ipAddress + ", trying to discover");
-        device.setIpAddressAndPort(ipAddress, Http.DEFAULT_PORT);
+        device.setParams(device.getName(), ipAddress, Http.DEFAULT_PORT, false, device.getHttpPassword());
         device.asyncTryToDiscover();
     }
 

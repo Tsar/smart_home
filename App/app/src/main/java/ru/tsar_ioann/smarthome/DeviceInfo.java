@@ -26,6 +26,7 @@ public class DeviceInfo {
     private String name;
     private String ipAddress = null;
     private int port = Http.DEFAULT_PORT;
+    private boolean permanentIp = false;
     private String httpPassword = DEFAULT_HTTP_PASSWORD;
 
     private boolean discovered = false;
@@ -92,10 +93,11 @@ public class DeviceInfo {
         Arrays.fill(this.dimmerValues, 500);
     }
 
-    public DeviceInfo(String macAddress, String name, String ipAddress, int port, String httpPassword, Listener listener) {
+    public DeviceInfo(String macAddress, String name, String ipAddress, int port, boolean permanentIp, String httpPassword, Listener listener) {
         this(macAddress, name);
         this.ipAddress = ipAddress;
         this.port = port;
+        this.permanentIp = permanentIp;
         this.httpPassword = httpPassword;
         this.listener = listener;
         Arrays.fill(this.dimmerValues, 500);
@@ -117,12 +119,24 @@ public class DeviceInfo {
         return port;
     }
 
-    public String getHttpAddress() {
-        return "http://" + getHttpAddressWithoutPrefix();
+    public boolean isPermanentIp() {
+        return permanentIp;
+    }
+
+    public static String getHttpAddressWithoutPrefix(String ipAddress, int port) {
+        return ipAddress + (port != Http.DEFAULT_PORT ? ":" + port : "");
+    }
+
+    public static String getHttpAddress(String ipAddress, int port) {
+        return "http://" + getHttpAddressWithoutPrefix(ipAddress, port);
     }
 
     public String getHttpAddressWithoutPrefix() {
-        return ipAddress + (port != Http.DEFAULT_PORT ? ":" + port : "");
+        return getHttpAddressWithoutPrefix(ipAddress, port);
+    }
+
+    public String getHttpAddress() {
+        return getHttpAddress(ipAddress, port);
     }
 
     public String getHttpPassword() {
@@ -141,27 +155,17 @@ public class DeviceInfo {
         return switcherValues[n];
     }
 
-    public void setName(String name) {
+    public void setParams(String name, String ipAddress, int port, boolean permanentIp, String httpPassword) {
         synchronized (this) {
             this.name = name;
-            if (listener != null) {
-                listener.onDeviceInfoChanged();
-            }
-        }
-    }
-
-    public void setIpAddressAndPort(String ipAddress, int port) {
-        synchronized (this) {
             this.ipAddress = ipAddress;
             this.port = port;
+            this.permanentIp = permanentIp;
+            this.httpPassword = httpPassword;
             if (listener != null) {
                 listener.onDeviceInfoChanged();
             }
         }
-    }
-
-    public void setHttpPassword(String httpPassword) {
-        this.httpPassword = httpPassword;
     }
 
     public void setDiscovered(boolean discovered) {

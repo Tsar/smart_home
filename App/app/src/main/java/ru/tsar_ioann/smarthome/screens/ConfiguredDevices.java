@@ -110,7 +110,7 @@ public class ConfiguredDevices extends BaseScreen {
         if (!configuredDevices.contains(macAddress)) {
             Log.d(LOG_TAG, "Got info about new configured device: " + deviceInfoStrForLog);
             configuredDevices.add(macAddress);
-            configuredDevicesList.add(new DeviceInfo(macAddress, name, ipAddress, Http.DEFAULT_PORT, null, null));
+            configuredDevicesList.add(new DeviceInfo(macAddress, name, ipAddress, Http.DEFAULT_PORT, false, null, null));
             activity.runOnUiThread(lstConfiguredDevicesAdapter::notifyDataSetChanged);
         } else {
             Log.d(LOG_TAG, "Got info about already found or added device: " + deviceInfoStrForLog);

@@ -85,7 +85,13 @@ public class HomeNetworkSettings extends BaseScreen {
 
                                                     commonData.getWifi().disconnect();
                                                     commonData.setHomeNetworkSsid(networkSsid);
-                                                    commonData.getNewDeviceInfo().setIpAddressAndPort(ipAddress, Http.DEFAULT_PORT);
+                                                    commonData.getNewDeviceInfo().setParams(
+                                                            commonData.getNewDeviceInfo().getName(),
+                                                            ipAddress,
+                                                            Http.DEFAULT_PORT,
+                                                            false,
+                                                            DeviceInfo.DEFAULT_HTTP_PASSWORD
+                                                    );
                                                     activity.runOnUiThread(() -> commonData
                                                             .getScreenLauncher().launchScreen(ScreenId.DEVICE_CONNECTED)
                                                     );

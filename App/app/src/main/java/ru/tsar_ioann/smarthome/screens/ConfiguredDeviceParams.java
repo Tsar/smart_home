@@ -39,6 +39,8 @@ public class ConfiguredDeviceParams extends BaseScreen {
                 showOkDialog(tr(R.string.error), tr(R.string.invalid_ip_or_port));
                 return;
             }
+            int port = Integer.parseInt(portStr);
+            boolean permanentIp = cbCfgDevIpIsStatic.isChecked();
             String httpPassword = edtCfgDevPassword.getText().toString();
 
             final boolean edtCfgDevIpAddressWasEnabled = edtCfgDevIpAddress.isEnabled();
@@ -49,11 +51,10 @@ public class ConfiguredDeviceParams extends BaseScreen {
             edtCfgDevPassword.setEnabled(false);
             btnAddDevice.setEnabled(false);
 
-            final DeviceInfo deviceIpPortPwdInfo = new DeviceInfo(null, null, ipAddress, Integer.parseInt(portStr), httpPassword, null);
             Http.asyncRequest(
-                    deviceIpPortPwdInfo.getHttpAddress() + "/get_info?minimal",
+                    DeviceInfo.getHttpAddress(ipAddress, port) + "/get_info?minimal",
                     null,
-                    deviceIpPortPwdInfo.getHttpPassword(),
+                    httpPassword,
                     null,
                     5,
                     new Http.Listener() {
@@ -75,8 +76,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
                             if (respCode == HttpURLConnection.HTTP_OK) {
                                 try {
                                     DeviceInfo deviceInfo = DeviceInfo.parseMinimalJson(response.getDataAsStr());
-                                    deviceInfo.setIpAddressAndPort(deviceIpPortPwdInfo.getIpAddress(), deviceIpPortPwdInfo.getPort());
-                                    deviceInfo.setHttpPassword(deviceIpPortPwdInfo.getHttpAddress());
+                                    deviceInfo.setParams(deviceInfo.getName(), ipAddress, port, permanentIp, httpPassword);
 
                                     DeviceInfo existingDeviceWithSameMac = commonData.getDevices().getDeviceByMacAddress(deviceInfo.getMacAddress());
                                     if (existingDeviceWithSameMac != null) {
@@ -88,7 +88,13 @@ public class ConfiguredDeviceParams extends BaseScreen {
                                                     tr(R.string.question),
                                                     tr(R.string.device_already_added_with_other_ip),
                                                     (dialog, which) -> {
-                                                        existingDeviceWithSameMac.setIpAddressAndPort(deviceInfo.getIpAddress(), deviceInfo.getPort());
+                                                        existingDeviceWithSameMac.setParams(
+                                                                deviceInfo.getName(),
+                                                                deviceInfo.getIpAddress(),
+                                                                deviceInfo.getPort(),
+                                                                deviceInfo.isPermanentIp(),
+                                                                deviceInfo.getHttpPassword()
+                                                        );
                                                         commonData.getScreenLauncher().launchScreen(ScreenId.MAIN);
                                                     },
                                                     (dialog, which) -> enableUI()
@@ -127,6 +133,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
 
         edtCfgDevIpAddress.setText("");
         edtCfgDevPort.setText(Integer.toString(Http.DEFAULT_PORT));
+        cbCfgDevIpIsStatic.setChecked(false);
         edtCfgDevPassword.setText("");
 
         edtCfgDevIpAddress.requestFocus();
