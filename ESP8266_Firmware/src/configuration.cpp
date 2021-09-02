@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 
 #define CONFIGURATION_MAGIC 0x37B9AFBE
-#define CONFIGURATION_FORMAT_VERSION 1  // увеличивать при изменении формата конфигурации
+#define CONFIGURATION_FORMAT_VERSION 2  // увеличивать при изменении формата конфигурации
 
 namespace smart_home {
 
@@ -97,6 +97,7 @@ void Configuration::loadOrReset(bool& resetHappened) {
     password_ = readString(pos);
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         switchers_[i] = readBool(pos);
+        switchersInverted_[i] = readBool(pos);
     }
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         dimmers_[i] = readInt32(pos);
@@ -114,6 +115,7 @@ void Configuration::save() const {
     writeString(pos, password_);
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         writeBool(pos, switchers_[i]);
+        writeBool(pos, switchersInverted_[i]);
     }
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         writeInt32(pos, dimmers_[i]);
@@ -129,6 +131,7 @@ void Configuration::resetAndSave() {
     setPassword("12345");
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         setSwitcherValue(i, false);
+        setSwitcherInverted(i, false);
     }
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         setDimmerValue(i, 0);
@@ -160,6 +163,14 @@ bool Configuration::getSwitcherValue(uint8_t index) const {
 
 void Configuration::setSwitcherValue(uint8_t index, bool value) {
     switchers_[index] = value;
+}
+
+bool Configuration::isSwitcherInverted(uint8_t index) const {
+    return switchersInverted_[index];
+}
+
+void Configuration::setSwitcherInverted(uint8_t index, bool inverted) {
+    switchersInverted_[index] = inverted;
 }
 
 int32_t Configuration::getDimmerValue(uint8_t index) const {

@@ -8,6 +8,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.ViewFlipper;
 
 import ru.tsar_ioann.smarthome.*;
@@ -20,18 +22,25 @@ public class DeviceSettings extends BaseScreen {
     }
 
     private final ViewFlipper settingsViewFlipper;
-    private DeviceInfo device;
+    private boolean deviceIsDiscovered;
+
+    private final int dimmersCount;
+    private final int switchersCount;
 
     private final EditText edtName;
-    private final EditText[] valueChangeSteps;
-    private final EditText[] minLightnessMicross;
-    private final EditText[] maxLightnessMicross;
+
+    private final EditText[] edtsValueChangeStep;
+    private final EditText[] edtsMinLightnessMicros;
+    private final EditText[] edtsMaxLightnessMicros;
+
+    private final CheckBox[] cbsSwInverted;
 
     private final EditText edtIpAddress;
     private final EditText edtPort;
     private final CheckBox cbIpIsStatic;
     private final EditText edtPassword;
 
+    @SuppressLint("SetTextI18n")
     public DeviceSettings(CommonData commonData) {
         super(commonData);
 
@@ -43,21 +52,40 @@ public class DeviceSettings extends BaseScreen {
         settingsViewFlipper = activity.findViewById(R.id.settingsViewFlipper);
 
         edtName = activity.findViewById(R.id.edtName);
-        valueChangeSteps = new EditText[]{
-                activity.findViewById(R.id.dim0_valueChangeStep),
-                activity.findViewById(R.id.dim1_valueChangeStep),
-                activity.findViewById(R.id.dim2_valueChangeStep)
+
+        LinearLayout[] layoutsDimSettings = new LinearLayout[]{
+                activity.findViewById(R.id.layoutDimSettings1),
+                activity.findViewById(R.id.layoutDimSettings2),
+                activity.findViewById(R.id.layoutDimSettings3)
         };
-        minLightnessMicross = new EditText[]{
-                activity.findViewById(R.id.dim0_minLightnessMicros),
-                activity.findViewById(R.id.dim1_minLightnessMicros),
-                activity.findViewById(R.id.dim2_minLightnessMicros)
+        dimmersCount = layoutsDimSettings.length;
+        edtsValueChangeStep = new EditText[dimmersCount];
+        edtsMinLightnessMicros = new EditText[dimmersCount];
+        edtsMaxLightnessMicros = new EditText[dimmersCount];
+        for (int i = 0; i < dimmersCount; ++i) {
+            LinearLayout layoutDimSettings = layoutsDimSettings[i];
+            TextView txtDimNumber = layoutDimSettings.findViewById(R.id.txtDimNumber);
+            txtDimNumber.setText(Integer.toString(i + 1));
+            edtsValueChangeStep[i] = layoutDimSettings.findViewById(R.id.edtDimValueChangeStep);
+            edtsMinLightnessMicros[i] = layoutDimSettings.findViewById(R.id.edtDimMinLightnessMicros);
+            edtsMaxLightnessMicros[i] = layoutDimSettings.findViewById(R.id.edtDimMaxLightnessMicros);
+        }
+
+        LinearLayout[] layoutsSwSettings = new LinearLayout[]{
+                activity.findViewById(R.id.layoutSwSettings1),
+                activity.findViewById(R.id.layoutSwSettings2),
+                activity.findViewById(R.id.layoutSwSettings3),
+                activity.findViewById(R.id.layoutSwSettings4)
         };
-        maxLightnessMicross = new EditText[]{
-                activity.findViewById(R.id.dim0_maxLightnessMicros),
-                activity.findViewById(R.id.dim1_maxLightnessMicros),
-                activity.findViewById(R.id.dim2_maxLightnessMicros)
-        };
+        switchersCount = layoutsSwSettings.length;
+        cbsSwInverted = new CheckBox[switchersCount];
+        for (int i = 0; i < switchersCount; ++i) {
+            LinearLayout layoutSwSettings = layoutsSwSettings[i];
+            TextView txtSwNumber = layoutSwSettings.findViewById(R.id.txtSwNumber);
+            txtSwNumber.setText(Integer.toString(i + 1));
+            cbsSwInverted[i] = layoutSwSettings.findViewById(R.id.cbSwInverted);
+        }
+
         Button btnSaveDeviceSettings = activity.findViewById(R.id.btnSaveDeviceSettings);
 
         btnSaveDeviceSettings.setEnabled(false);  // temporary, remove when continuing developing
@@ -85,7 +113,7 @@ public class DeviceSettings extends BaseScreen {
             setButtonsPressedAndUnpressed(btnDeviceSettings, btnConnectionSettings);
             underlineDeviceSettings.setVisibility(View.VISIBLE);
             underlineConnectionSettings.setVisibility(View.INVISIBLE);
-            settingsViewFlipper.setDisplayedChild(device.isDiscovered()
+            settingsViewFlipper.setDisplayedChild(deviceIsDiscovered
                     ? SVFChild.DEVICE_SETTINGS
                     : SVFChild.DEVICE_SETTINGS_UNAVAILABLE
             );
@@ -107,10 +135,10 @@ public class DeviceSettings extends BaseScreen {
 
     @SuppressLint("SetTextI18n")
     public void setDevice(DeviceInfo device) {
-        this.device = device;
+        this.deviceIsDiscovered = device.isDiscovered();
         if (settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS
                 || settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS_UNAVAILABLE) {
-            settingsViewFlipper.setDisplayedChild(device.isDiscovered()
+            settingsViewFlipper.setDisplayedChild(deviceIsDiscovered
                     ? SVFChild.DEVICE_SETTINGS
                     : SVFChild.DEVICE_SETTINGS_UNAVAILABLE
             );
@@ -118,21 +146,26 @@ public class DeviceSettings extends BaseScreen {
 
         edtName.setText(device.getName());
         DeviceInfo.DimmerSettings[] dimmersSettings = device.getDimmersSettings();
-        for (int dim = 0; dim < 3; ++dim) {
-            if (dimmersSettings[dim] != null) {
-                valueChangeSteps[dim].setText(Integer.toString(dimmersSettings[dim].valueChangeStep));
-                minLightnessMicross[dim].setText(Integer.toString(dimmersSettings[dim].minLightnessMicros));
-                maxLightnessMicross[dim].setText(Integer.toString(dimmersSettings[dim].maxLightnessMicros));
+        for (int i = 0; i < dimmersCount; ++i) {
+            if (dimmersSettings[i] != null) {
+                edtsValueChangeStep[i].setText(Integer.toString(dimmersSettings[i].valueChangeStep));
+                edtsMinLightnessMicros[i].setText(Integer.toString(dimmersSettings[i].minLightnessMicros));
+                edtsMaxLightnessMicros[i].setText(Integer.toString(dimmersSettings[i].maxLightnessMicros));
             } else {
-                valueChangeSteps[dim].setText("");
-                minLightnessMicross[dim].setText("");
-                maxLightnessMicross[dim].setText("");
+                edtsValueChangeStep[i].setText("");
+                edtsMinLightnessMicros[i].setText("");
+                edtsMaxLightnessMicros[i].setText("");
             }
+        }
+        for (int i = 0; i < switchersCount; ++i) {
+            cbsSwInverted[i].setChecked(device.isSwitcherInverted(i));
+            cbsSwInverted[i].jumpDrawablesToCurrentState();
         }
 
         edtIpAddress.setText(device.getIpAddress());
         edtPort.setText(Integer.toString(device.getPort()));
         cbIpIsStatic.setChecked(device.isPermanentIp());
+        cbIpIsStatic.jumpDrawablesToCurrentState();
         edtPassword.setText(device.getHttpPassword());
     }
 

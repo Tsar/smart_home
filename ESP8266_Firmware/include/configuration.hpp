@@ -31,6 +31,9 @@ class Configuration {
         bool getSwitcherValue(uint8_t index) const;
         void setSwitcherValue(uint8_t index, bool value);
 
+        bool isSwitcherInverted(uint8_t index) const;
+        void setSwitcherInverted(uint8_t index, bool inverted);
+
         int32_t getDimmerValue(uint8_t index) const;
         void setDimmerValue(uint8_t index, int32_t value);
 
@@ -44,6 +47,8 @@ class Configuration {
         String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
 
         bool switchers_[SWITCHERS_COUNT];
+        bool switchersInverted_[SWITCHERS_COUNT];
+
         int32_t dimmers_[DIMMERS_COUNT];
         volatile DimmerSettings dimmersSettings_[DIMMERS_COUNT];
 };

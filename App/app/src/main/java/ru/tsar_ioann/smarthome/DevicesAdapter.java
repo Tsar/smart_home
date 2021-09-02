@@ -155,6 +155,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
         for (int i = 0; i < switchers.length; ++i) {
             switchers[i].setOnCheckedChangeListener(null);
             switchers[i].setChecked(device.getSwitcherValue(i));
+            switchers[i].jumpDrawablesToCurrentState();
             switchers[i].setEnabled(discovered);
             int finalI = i;
             switchers[i].setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {

@@ -35,6 +35,8 @@
         <entry key="app/src/main/res/layout/device_settings.xml" value="0.42291666666666666" />
         <entry key="app/src/main/res/layout/device_settings_connection.xml" value="0.42291666666666666" />
         <entry key="app/src/main/res/layout/device_settings_device.xml" value="0.42291666666666666" />
+        <entry key="app/src/main/res/layout/device_settings_device_dimmer_settings.xml" value="0.42291666666666666" />
+        <entry key="app/src/main/res/layout/device_settings_device_switcher_settings.xml" value="0.42291666666666666" />
         <entry key="app/src/main/res/layout/fresh_devices.xml" value="0.37726449275362317" />
         <entry key="app/src/main/res/layout/home_network_settings.xml" value="0.23731884057971014" />
         <entry key="app/src/main/res/layout/item_device.xml" value="0.2598958333333333" />

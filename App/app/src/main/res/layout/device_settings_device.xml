@@ -64,51 +64,20 @@
 
     </LinearLayout>
 
-    <LinearLayout
+    <include
+        android:id="@+id/layoutDimSettings1"
+        layout="@layout/device_settings_device_dimmer_settings" />
+    <include
+        android:id="@+id/layoutDimSettings2"
+        layout="@layout/device_settings_device_dimmer_settings" />
+    <include
+        android:id="@+id/layoutDimSettings3"
+        layout="@layout/device_settings_device_dimmer_settings" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:layout_gravity="center"
-            android:textAlignment="center"
-            android:text="1"
-            tools:ignore="HardcodedText" />
-
-        <EditText
-            android:id="@+id/dim0_valueChangeStep"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="2"
-            tools:ignore="Autofill,LabelFor" />
-
-        <EditText
-            android:id="@+id/dim0_minLightnessMicros"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="4"
-            tools:ignore="Autofill,LabelFor" />
-
-        <EditText
-            android:id="@+id/dim0_maxLightnessMicros"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="4"
-            tools:ignore="Autofill,LabelFor" />
-
-    </LinearLayout>
+        android:text="Настройки переключателей" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -121,86 +90,31 @@
             android:layout_weight="2"
             android:layout_gravity="center"
             android:textAlignment="center"
-            android:text="2"
-            tools:ignore="HardcodedText" />
-
-        <EditText
-            android:id="@+id/dim1_valueChangeStep"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="2"
-            tools:ignore="Autofill,LabelFor" />
-
-        <EditText
-            android:id="@+id/dim1_minLightnessMicros"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="4"
-            tools:ignore="Autofill,LabelFor" />
-
-        <EditText
-            android:id="@+id/dim1_maxLightnessMicros"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="4"
-            tools:ignore="Autofill,LabelFor" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            android:text="№" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
+            android:layout_weight="8"
             android:layout_gravity="center"
             android:textAlignment="center"
-            android:text="3"
-            tools:ignore="HardcodedText" />
-
-        <EditText
-            android:id="@+id/dim2_valueChangeStep"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="2"
-            tools:ignore="Autofill,LabelFor" />
-
-        <EditText
-            android:id="@+id/dim2_minLightnessMicros"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="4"
-            tools:ignore="Autofill,LabelFor" />
-
-        <EditText
-            android:id="@+id/dim2_maxLightnessMicros"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:inputType="numberSigned"
-            android:textAlignment="center"
-            android:maxLength="4"
-            tools:ignore="Autofill,LabelFor" />
+            android:textSize="16sp"
+            android:text="Инвертированный" />
 
     </LinearLayout>
+
+    <include
+        android:id="@+id/layoutSwSettings1"
+        layout="@layout/device_settings_device_switcher_settings" />
+    <include
+        android:id="@+id/layoutSwSettings2"
+        layout="@layout/device_settings_device_switcher_settings" />
+    <include
+        android:id="@+id/layoutSwSettings3"
+        layout="@layout/device_settings_device_switcher_settings" />
+    <include
+        android:id="@+id/layoutSwSettings4"
+        layout="@layout/device_settings_device_switcher_settings" />
 
     <Button
         android:id="@+id/btnSaveDeviceSettings"

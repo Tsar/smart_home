@@ -15,26 +15,6 @@ public class DeviceInfo {
     public static final String ACCESS_POINT_PASSPHRASE = "setup12345";
     public static final String DEFAULT_HTTP_PASSWORD = "12345";
 
-    private static final String LOG_TAG = "DeviceInfo";
-
-    private static final int DIMMERS_COUNT = 3;
-    private static final int SWITCHERS_COUNT = 4;
-    private static final String DIMMER_PREFIX = "dim";
-    private static final String SWITCHER_PREFIX = "sw";
-
-    private final String macAddress;
-    private String name;
-    private String ipAddress = null;
-    private int port = Http.DEFAULT_PORT;
-    private boolean permanentIp = false;
-    private String httpPassword = DEFAULT_HTTP_PASSWORD;
-
-    private boolean discovered = false;
-    private Listener listener = null;
-
-    private final int[] dimmerValues = new int[DIMMERS_COUNT];
-    private final boolean[] switcherValues = new boolean[SWITCHERS_COUNT];
-
     public static class DimmerSettings {
         public int valueChangeStep;
         public int minLightnessMicros;
@@ -56,6 +36,27 @@ public class DeviceInfo {
         }
     };
 
+    private static final String LOG_TAG = "DeviceInfo";
+
+    private static final int DIMMERS_COUNT = 3;
+    private static final int SWITCHERS_COUNT = 4;
+    private static final String DIMMER_PREFIX = "dim";
+    private static final String SWITCHER_PREFIX = "sw";
+
+    private final String macAddress;
+    private String name;
+    private String ipAddress = null;
+    private int port = Http.DEFAULT_PORT;
+    private boolean permanentIp = false;
+    private String httpPassword = DEFAULT_HTTP_PASSWORD;
+
+    private boolean discovered = false;
+    private Listener listener = null;
+
+    private final boolean[] switcherValues = new boolean[SWITCHERS_COUNT];
+    private final boolean[] switchersInverted = new boolean[SWITCHERS_COUNT];
+
+    private final int[] dimmerValues = new int[DIMMERS_COUNT];
     private final DimmerSettings[] dimmersSettings = new DimmerSettings[DIMMERS_COUNT];
 
     public interface Listener {
@@ -99,7 +100,7 @@ public class DeviceInfo {
                 } catch (NumberFormatException ignored) {
                     // skipping field
                 }
-            } else if (key.startsWith("sw")) {
+            } else if (key.startsWith(SWITCHER_PREFIX)) {
                 try {
                     int n = Integer.parseInt(key.substring(SWITCHER_PREFIX.length()));
                     result.setSwitcherValue(n, values.getInt(key) != 0);
@@ -123,6 +124,22 @@ public class DeviceInfo {
                                 dimmerSettings.getInt("min_lightness_micros"),
                                 dimmerSettings.getInt("max_lightness_micros")
                         );
+                    }
+                } catch (NumberFormatException ignored) {
+                    // skipping field
+                }
+            }
+        }
+
+        JSONObject switchersInverted = obj.getJSONObject("switchers_inverted");
+        keys = switchersInverted.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            if (key.startsWith(SWITCHER_PREFIX)) {
+                try {
+                    int n = Integer.parseInt(key.substring(SWITCHER_PREFIX.length()));
+                    if (n >= 0 && n < SWITCHERS_COUNT) {
+                        result.switchersInverted[n] = switchersInverted.getInt(key) != 0;
                     }
                 } catch (NumberFormatException ignored) {
                     // skipping field
@@ -205,6 +222,10 @@ public class DeviceInfo {
         return dimmersSettings;
     }
 
+    public boolean isSwitcherInverted(int n) {
+        return switchersInverted[n];
+    }
+
     public void setParams(String name, String ipAddress, int port, boolean permanentIp, String httpPassword) {
         synchronized (this) {
             this.name = name;
@@ -238,7 +259,7 @@ public class DeviceInfo {
         this.listener = listener;
     }
 
-    private boolean sync(DeviceInfo info) {
+    private boolean syncTo(DeviceInfo info) {
         boolean anythingChanged = false;
         if (!name.equals(info.name)) {
             name = info.name;
@@ -257,8 +278,15 @@ public class DeviceInfo {
             }
         }
         for (int i = 0; i < dimmersSettings.length; ++i) {
-            if ((dimmersSettings[i] == null && info.dimmersSettings[i] != null) || !dimmersSettings[i].equals(info.dimmersSettings[i])) {
+            if ((dimmersSettings[i] == null && info.dimmersSettings[i] != null)
+                    || (dimmersSettings[i] != null && !dimmersSettings[i].equals(info.dimmersSettings[i]))) {
                 dimmersSettings[i] = info.dimmersSettings[i];
+                anythingChanged = true;
+            }
+        }
+        for (int i = 0; i < switchersInverted.length; ++i) {
+            if (switchersInverted[i] != info.switchersInverted[i]) {
+                switchersInverted[i] = info.switchersInverted[i];
                 anythingChanged = true;
             }
         }
@@ -292,7 +320,7 @@ public class DeviceInfo {
                         }
                         synchronized (this) {
                             if (info.getMacAddress().equals(macAddress)) {
-                                if (sync(info) && listener != null) {
+                                if (syncTo(info) && listener != null) {
                                     listener.onDeviceInfoChanged();
                                 }
                                 if (!discovered && listener != null) {

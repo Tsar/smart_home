@@ -134,6 +134,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
         edtCfgDevIpAddress.setText("");
         edtCfgDevPort.setText(Integer.toString(Http.DEFAULT_PORT));
         cbCfgDevIpIsStatic.setChecked(false);
+        cbCfgDevIpIsStatic.jumpDrawablesToCurrentState();
         edtCfgDevPassword.setText("");
 
         edtCfgDevIpAddress.requestFocus();

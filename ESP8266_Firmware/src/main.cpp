@@ -192,7 +192,7 @@ void fillDimmerValues(bool fillCurrent = false) {
 
 void applySwitcherValues() {
   for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    digitalWrite(SWITCHER_PINS[i], homeCfg.getSwitcherValue(i) ? HIGH : LOW);
+    digitalWrite(SWITCHER_PINS[i], homeCfg.getSwitcherValue(i) != homeCfg.isSwitcherInverted(i) ? HIGH : LOW);
   }
 }
 
@@ -304,6 +304,10 @@ void handleGetInfo() {
                                               + ",\n      \"min_lightness_micros\": " + String(dimmersSettings[i].minLightnessMicros)
                                               + ",\n      \"max_lightness_micros\": " + String(dimmersSettings[i].maxLightnessMicros)
                                               + "\n    }" + (i + 1 == DIMMERS_COUNT ? "" : ",\n    \"");
+    }
+    result += "\n  },\n  \"switchers_inverted\": {\n    \"";
+    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
+      result += SWITCHER_PREFIX + String(i) + "\": " + (homeCfg.isSwitcherInverted(i) ? "1" : "0") + (i + 1 == SWITCHERS_COUNT ? "" : ",\n    \"");
     }
     result += "\n  },\n  \"order\": {\n    \"dimmers\": [0, 1, 2],\n    \"switchers\": [0, 1, 2, 3]\n  }";  // TODO: dynamic order
   }
@@ -455,6 +459,21 @@ void handleSetDimmersSettings() {
   server.send(200, "text/plain", "ACCEPTED\n");
 }
 
+void handleSetSwitchersInverted() {
+  if (!checkPassword()) return;
+
+  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
+    const String argName = SWITCHER_PREFIX + String(i);
+    if (server.hasArg(argName)) {
+      const bool inverted = server.arg(argName).toInt();
+      homeCfg.setSwitcherInverted(i, inverted);
+    }
+  }
+
+  homeCfg.save();
+  server.send(200, "text/plain", "ACCEPTED\n");
+}
+
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
 }
@@ -513,6 +532,9 @@ void setup() {
   WiFi.softAPdisconnect(true);
   isAccessPointEnabled = false;
 
+  // This should help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
+  //WiFi.setSleepMode(WIFI_NONE_SLEEP);
+
   station_config stationCfg;
   if (WiFi.getPersistent()) {
     wifi_station_get_config_default(&stationCfg);
@@ -535,6 +557,7 @@ void setup() {
   server.on("/turn_off_ap", HTTP_GET, handleTurnOffAccessPoint);
   server.on("/set_values", HTTP_ANY, handleSetValues);
   server.on("/set_dimmers_settings", HTTP_ANY, handleSetDimmersSettings);
+  server.on("/set_switchers_inverted", HTTP_ANY, handleSetSwitchersInverted);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};
