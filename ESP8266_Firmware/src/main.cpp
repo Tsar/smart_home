@@ -45,8 +45,6 @@ volatile Event eventsQueue[MAX_EVENTS_COUNT];
 volatile uint8_t eventsQueueSize = 0;
 volatile uint8_t nextEventId = 0;
 
-#define WHOLE_POST_BODY_ARG_NAME "plain"
-
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
@@ -421,34 +419,27 @@ void handleSetValues() {
   }
 }
 
-void handleSetName() {
+void handleSetSettings() {
   if (!checkPassword()) return;
 
-  if (!server.hasArg(WHOLE_POST_BODY_ARG_NAME)) {
-    sendBadRequest();
-    return;
+  if (server.hasArg("name")) {
+    homeCfg.setName(server.arg("name"));
   }
 
-  homeCfg.setName(server.arg(WHOLE_POST_BODY_ARG_NAME));
-  homeCfg.save();
-  server.send(200, "text/plain", "ACCEPTED\n");
-}
-
-void handleSetDimmersSettings() {
-  if (!checkPassword()) return;
-
-  bool changed = false;
+  bool resetCfgHappened;
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     const String argName = DIMMER_PREFIX + String(i);
     if (server.hasArg(argName)) {
       const String settingsStr = server.arg(argName);
       const int comma1Pos = settingsStr.indexOf(",");
       if (comma1Pos < 0) {
+        homeCfg.loadOrReset(resetCfgHappened);  // used to revert cfg
         sendBadRequest();
         return;
       }
       const int comma2Pos = settingsStr.indexOf(",", comma1Pos + 1);
       if (comma2Pos < 0) {
+        homeCfg.loadOrReset(resetCfgHappened);  // used to revert cfg
         sendBadRequest();
         return;
       }
@@ -457,25 +448,13 @@ void handleSetDimmersSettings() {
       settings.minLightnessMicros = settingsStr.substring(comma1Pos + 1, comma2Pos).toInt();
       settings.maxLightnessMicros = settingsStr.substring(comma2Pos + 1).toInt();
       if (!settings.areValid()) {
+        homeCfg.loadOrReset(resetCfgHappened);  // used to revert cfg
         sendBadRequest();
         return;
       }
       homeCfg.setDimmerSettings(i, settings);
-      changed = true;
     }
   }
-
-  if (!changed) {
-    sendBadRequest();
-    return;
-  }
-
-  homeCfg.save();
-  server.send(200, "text/plain", "ACCEPTED\n");
-}
-
-void handleSetSwitchersInverted() {
-  if (!checkPassword()) return;
 
   for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
     const String argName = SWITCHER_PREFIX + String(i);
@@ -485,6 +464,19 @@ void handleSetSwitchersInverted() {
     }
   }
 
+  homeCfg.save();
+  server.send(200, "text/plain", "ACCEPTED\n");
+}
+
+void handleSetPassword() {
+  if (!checkPassword()) return;
+
+  if (!server.hasArg("password")) {
+    sendBadRequest();
+    return;
+  }
+
+  homeCfg.setPassword(server.arg("password"));
   homeCfg.save();
   server.send(200, "text/plain", "ACCEPTED\n");
 }
@@ -571,9 +563,8 @@ void setup() {
   server.on("/reset_wifi", HTTP_GET, handleResetWiFi);
   server.on("/turn_off_ap", HTTP_GET, handleTurnOffAccessPoint);
   server.on("/set_values", HTTP_ANY, handleSetValues);
-  server.on("/set_name", HTTP_POST, handleSetName);
-  server.on("/set_dimmers_settings", HTTP_ANY, handleSetDimmersSettings);
-  server.on("/set_switchers_inverted", HTTP_ANY, handleSetSwitchersInverted);
+  server.on("/set_settings", HTTP_POST, handleSetSettings);
+  server.on("/set_password", HTTP_POST, handleSetPassword);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};

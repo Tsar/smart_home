@@ -53,4 +53,15 @@
     <string name="name">Name</string>
     <string name="dimmer_settings">Dimmers settings</string>
     <string name="this_settings_are_unavailable">This settings are unavailable, because device is not connected.\n\nCheck \"Connection settings\".</string>
+    <string name="settings_successfully_saved">Settings were saved on the device successfully!</string>
+    <string name="failed_to_save_settings">Failed to save settings on the device!</string>
+    <string name="number">#</string>
+    <string name="change_speed">Change speed</string>
+    <string name="min_lightness">Min lightness (μs)</string>
+    <string name="max_lightness">Max lightness (μs)</string>
+    <string name="switchers_settings">Switchers settings</string>
+    <string name="inverted">Inverted</string>
+    <string name="restrictions_for_change_speed">Lightness change speed must be in range %1$d–%2$d.\n\nBad value: \'%3$s\'</string>
+    <string name="restrictions_for_micros">Microseconds for min and max lightness must be in range %1$d–%2$d.\n\nBad value: \'%3$s\'</string>
+    <string name="restrictions_for_min_max_micros">Microseconds for min lightness must always be greater than microseconds for max lightness.\n\nBad values: %1$d and %2$d.</string>
 </resources>

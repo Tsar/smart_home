@@ -33,7 +33,7 @@
             android:layout_weight="2"
             android:layout_gravity="center"
             android:textAlignment="center"
-            android:text="№" />
+            android:text="@string/number" />
 
         <TextView
             android:layout_width="0dp"
@@ -42,7 +42,7 @@
             android:layout_gravity="center"
             android:textAlignment="center"
             android:textSize="12sp"
-            android:text="Резкость изменения" />
+            android:text="@string/change_speed" />
 
         <TextView
             android:layout_width="0dp"
@@ -51,7 +51,7 @@
             android:layout_gravity="center"
             android:textAlignment="center"
             android:textSize="12sp"
-            android:text="Мин яркость (мкс)" />
+            android:text="@string/min_lightness" />
 
         <TextView
             android:layout_width="0dp"
@@ -60,7 +60,7 @@
             android:layout_gravity="center"
             android:textAlignment="center"
             android:textSize="12sp"
-            android:text="Макс яркость (мкс)" />
+            android:text="@string/max_lightness" />
 
     </LinearLayout>
 
@@ -77,7 +77,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Настройки переключателей" />
+        android:text="@string/switchers_settings" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -90,7 +90,7 @@
             android:layout_weight="2"
             android:layout_gravity="center"
             android:textAlignment="center"
-            android:text="№" />
+            android:text="@string/number" />
 
         <TextView
             android:layout_width="0dp"
@@ -99,7 +99,7 @@
             android:layout_gravity="center"
             android:textAlignment="center"
             android:textSize="16sp"
-            android:text="Инвертированный" />
+            android:text="@string/inverted" />
 
     </LinearLayout>
 

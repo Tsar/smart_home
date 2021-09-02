@@ -53,4 +53,15 @@
     <string name="name">Название</string>
     <string name="dimmer_settings">Настройки диммеров</string>
     <string name="this_settings_are_unavailable">Этот раздел настроек недоступен, потому что нет связи с устройством.\n\nПроверьте \"Настройки подключения\".</string>
+    <string name="settings_successfully_saved">Настройки успешно сохранены на устройстве!</string>
+    <string name="failed_to_save_settings">Не удалось сохранить настройки на устройстве!</string>
+    <string name="number">№</string>
+    <string name="change_speed">Скорость изменения</string>
+    <string name="min_lightness">Мин яркость (мкс)</string>
+    <string name="max_lightness">Макс яркость (мкс)</string>
+    <string name="switchers_settings">Настройки переключателей</string>
+    <string name="inverted">Инвертированный</string>
+    <string name="restrictions_for_change_speed">Скорость изменения яркости должна быть в диапазоне от %1$d до %2$d.\n\nНеподходящее значение: \'%3$s\'.</string>
+    <string name="restrictions_for_micros">Микросекунды для минимальной и максимальной яркости должны быть в диапазоне от %1$d до %2$d.\n\nНеподходящее значение: \'%3$s\'.</string>
+    <string name="restrictions_for_min_max_micros">Микросекунды для минимальной яркости всегда должны быть больше, чем микросекунды для максимальной яркости.\n\nНеподходящие значения: %1$d и %2$d.</string>
 </resources>

@@ -19,6 +19,19 @@ import java.net.HttpURLConnection;
 import ru.tsar_ioann.smarthome.*;
 
 public class DeviceSettings extends BaseScreen {
+    private static final int MIN_VALUE_CHANGE_STEP = 1;
+    private static final int MAX_VALUE_CHANGE_STEP = 50;
+    private static final int MIN_LIGHTNESS_MICROS = 50;
+    private static final int MAX_LIGHTNESS_MICROS = 9950;
+
+    private static final InputFilter[] INPUT_FILTERS_VALUE_CHANGE_STEP = new InputFilter[]{
+            new Utils.IntInRangeInputFilter(1, MAX_VALUE_CHANGE_STEP)
+    };
+    private static final InputFilter[] INPUT_FILTERS_MICROS = new InputFilter[]{
+            // Do not use more than 1 in min value here
+            new Utils.IntInRangeInputFilter(1, MAX_LIGHTNESS_MICROS)
+    };
+
     private static class SVFChild {
         private static final int DEVICE_SETTINGS_UNAVAILABLE = 0;
         private static final int DEVICE_SETTINGS = 1;
@@ -74,6 +87,9 @@ public class DeviceSettings extends BaseScreen {
             edtsValueChangeStep[i] = layoutDimSettings.findViewById(R.id.edtDimValueChangeStep);
             edtsMinLightnessMicros[i] = layoutDimSettings.findViewById(R.id.edtDimMinLightnessMicros);
             edtsMaxLightnessMicros[i] = layoutDimSettings.findViewById(R.id.edtDimMaxLightnessMicros);
+            edtsValueChangeStep[i].setFilters(INPUT_FILTERS_VALUE_CHANGE_STEP);
+            edtsMinLightnessMicros[i].setFilters(INPUT_FILTERS_MICROS);
+            edtsMaxLightnessMicros[i].setFilters(INPUT_FILTERS_MICROS);
         }
 
         LinearLayout[] layoutsSwSettings = new LinearLayout[]{
@@ -94,93 +110,85 @@ public class DeviceSettings extends BaseScreen {
         Button btnSaveDeviceSettings = activity.findViewById(R.id.btnSaveDeviceSettings);
 
         btnSaveDeviceSettings.setOnClickListener(v -> {
-            Http.asyncRequest(
-                    device.getHttpAddress() + "/set_name",
-                    edtName.getText().toString().getBytes(),
-                    device.getHttpPassword(),
-                    null,
-                    3,
-                    new Http.Listener() {
-                        @Override
-                        public void onResponse(Http.Response response) {
-                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().startsWith("ACCEPTED")) {
-                                // TODO: better handling
-                                activity.runOnUiThread(() -> Toast.makeText(activity, "Название обновлено!", Toast.LENGTH_SHORT).show());
-                            } else {
-                                // TODO: better handling
-                                onError(null);
-                            }
-                        }
-
-                        @Override
-                        public void onError(IOException exception) {
-                            // TODO
-                        }
-                    }
-            );
-
-            StringBuilder dimmersSettingsStr = new StringBuilder();
+            StringBuilder argsStr = new StringBuilder();
+            argsStr.append("name=").append(Utils.urlEncode(edtName.getText().toString()));
             for (int i = 0; i < dimmersCount; ++i) {
-                dimmersSettingsStr
-                        .append(i != 0 ? "&" : "")
-                        .append(DeviceInfo.DIMMER_PREFIX).append(i).append("=")
-                        .append(edtsValueChangeStep[i].getText().toString()).append(",")
-                        .append(edtsMinLightnessMicros[i].getText().toString()).append(",")
-                        .append(edtsMaxLightnessMicros[i].getText().toString());
-            }
-            Http.asyncRequest(
-                    device.getHttpAddress() + "/set_dimmers_settings",
-                    dimmersSettingsStr.toString().getBytes(),
-                    device.getHttpPassword(),
-                    null,
-                    3,
-                    new Http.Listener() {
-                        @Override
-                        public void onResponse(Http.Response response) {
-                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().startsWith("ACCEPTED")) {
-                                // TODO: better handling
-                                activity.runOnUiThread(() -> Toast.makeText(activity, "Настройки диммеров обновлены!", Toast.LENGTH_SHORT).show());
-                            } else {
-                                // TODO: better handling
-                                onError(null);
-                            }
-                        }
+                final String valueChangeStepStr = edtsValueChangeStep[i].getText().toString();
+                final String minLightnessMicrosStr = edtsMinLightnessMicros[i].getText().toString();
+                final String maxLightnessMicrosStr = edtsMaxLightnessMicros[i].getText().toString();
 
-                        @Override
-                        public void onError(IOException exception) {
-                            // TODO
-                        }
+                if (!Utils.isValidIntInRange(valueChangeStepStr, MIN_VALUE_CHANGE_STEP, MAX_VALUE_CHANGE_STEP)) {
+                    showOkDialog(tr(R.string.error), tr(
+                            R.string.restrictions_for_change_speed,
+                            MIN_VALUE_CHANGE_STEP,
+                            MAX_VALUE_CHANGE_STEP,
+                            valueChangeStepStr
+                    ));
+                    return;
+                }
+                for (String lightnessMicrosStr : new String[]{minLightnessMicrosStr, maxLightnessMicrosStr}) {
+                    if (!Utils.isValidIntInRange(lightnessMicrosStr, MIN_LIGHTNESS_MICROS, MAX_LIGHTNESS_MICROS)) {
+                        showOkDialog(tr(R.string.error), tr(
+                                R.string.restrictions_for_micros,
+                                MIN_LIGHTNESS_MICROS,
+                                MAX_LIGHTNESS_MICROS,
+                                lightnessMicrosStr
+                        ));
+                        return;
                     }
-            );
+                }
 
-            StringBuilder switchersInvertedStr = new StringBuilder();
+                final int minLightnessMicros = Integer.parseInt(minLightnessMicrosStr);
+                final int maxLightnessMicros = Integer.parseInt(maxLightnessMicrosStr);
+                if (minLightnessMicros <= maxLightnessMicros) {
+                    showOkDialog(tr(R.string.error), tr(R.string.restrictions_for_min_max_micros, minLightnessMicros, maxLightnessMicros));
+                    return;
+                }
+
+                argsStr.append("&")
+                        .append(DeviceInfo.DIMMER_PREFIX).append(i).append("=")
+                        .append(valueChangeStepStr).append(",")
+                        .append(minLightnessMicros).append(",")
+                        .append(maxLightnessMicros);
+            }
             for (int i = 0; i < switchersCount; ++i) {
-                switchersInvertedStr
-                        .append(i != 0 ? "&" : "")
+                argsStr.append("&")
                         .append(DeviceInfo.SWITCHER_PREFIX).append(i).append("=")
                         .append(cbsSwInverted[i].isChecked() ? "1" : "0");
             }
+
+            btnSaveDeviceSettings.setEnabled(false);
             Http.asyncRequest(
-                    device.getHttpAddress() + "/set_switchers_inverted",
-                    switchersInvertedStr.toString().getBytes(),
+                    device.getHttpAddress() + "/set_settings",
+                    argsStr.toString().getBytes(),
                     device.getHttpPassword(),
                     null,
                     3,
                     new Http.Listener() {
                         @Override
                         public void onResponse(Http.Response response) {
-                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().startsWith("ACCEPTED")) {
-                                // TODO: better handling
-                                activity.runOnUiThread(() -> Toast.makeText(activity, "Настройки переключателей обновлены!", Toast.LENGTH_SHORT).show());
+                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
+                                final String responseStr = response.getDataAsStr();
+                                if (responseStr.startsWith("ACCEPTED")) {
+                                    activity.runOnUiThread(() -> {
+                                        Toast.makeText(activity, tr(R.string.settings_successfully_saved), Toast.LENGTH_LONG).show();
+                                        btnSaveDeviceSettings.setEnabled(true);
+                                    });
+                                } else {
+                                    onError(new IOException("Bad response: " + responseStr));
+                                }
                             } else {
-                                // TODO: better handling
-                                onError(null);
+                                onError(new IOException("Bad response code: " + response.getHttpCode()));
                             }
                         }
 
                         @Override
                         public void onError(IOException exception) {
-                            // TODO
+                            activity.runOnUiThread(() -> showOkDialog(
+                                    tr(R.string.error),
+                                    tr(R.string.failed_to_save_settings),
+                                    (dialog, which) -> btnSaveDeviceSettings.setEnabled(true)
+                            ));
                         }
                     }
             );
