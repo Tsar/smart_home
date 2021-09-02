@@ -10,7 +10,11 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ViewFlipper;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
 
 import ru.tsar_ioann.smarthome.*;
 
@@ -22,6 +26,7 @@ public class DeviceSettings extends BaseScreen {
     }
 
     private final ViewFlipper settingsViewFlipper;
+    private DeviceInfo device;
     private boolean deviceIsDiscovered;
 
     private final int dimmersCount;
@@ -88,9 +93,97 @@ public class DeviceSettings extends BaseScreen {
 
         Button btnSaveDeviceSettings = activity.findViewById(R.id.btnSaveDeviceSettings);
 
-        btnSaveDeviceSettings.setEnabled(false);  // temporary, remove when continuing developing
         btnSaveDeviceSettings.setOnClickListener(v -> {
-            // TODO
+            Http.asyncRequest(
+                    device.getHttpAddress() + "/set_name",
+                    edtName.getText().toString().getBytes(),
+                    device.getHttpPassword(),
+                    null,
+                    3,
+                    new Http.Listener() {
+                        @Override
+                        public void onResponse(Http.Response response) {
+                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().startsWith("ACCEPTED")) {
+                                // TODO: better handling
+                                activity.runOnUiThread(() -> Toast.makeText(activity, "Название обновлено!", Toast.LENGTH_SHORT).show());
+                            } else {
+                                // TODO: better handling
+                                onError(null);
+                            }
+                        }
+
+                        @Override
+                        public void onError(IOException exception) {
+                            // TODO
+                        }
+                    }
+            );
+
+            StringBuilder dimmersSettingsStr = new StringBuilder();
+            for (int i = 0; i < dimmersCount; ++i) {
+                dimmersSettingsStr
+                        .append(i != 0 ? "&" : "")
+                        .append(DeviceInfo.DIMMER_PREFIX).append(i).append("=")
+                        .append(edtsValueChangeStep[i].getText().toString()).append(",")
+                        .append(edtsMinLightnessMicros[i].getText().toString()).append(",")
+                        .append(edtsMaxLightnessMicros[i].getText().toString());
+            }
+            Http.asyncRequest(
+                    device.getHttpAddress() + "/set_dimmers_settings",
+                    dimmersSettingsStr.toString().getBytes(),
+                    device.getHttpPassword(),
+                    null,
+                    3,
+                    new Http.Listener() {
+                        @Override
+                        public void onResponse(Http.Response response) {
+                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().startsWith("ACCEPTED")) {
+                                // TODO: better handling
+                                activity.runOnUiThread(() -> Toast.makeText(activity, "Настройки диммеров обновлены!", Toast.LENGTH_SHORT).show());
+                            } else {
+                                // TODO: better handling
+                                onError(null);
+                            }
+                        }
+
+                        @Override
+                        public void onError(IOException exception) {
+                            // TODO
+                        }
+                    }
+            );
+
+            StringBuilder switchersInvertedStr = new StringBuilder();
+            for (int i = 0; i < switchersCount; ++i) {
+                switchersInvertedStr
+                        .append(i != 0 ? "&" : "")
+                        .append(DeviceInfo.SWITCHER_PREFIX).append(i).append("=")
+                        .append(cbsSwInverted[i].isChecked() ? "1" : "0");
+            }
+            Http.asyncRequest(
+                    device.getHttpAddress() + "/set_switchers_inverted",
+                    switchersInvertedStr.toString().getBytes(),
+                    device.getHttpPassword(),
+                    null,
+                    3,
+                    new Http.Listener() {
+                        @Override
+                        public void onResponse(Http.Response response) {
+                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK && response.getDataAsStr().startsWith("ACCEPTED")) {
+                                // TODO: better handling
+                                activity.runOnUiThread(() -> Toast.makeText(activity, "Настройки переключателей обновлены!", Toast.LENGTH_SHORT).show());
+                            } else {
+                                // TODO: better handling
+                                onError(null);
+                            }
+                        }
+
+                        @Override
+                        public void onError(IOException exception) {
+                            // TODO
+                        }
+                    }
+            );
         });
 
         edtIpAddress = activity.findViewById(R.id.edtIpAddress);
@@ -99,7 +192,10 @@ public class DeviceSettings extends BaseScreen {
         edtPassword = activity.findViewById(R.id.edtPassword);
         Button btnSaveConnectionSettings = activity.findViewById(R.id.btnSaveConnectionSettings);
 
-        btnSaveConnectionSettings.setEnabled(false);  // temporary, remove when continuing developing
+        // temporary, remove when continuing developing
+        btnSaveConnectionSettings.setEnabled(false);
+        btnSaveConnectionSettings.setText("Сохранить [ещё не реализовано]");
+
         btnSaveConnectionSettings.setOnClickListener(v -> {
             // TODO
         });
@@ -135,7 +231,8 @@ public class DeviceSettings extends BaseScreen {
 
     @SuppressLint("SetTextI18n")
     public void setDevice(DeviceInfo device) {
-        this.deviceIsDiscovered = device.isDiscovered();
+        this.device = device;
+        this.deviceIsDiscovered = device.isDiscovered();  // saving discovered as it was
         if (settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS
                 || settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS_UNAVAILABLE) {
             settingsViewFlipper.setDisplayedChild(deviceIsDiscovered

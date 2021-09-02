@@ -15,6 +15,9 @@ public class DeviceInfo {
     public static final String ACCESS_POINT_PASSPHRASE = "setup12345";
     public static final String DEFAULT_HTTP_PASSWORD = "12345";
 
+    public static final String DIMMER_PREFIX = "dim";
+    public static final String SWITCHER_PREFIX = "sw";
+
     public static class DimmerSettings {
         public int valueChangeStep;
         public int minLightnessMicros;
@@ -40,8 +43,6 @@ public class DeviceInfo {
 
     private static final int DIMMERS_COUNT = 3;
     private static final int SWITCHERS_COUNT = 4;
-    private static final String DIMMER_PREFIX = "dim";
-    private static final String SWITCHER_PREFIX = "sw";
 
     private final String macAddress;
     private String name;

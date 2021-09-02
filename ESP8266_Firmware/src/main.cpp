@@ -45,6 +45,8 @@ volatile Event eventsQueue[MAX_EVENTS_COUNT];
 volatile uint8_t eventsQueueSize = 0;
 volatile uint8_t nextEventId = 0;
 
+#define WHOLE_POST_BODY_ARG_NAME "plain"
+
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
@@ -419,6 +421,19 @@ void handleSetValues() {
   }
 }
 
+void handleSetName() {
+  if (!checkPassword()) return;
+
+  if (!server.hasArg(WHOLE_POST_BODY_ARG_NAME)) {
+    sendBadRequest();
+    return;
+  }
+
+  homeCfg.setName(server.arg(WHOLE_POST_BODY_ARG_NAME));
+  homeCfg.save();
+  server.send(200, "text/plain", "ACCEPTED\n");
+}
+
 void handleSetDimmersSettings() {
   if (!checkPassword()) return;
 
@@ -556,6 +571,7 @@ void setup() {
   server.on("/reset_wifi", HTTP_GET, handleResetWiFi);
   server.on("/turn_off_ap", HTTP_GET, handleTurnOffAccessPoint);
   server.on("/set_values", HTTP_ANY, handleSetValues);
+  server.on("/set_name", HTTP_POST, handleSetName);
   server.on("/set_dimmers_settings", HTTP_ANY, handleSetDimmersSettings);
   server.on("/set_switchers_inverted", HTTP_ANY, handleSetSwitchersInverted);
   server.onNotFound(handleNotFound);
