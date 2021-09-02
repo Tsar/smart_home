@@ -35,6 +35,29 @@ public class DeviceInfo {
     private final int[] dimmerValues = new int[DIMMERS_COUNT];
     private final boolean[] switcherValues = new boolean[SWITCHERS_COUNT];
 
+    public static class DimmerSettings {
+        public int valueChangeStep;
+        public int minLightnessMicros;
+        public int maxLightnessMicros;
+
+        public DimmerSettings(int valueChangeStep, int minLightnessMicros, int maxLightnessMicros) {
+            this.valueChangeStep = valueChangeStep;
+            this.minLightnessMicros = minLightnessMicros;
+            this.maxLightnessMicros = maxLightnessMicros;
+        }
+
+        public boolean equals(DimmerSettings other) {
+            if (other == null) {
+                return false;
+            }
+            return valueChangeStep == other.valueChangeStep
+                    && minLightnessMicros == other.minLightnessMicros
+                    && maxLightnessMicros == other.maxLightnessMicros;
+        }
+    };
+
+    private final DimmerSettings[] dimmersSettings = new DimmerSettings[DIMMERS_COUNT];
+
     public interface Listener {
         void onDeviceInfoChanged();
         void onDeviceDiscovered();
@@ -64,6 +87,7 @@ public class DeviceInfo {
         if (minimal) {
             return result;
         }
+
         JSONObject values = obj.getJSONObject("values");
         Iterator<String> keys = values.keys();
         while (keys.hasNext()) {
@@ -84,6 +108,28 @@ public class DeviceInfo {
                 }
             }
         }
+
+        JSONObject dimmersSettings = obj.getJSONObject("dimmers_settings");
+        keys = dimmersSettings.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            if (key.startsWith(DIMMER_PREFIX)) {
+                try {
+                    int n = Integer.parseInt(key.substring(DIMMER_PREFIX.length()));
+                    if (n >= 0 && n < DIMMERS_COUNT) {
+                        JSONObject dimmerSettings = dimmersSettings.getJSONObject(key);
+                        result.dimmersSettings[n] = new DimmerSettings(
+                                dimmerSettings.getInt("value_change_step"),
+                                dimmerSettings.getInt("min_lightness_micros"),
+                                dimmerSettings.getInt("max_lightness_micros")
+                        );
+                    }
+                } catch (NumberFormatException ignored) {
+                    // skipping field
+                }
+            }
+        }
+
         return result;
     }
 
@@ -155,6 +201,10 @@ public class DeviceInfo {
         return switcherValues[n];
     }
 
+    public DimmerSettings[] getDimmersSettings() {
+        return dimmersSettings;
+    }
+
     public void setParams(String name, String ipAddress, int port, boolean permanentIp, String httpPassword) {
         synchronized (this) {
             this.name = name;
@@ -203,6 +253,12 @@ public class DeviceInfo {
         for (int i = 0; i < switcherValues.length; ++i) {
             if (switcherValues[i] != info.switcherValues[i]) {
                 switcherValues[i] = info.switcherValues[i];
+                anythingChanged = true;
+            }
+        }
+        for (int i = 0; i < dimmersSettings.length; ++i) {
+            if ((dimmersSettings[i] == null && info.dimmersSettings[i] != null) || !dimmersSettings[i].equals(info.dimmersSettings[i])) {
+                dimmersSettings[i] = info.dimmersSettings[i];
                 anythingChanged = true;
             }
         }
