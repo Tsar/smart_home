@@ -52,4 +52,5 @@
     <string name="save">Сохранить</string>
     <string name="name">Название</string>
     <string name="dimmer_settings">Настройки диммеров</string>
+    <string name="this_settings_are_unavailable">Этот раздел настроек недоступен, потому что нет связи с устройством.\n\nПроверьте \"Настройки подключения\".</string>
 </resources>

@@ -52,4 +52,5 @@
     <string name="save">Save</string>
     <string name="name">Name</string>
     <string name="dimmer_settings">Dimmers settings</string>
+    <string name="this_settings_are_unavailable">This settings are unavailable, because device is not connected.\n\nCheck \"Connection settings\".</string>
 </resources>

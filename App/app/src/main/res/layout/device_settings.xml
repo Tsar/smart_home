@@ -67,9 +67,14 @@
         android:layout_height="match_parent">
 
         <ViewFlipper
-            android:id="@+id/viewFlipperSettings"
+            android:id="@+id/settingsViewFlipper"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/this_settings_are_unavailable" />
 
             <include layout="@layout/device_settings_device" />
             <include layout="@layout/device_settings_connection" />

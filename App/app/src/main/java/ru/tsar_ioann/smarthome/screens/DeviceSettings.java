@@ -13,6 +13,15 @@ import android.widget.ViewFlipper;
 import ru.tsar_ioann.smarthome.*;
 
 public class DeviceSettings extends BaseScreen {
+    private static class SVFChild {
+        private static final int DEVICE_SETTINGS_UNAVAILABLE = 0;
+        private static final int DEVICE_SETTINGS = 1;
+        private static final int CONNECTION_SETTINGS = 2;
+    }
+
+    private final ViewFlipper settingsViewFlipper;
+    private DeviceInfo device;
+
     private final EditText edtName;
     private final EditText[] valueChangeSteps;
     private final EditText[] minLightnessMicross;
@@ -31,7 +40,7 @@ public class DeviceSettings extends BaseScreen {
         Button btnConnectionSettings = activity.findViewById(R.id.btnConnectionSettings);
         View underlineDeviceSettings = activity.findViewById(R.id.underlineDeviceSettings);
         View underlineConnectionSettings = activity.findViewById(R.id.underlineConnectionSettings);
-        ViewFlipper viewFlipperSettings = activity.findViewById(R.id.viewFlipperSettings);
+        settingsViewFlipper = activity.findViewById(R.id.settingsViewFlipper);
 
         edtName = activity.findViewById(R.id.edtName);
         valueChangeSteps = new EditText[]{
@@ -76,13 +85,16 @@ public class DeviceSettings extends BaseScreen {
             setButtonsPressedAndUnpressed(btnDeviceSettings, btnConnectionSettings);
             underlineDeviceSettings.setVisibility(View.VISIBLE);
             underlineConnectionSettings.setVisibility(View.INVISIBLE);
-            viewFlipperSettings.setDisplayedChild(0);
+            settingsViewFlipper.setDisplayedChild(device.isDiscovered()
+                    ? SVFChild.DEVICE_SETTINGS
+                    : SVFChild.DEVICE_SETTINGS_UNAVAILABLE
+            );
         });
         btnConnectionSettings.setOnClickListener(v -> {
             setButtonsPressedAndUnpressed(btnConnectionSettings, btnDeviceSettings);
             underlineDeviceSettings.setVisibility(View.INVISIBLE);
             underlineConnectionSettings.setVisibility(View.VISIBLE);
-            viewFlipperSettings.setDisplayedChild(1);
+            settingsViewFlipper.setDisplayedChild(SVFChild.CONNECTION_SETTINGS);
         });
     }
 
@@ -95,6 +107,15 @@ public class DeviceSettings extends BaseScreen {
 
     @SuppressLint("SetTextI18n")
     public void setDevice(DeviceInfo device) {
+        this.device = device;
+        if (settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS
+                || settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS_UNAVAILABLE) {
+            settingsViewFlipper.setDisplayedChild(device.isDiscovered()
+                    ? SVFChild.DEVICE_SETTINGS
+                    : SVFChild.DEVICE_SETTINGS_UNAVAILABLE
+            );
+        }
+
         edtName.setText(device.getName());
         DeviceInfo.DimmerSettings[] dimmersSettings = device.getDimmersSettings();
         for (int dim = 0; dim < 3; ++dim) {
