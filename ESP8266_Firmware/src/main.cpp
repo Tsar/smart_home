@@ -233,24 +233,22 @@ void enableAccessPoint() {
   isAccessPointEnabled = true;
 }
 
-bool connectToWiFiOrEnableAP(const char* ssid = 0, const char* passphrase = 0) {
+bool connectToWiFi(const char* ssid, const char* passphrase, bool connectInfinitely) {
   digitalWrite(LED_BUILTIN, LOW);
   udp.stop();
 
-  if (ssid != 0) {
-    Serial.printf("Connecting to wi-fi: SSID [%s], passphrase [%s]\n", ssid, passphrase);
-    WiFi.disconnect(true);
-    WiFi.begin(ssid, passphrase);
-  } else {
-    Serial.println("Waiting for connect to wi-fi");
-    WiFi.begin();  // also works without this line
-  }
+  WiFi.disconnect(true);
+  Serial.printf("Connecting to wi-fi: SSID '%s', passphrase '%s'\n", ssid, passphrase);
+  WiFi.begin(ssid, passphrase);
 
   wifiConnectResult = WiFi.waitForConnectResult(30000);
-  if (wifiConnectResult != WL_CONNECTED) {
-    Serial.printf("Failed to connect, status: %d\n", wifiConnectResult);
-    enableAccessPoint();
-    return false;
+  while (wifiConnectResult != WL_CONNECTED) {
+    if (!connectInfinitely) {
+      Serial.printf("Failed to connect, status: %d\n", wifiConnectResult);
+      return false;
+    }
+    Serial.printf("Not yet connected, status: %d\n", wifiConnectResult);
+    wifiConnectResult = WiFi.waitForConnectResult(10000);
   }
 
   const auto& ip = WiFi.localIP();
@@ -326,7 +324,7 @@ void handleSetupWiFi() {
   wifiSetupState = WiFiSetupState::IN_PROGRESS;
   server.send(200, "text/plain", "TRYING_TO_CONNECT");
   delay(100);  // задержка нужна, чтобы успеть отправить ответ до попытки
-  wifiSetupState = connectToWiFiOrEnableAP(server.arg("ssid").c_str(), server.arg("passphrase").c_str())
+  wifiSetupState = connectToWiFi(server.arg("ssid").c_str(), server.arg("passphrase").c_str(), false)
                       ? WiFiSetupState::SUCCESS
                       : WiFiSetupState::FAIL;
   // Если пытаться отправить ответ сервера здесь, то клиент получает ошибку:
@@ -532,26 +530,28 @@ void setup() {
                 homeCfg.getName().c_str(), homeCfg.getPassword().c_str()
   );
 
-  // Just to be sure
-  WiFi.setAutoConnect(true);
+  WiFi.persistent(true);
+  WiFi.setAutoConnect(false);
   WiFi.setAutoReconnect(true);
 
+  station_config stationCfg;
+  wifi_station_get_config_default(&stationCfg);
+
+  WiFi.disconnect(true);
   WiFi.softAPdisconnect(true);
   isAccessPointEnabled = false;
 
   // This should help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
-  //WiFi.setSleepMode(WIFI_NONE_SLEEP);
-
-  station_config stationCfg;
-  if (WiFi.getPersistent()) {
-    wifi_station_get_config_default(&stationCfg);
-  } else {
-    wifi_station_get_config(&stationCfg);
+  if (!WiFi.setSleepMode(WIFI_NONE_SLEEP)) {
+    Serial.println("Failed to set wi-fi sleep mode to None!");
   }
 
-  if (strlen(reinterpret_cast<char*>(stationCfg.ssid)) > 0) {
-    Serial.printf("Found wi-fi credentials for SSID '%s'\n", stationCfg.ssid);
-    connectToWiFiOrEnableAP();
+  const char* cfgSsid = reinterpret_cast<char*>(stationCfg.ssid);
+  const char* cfgPassphrase = reinterpret_cast<char*>(stationCfg.password);
+
+  if (strlen(cfgSsid) > 0) {
+    Serial.println("Found wi-fi credentials");
+    connectToWiFi(cfgSsid, cfgPassphrase, true);
   } else {
     Serial.println("No wi-fi credentials found");
     enableAccessPoint();
