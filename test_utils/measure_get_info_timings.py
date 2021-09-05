@@ -33,7 +33,7 @@ if __name__ == '__main__':
             errors += 1
             print('+1 error: %s' % e)
         try:
-            time.sleep(random.random() / 10.0)  # max 100 ms
+            time.sleep(0.1 + random.random() / 10.0)  # 100-200 ms
         except KeyboardInterrupt:
             break
 
