@@ -171,7 +171,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 for arg in argsList:
                     key, value = arg.split('=')[0:2]
                     if key == 'name':
-                        name = urllib.parse.unquote(value)
+                        name = urllib.parse.unquote_plus(value)
                     elif key.startswith('dim'):
                         assert key in dimmers_settings
                         dimSettings = [int(dimSetting) for dimSetting in value.split(',')]
