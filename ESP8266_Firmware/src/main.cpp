@@ -1,4 +1,5 @@
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiGratuitous.h>
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
 #include <lwip/igmp.h>
@@ -254,6 +255,9 @@ bool connectToWiFi(const char* ssid, const char* passphrase, bool connectInfinit
   const auto& ip = WiFi.localIP();
   Serial.printf("Connected, IP: %s\n", ip.toString().c_str());
   digitalWrite(LED_BUILTIN, HIGH);
+
+  // This should partly help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
+  experimental::ESP8266WiFiGratuitous::stationKeepAliveSetIntervalMs();
 
   const bool listeningMulticast = udp.beginMulticast(ip, UDP_MULTICAST_IP, UDP_MULTICAST_PORT);
   if (listeningMulticast) {
@@ -541,7 +545,7 @@ void setup() {
   WiFi.softAPdisconnect(true);
   isAccessPointEnabled = false;
 
-  // This should help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
+  // This should partly help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
   if (!WiFi.setSleepMode(WIFI_NONE_SLEEP)) {
     Serial.println("Failed to set wi-fi sleep mode to None!");
   }
