@@ -49,6 +49,8 @@ volatile uint8_t nextEventId = 0;
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
 
+std::vector<char> binInfoStorage;
+
 enum class WiFiSetupState {
   NONE,
   IN_PROGRESS,
@@ -283,11 +285,10 @@ void sendBadRequest() {
   server.send(400, "text/plain", "Bad Request");
 }
 
-void handleGetInfo() {
-  if (!checkPassword()) return;
-
+// Create JSON (inefficiently)
+String generateInfoJson(bool minimal) {
   String result = "{\n  \"mac\": \"" + WiFi.macAddress() + "\",\n  \"name\": \"" + homeCfg.getName() + "\"";
-  if (!server.hasArg("minimal")) {
+  if (!minimal) {
     result += ",\n  \"values\": {\n    \"";
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
       result += DIMMER_PREFIX + String(i) + "\": " + String(homeCfg.getDimmerValue(i)) + ",\n    \"";
@@ -314,7 +315,86 @@ void handleGetInfo() {
     result += "\n  },\n  \"order\": {\n    \"dimmers\": [0, 1, 2],\n    \"switchers\": [0, 1, 2, 3]\n  }";  // TODO: dynamic order
   }
   result += "\n}\n";
-  server.send(200, "application/json", result);
+  return result;
+}
+
+class UnalignedBinarySerializer {
+public:
+  UnalignedBinarySerializer(char* buffer) : buffer_(buffer), pos_(0) {}
+
+  void writeWiFiMacAddress() {
+    WiFi.macAddress(reinterpret_cast<uint8_t*>(buffer_ + pos_));
+    pos_ += WL_MAC_ADDR_LENGTH;
+  }
+
+  void writeUInt8(uint8_t value) {
+    buffer_[pos_++] = value;
+  }
+
+  void writeUInt16(uint16_t value) {
+    memcpy(buffer_ + pos_, &value, 2);
+    pos_ += 2;
+  }
+
+  void writeString(String value) {
+    writeUInt16(value.length());
+    memcpy(buffer_ + pos_, value.c_str(), value.length());
+    pos_ += value.length();
+  }
+
+  size_t getWrittenSize() const {
+    return pos_;
+  }
+
+private:
+  char* buffer_;
+  size_t pos_;
+};
+
+// Fill binInfoStorage
+void generateInfoBinary() {
+  const String name = homeCfg.getName();
+  const size_t sz = WL_MAC_ADDR_LENGTH        // MAC size
+                  + 2 + name.length()         // name length and name size
+                  + 1 + DIMMERS_COUNT * 8     // dimmers values size (4 x uint16_t)
+                  + 1 + SWITCHERS_COUNT * 2;  // switchers values size (2 x uint8_t)
+  binInfoStorage.resize(sz);
+
+  UnalignedBinarySerializer serializer(binInfoStorage.data());
+  serializer.writeWiFiMacAddress();
+  serializer.writeString(name);
+  serializer.writeUInt8(DIMMERS_COUNT);
+  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+    serializer.writeUInt16(homeCfg.getDimmerValue(i));
+    serializer.writeUInt16(dimmersSettings[i].valueChangeStep);
+    serializer.writeUInt16(dimmersSettings[i].minLightnessMicros);
+    serializer.writeUInt16(dimmersSettings[i].maxLightnessMicros);
+  }
+  serializer.writeUInt8(SWITCHERS_COUNT);
+  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
+    serializer.writeUInt8(homeCfg.getSwitcherValue(i));
+    serializer.writeUInt8(homeCfg.isSwitcherInverted(i));
+  }
+
+  if (serializer.getWrittenSize() != sz) {
+    Serial.printf("WARNING: Serialized: %d, expected: %d\n", serializer.getWrittenSize(), sz);
+  }
+}
+
+void handleGetInfo() {
+  const auto tsStart = millis();
+
+  if (!checkPassword()) return;
+
+  if (server.hasArg("binary")) {
+    generateInfoBinary();
+    server.send(200, "application/octet-stream", binInfoStorage.data(), binInfoStorage.size());
+  } else {
+    server.send(200, "application/json", generateInfoJson(server.hasArg("minimal")));
+  }
+
+  const auto tsEnd = millis();
+  Serial.printf("Handled %s, spent %ld ms\n", server.uri().c_str(), tsEnd - tsStart);
 }
 
 void handleSetupWiFi() {
