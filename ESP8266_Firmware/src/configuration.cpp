@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 
 #define CONFIGURATION_MAGIC 0x37B9AFBE
-#define CONFIGURATION_FORMAT_VERSION 2  // увеличивать при изменении формата конфигурации
+#define CONFIGURATION_FORMAT_VERSION 3  // увеличивать при изменении формата конфигурации
 
 namespace smart_home {
 
@@ -28,6 +28,14 @@ void writeT(int& pos, T value) {
     *reinterpret_cast<T*>(EEPROM.getDataPtr() + pos) = value;
     pos += sizeof(T);
     alignPos(pos);
+}
+
+uint8_t readUInt8(int& pos) {
+    return readT<uint8_t>(pos);
+}
+
+void writeUInt8(int& pos, uint8_t value) {
+    writeT(pos, value);
 }
 
 uint16_t readUInt16(int& pos) {
@@ -105,6 +113,7 @@ void Configuration::loadOrReset(bool& resetHappened) {
         dimmersSettings_[i].minLightnessMicros = readInt32(pos);
         dimmersSettings_[i].maxLightnessMicros = readInt32(pos);
     }
+    wifiResetSequenceLength = readUInt8(pos);
 }
 
 void Configuration::save() const {
@@ -123,12 +132,13 @@ void Configuration::save() const {
         writeInt32(pos, dimmersSettings_[i].minLightnessMicros);
         writeInt32(pos, dimmersSettings_[i].maxLightnessMicros);
     }
+    writeUInt8(pos, wifiResetSequenceLength);
     EEPROM.commit();
 }
 
 void Configuration::resetAndSave() {
     setName("new-device");
-    setPassword("12345");
+    setPassword(DEFAULT_HTTP_PASSWORD);
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         setSwitcherValue(i, false);
         setSwitcherInverted(i, false);
@@ -137,6 +147,7 @@ void Configuration::resetAndSave() {
         setDimmerValue(i, 0);
         setDimmerSettings(i, DimmerSettings());
     }
+    wifiResetSequenceLength = 0;
 
     save();
 }
@@ -189,6 +200,15 @@ void Configuration::setDimmerSettings(uint8_t index, const DimmerSettings& setti
     dimmersSettings_[index].valueChangeStep = settings.valueChangeStep;
     dimmersSettings_[index].minLightnessMicros = settings.minLightnessMicros;
     dimmersSettings_[index].maxLightnessMicros = settings.maxLightnessMicros;
+}
+
+uint8_t Configuration::getWiFiResetSequenceLength() const {
+    return wifiResetSequenceLength;
+}
+
+void Configuration::setWiFiResetSequenceLengthAndSave(uint8_t value) {
+    wifiResetSequenceLength = value;
+    save();
 }
 
 }

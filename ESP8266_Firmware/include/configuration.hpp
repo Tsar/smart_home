@@ -5,6 +5,8 @@
 #define SWITCHERS_COUNT 4
 #define DIMMERS_COUNT   3
 
+#define DEFAULT_HTTP_PASSWORD "12345"
+
 namespace smart_home {
 
 struct DimmerSettings {
@@ -40,6 +42,9 @@ class Configuration {
         const volatile DimmerSettings* getDimmersSettings() const;
         void setDimmerSettings(uint8_t index, const DimmerSettings& settings);
 
+        uint8_t getWiFiResetSequenceLength() const;
+        void setWiFiResetSequenceLengthAndSave(uint8_t value);
+
     private:
         void resetAndSave();
 
@@ -51,6 +56,8 @@ class Configuration {
 
         int32_t dimmers_[DIMMERS_COUNT];
         volatile DimmerSettings dimmersSettings_[DIMMERS_COUNT];
+
+        uint8_t wifiResetSequenceLength;  // длина кодовой последовательности продолжительности включений контроллера для сброса настроек wi-fi
 };
 
 }

@@ -75,6 +75,10 @@ uint32_t udpScanCounter = 0;
 #define REJOIN_MULTICAST_GROUP_INTERVAL 120000  // 2 minutes
 Ticker rejoinMulticastGroupTicker;
 
+// Кодовая последовательность продолжительности включений контроллера для сброса настроек wi-fi, допустимо отклонение на 20%
+const std::vector<uint32_t> WIFI_RESET_SEQUENCE = {20000, 2000, 10000};
+Ticker wifiResetSequenceDetectorTicker;
+
 // Плавное изменение яркости
 ICACHE_RAM_ATTR void smoothLightnessChange() {
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
@@ -251,7 +255,8 @@ bool connectToWiFi(const char* ssid, const char* passphrase, bool connectInfinit
       return false;
     }
     Serial.printf("Not yet connected, status: %d\n", wifiConnectResult);
-    wifiConnectResult = WiFi.waitForConnectResult(10000);
+    delay(1000);  // making delay for part of wait, because sometimes waitForConnectResult exits immediately
+    wifiConnectResult = WiFi.waitForConnectResult(9000);
   }
 
   const auto& ip = WiFi.localIP();
@@ -441,7 +446,7 @@ void handleResetWiFi() {
 
   server.send(200, "text/plain", "OK");
   delay(100);
-  Serial.println("Reset wi-fi by request");
+  Serial.println("Reset wi-fi credentials by request");
   WiFi.disconnect(true);
   enableAccessPoint();
 }
@@ -582,6 +587,55 @@ void udpHandlePacket() {
   }
 }
 
+void resetWiFiResetSequence() {
+  homeCfg.setWiFiResetSequenceLengthAndSave(0);
+  Serial.printf("Done reset wi-fi reset sequence length to zero; current uptime = %ld ms\n", millis());
+}
+
+void incrementWiFiResetSequence() {
+  const uint8_t currentSeqLength = homeCfg.getWiFiResetSequenceLength();
+  homeCfg.setWiFiResetSequenceLengthAndSave(currentSeqLength + 1);
+
+  const auto currentUptime = millis();
+  Serial.printf("Done wi-fi reset sequence length incrementation to %d; current uptime = %ld ms\n", currentSeqLength + 1, currentUptime);
+
+  const uint32_t resetSeqLengthUptime = WIFI_RESET_SEQUENCE[currentSeqLength] * 1.2;
+  if (resetSeqLengthUptime >= currentUptime) {
+    wifiResetSequenceDetectorTicker.once_ms(resetSeqLengthUptime - currentUptime, resetWiFiResetSequence);
+  } else {
+    resetWiFiResetSequence();
+  }
+}
+
+// Проверка и обработка кодовой последовательности продолжительности включений контроллера для сброса настроек wi-fi
+void checkWiFiResetSequence() {
+  const uint8_t currentSeqLength = homeCfg.getWiFiResetSequenceLength();
+  if (currentSeqLength >= WIFI_RESET_SEQUENCE.size()) {
+    homeCfg.setPassword(DEFAULT_HTTP_PASSWORD);  // пароль для HTTP тоже сбрасываем, чтобы можно было добавить устройство как свежее
+    homeCfg.setWiFiResetSequenceLengthAndSave(0);
+
+    Serial.println("Reset wi-fi credentials by code sequence of uptimes");
+    WiFi.disconnect(true);
+
+    // Поморгать встроенным светодиодом 5 раз
+    for (uint8_t i = 0; i < 5; ++i) {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(60);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(60);
+    }
+  } else {
+    const auto currentUptime = millis();
+    const uint32_t incrementSeqLengthUptime = WIFI_RESET_SEQUENCE[currentSeqLength] * 0.8;
+    if (incrementSeqLengthUptime >= currentUptime) {
+      const uint32_t interval = incrementSeqLengthUptime - currentUptime;
+      wifiResetSequenceDetectorTicker.once_ms(interval, incrementWiFiResetSequence);
+    } else {
+      Serial.println("Failed to schedule wi-fi reset sequence length incrementation: it should have been in the past");
+    }
+  }
+}
+
 void setup() {
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     pinMode(DIMMER_PINS[i], OUTPUT);
@@ -613,6 +667,8 @@ void setup() {
                 resetCfgHappened ? "CONFIGURATION RESET HAPPENED!" : "Configuration loaded successfully",
                 homeCfg.getName().c_str(), homeCfg.getPassword().c_str()
   );
+
+  checkWiFiResetSequence();
 
   WiFi.persistent(true);
   WiFi.setAutoConnect(false);
