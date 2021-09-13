@@ -17,6 +17,7 @@
 #define INPUT_PIN 14  // for 50 Hz meander
 
 volatile uint32_t inputFallTimeMs = 0;
+volatile uint32_t inputFallsCount = 0;
 
 const uint8_t DIMMER_PINS[DIMMERS_COUNT] = {4, 5, 12};
 const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 9, 10};
@@ -154,6 +155,7 @@ ICACHE_RAM_ATTR void onInputFall() {
   const uint32_t now = millis();
   if (now - inputFallTimeMs < 15) return;
   inputFallTimeMs = now;
+  ++inputFallsCount;
 
   nextEventId = 0;
   if (eventsQueueSize > 0) {
@@ -318,6 +320,10 @@ String generateInfoJson(bool minimal) {
       result += SWITCHER_PREFIX + String(i) + "\": " + (homeCfg.isSwitcherInverted(i) ? "1" : "0") + (i + 1 == SWITCHERS_COUNT ? "" : ",\n    \"");
     }
     result += "\n  },\n  \"order\": {\n    \"dimmers\": [0, 1, 2],\n    \"switchers\": [0, 1, 2, 3]\n  }";  // TODO: dynamic order
+    const auto currentUptime = millis();
+    result += ",\n  \"uptime_ms\": " + String(currentUptime)
+            + ",\n  \"input_falls_count\": " + String(inputFallsCount)
+            + ",\n  \"average_input_fall_interval_ms\": " + String(static_cast<double>(currentUptime) / inputFallsCount, 5);
   }
   result += "\n}\n";
   return result;
