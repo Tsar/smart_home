@@ -171,7 +171,7 @@ public class DeviceSettings extends BaseScreen {
                                 final String responseStr = response.getDataAsStr();
                                 if (responseStr.startsWith("ACCEPTED")) {
                                     activity.runOnUiThread(() -> {
-                                        Toast.makeText(activity, tr(R.string.settings_successfully_saved), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, tr(R.string.device_settings_successfully_saved), Toast.LENGTH_LONG).show();
                                         btnSaveDeviceSettings.setEnabled(true);
                                     });
                                 } else {
@@ -200,12 +200,74 @@ public class DeviceSettings extends BaseScreen {
         edtPassword = activity.findViewById(R.id.edtPassword);
         Button btnSaveConnectionSettings = activity.findViewById(R.id.btnSaveConnectionSettings);
 
-        // temporary, remove when continuing developing
-        btnSaveConnectionSettings.setEnabled(false);
-        btnSaveConnectionSettings.setText("Сохранить [ещё не реализовано]");
-
         btnSaveConnectionSettings.setOnClickListener(v -> {
-            // TODO
+            String ipAddress = edtIpAddress.getText().toString();
+            String portStr = edtPort.getText().toString();
+            if (!Utils.isValidIpAddress(ipAddress) || !Utils.isValidPort(portStr)) {
+                showOkDialog(tr(R.string.error), tr(R.string.invalid_ip_or_port));
+                return;
+            }
+            int port = Integer.parseInt(portStr);
+            boolean permanentIp = cbIpIsStatic.isChecked();
+            String httpPassword = edtPassword.getText().toString();
+
+            edtIpAddress.setEnabled(false);
+            edtPort.setEnabled(false);
+            cbIpIsStatic.setEnabled(false);
+            edtPassword.setEnabled(false);
+            btnSaveConnectionSettings.setEnabled(false);
+
+            Http.asyncRequest(
+                    DeviceInfo.getHttpAddress(ipAddress, port) + "/get_info?binary",
+                    null,
+                    httpPassword,
+                    null,
+                    5,
+                    new Http.Listener() {
+                        private void enableUI() {
+                            edtIpAddress.setEnabled(true);
+                            edtPort.setEnabled(true);
+                            cbIpIsStatic.setEnabled(true);
+                            edtPassword.setEnabled(true);
+                            btnSaveConnectionSettings.setEnabled(true);
+                        }
+
+                        private void showErrorAndEnableUI(String message) {
+                            activity.runOnUiThread(() -> showOkDialog(tr(R.string.error), message, (dialog, which) -> enableUI()));
+                        }
+
+                        @Override
+                        public void onResponse(Http.Response response) {
+                            final int respCode = response.getHttpCode();
+                            if (respCode == HttpURLConnection.HTTP_OK) {
+                                try {
+                                    DeviceInfo newInfo = new DeviceInfo(response.getData());
+                                    if (newInfo.getMacAddress().equals(device.getMacAddress())) {
+                                        device.setParams(newInfo.getName(), ipAddress, port, permanentIp, httpPassword);
+                                        commonData.getDevices().addOrUpdateDevice(device);
+                                        activity.runOnUiThread(() -> {
+                                            Toast.makeText(activity, tr(R.string.connection_settings_updated), Toast.LENGTH_LONG).show();
+                                            enableUI();
+                                        });
+                                    } else {
+                                        showErrorAndEnableUI(tr(R.string.others_devices_mac_address));
+                                    }
+                                } catch (DeviceInfo.BinaryInfoParseException e) {
+                                    showErrorAndEnableUI(tr(R.string.device_unexpected_response_2));
+                                }
+                            } else if (respCode == HttpURLConnection.HTTP_FORBIDDEN) {
+                                showErrorAndEnableUI(tr(R.string.invalid_password));
+                            } else {
+                                showErrorAndEnableUI(tr(R.string.device_bad_response_code_2));
+                            }
+                        }
+
+                        @Override
+                        public void onError(IOException exception) {
+                            showErrorAndEnableUI(tr(R.string.device_connect_failed_2));
+                        }
+                    }
+            );
         });
 
         setupShowPasswordCheckBox(activity.findViewById(R.id.cbShowPassword), edtPassword);

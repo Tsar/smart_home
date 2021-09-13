@@ -21,6 +21,11 @@ public class DevicesList implements DeviceInfo.Listener {
     private final Map<String, DeviceInfo> deviceMap;
     private Listener listener = null;
 
+    public enum AddOrUpdateResult {
+        ADD,
+        UPDATE
+    }
+
     public interface Listener {
         void onAnyDeviceInfoChanged();
     }
@@ -70,7 +75,7 @@ public class DevicesList implements DeviceInfo.Listener {
         editor.apply();
     }
 
-    public void addDevice(DeviceInfo deviceInfo) {
+    public AddOrUpdateResult addOrUpdateDevice(DeviceInfo deviceInfo) {
         String macAddress = deviceInfo.getMacAddress();
 
         if (deviceMap.containsKey(macAddress)) {
@@ -84,8 +89,7 @@ public class DevicesList implements DeviceInfo.Listener {
                         deviceInfo.getHttpPassword()
                 );
                 saveStorage();
-                // TODO: tell user that new device wasn't added, just existing device was updated
-                return;
+                return AddOrUpdateResult.UPDATE;
             }
         }
 
@@ -93,6 +97,7 @@ public class DevicesList implements DeviceInfo.Listener {
         deviceInfoList.add(deviceInfo);
         deviceMap.put(macAddress, deviceInfo);
         saveStorage();
+        return AddOrUpdateResult.ADD;
     }
 
     public List<DeviceInfo> getList() {

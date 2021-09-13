@@ -99,7 +99,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
                                             ));
                                         }
                                     } else {
-                                        commonData.getDevices().addDevice(deviceInfo);
+                                        commonData.getDevices().addOrUpdateDevice(deviceInfo);
                                         activity.runOnUiThread(() -> commonData.getScreenLauncher().launchScreen(ScreenId.MAIN));
                                     }
                                 } catch (DeviceInfo.BinaryInfoParseException e) {

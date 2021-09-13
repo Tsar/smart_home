@@ -50,8 +50,13 @@ public class DeviceConnected extends BaseScreen {
                                     new Timer().schedule(new TimerTask() {
                                         @Override
                                         public void run() {
-                                            commonData.getDevices().addDevice(deviceInfo);
-                                            activity.runOnUiThread(() -> commonData.getScreenLauncher().launchScreen(ScreenId.MAIN));
+                                            DevicesList.AddOrUpdateResult addOrUpdate = commonData.getDevices().addOrUpdateDevice(deviceInfo);
+                                            activity.runOnUiThread(() -> {
+                                                commonData.getScreenLauncher().launchScreen(ScreenId.MAIN);
+                                                if (addOrUpdate == DevicesList.AddOrUpdateResult.UPDATE) {
+                                                    showOkDialog(tr(R.string.warning), tr(R.string.device_was_already_in_the_list));
+                                                }
+                                            });
                                         }
                                     }, 350);
                                 } else {
