@@ -14,6 +14,7 @@ import urllib.parse
 from datetime import datetime
 
 MAC_ADDRESS = 'AA:BB:CC:DD:EE:FF'
+MAC_ADDRESS_BYTES = b'\xAA\xBB\xCC\xDD\xEE\xFF'
 
 HTTP_PORT = 80
 
@@ -22,8 +23,10 @@ UDP_MULTICAST_PORT = 25061
 
 DIMMER_MAX_VALUE = 1000
 
-name = 'device-emulator'
+DIMMERS_COUNT = 3
+SWITCHERS_COUNT = 4
 
+name = 'device-emulator'
 password = '12345'
 
 values = {
@@ -117,7 +120,26 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if not self.checkPassword():
             return
 
-        if self.path == '/get_info?minimal':
+        if self.path == '/get_info?binary':
+            nameBin = name.encode('UTF-8')
+            result = struct.pack('<6sH', MAC_ADDRESS_BYTES, len(nameBin)) + nameBin
+            result += struct.pack('<B', DIMMERS_COUNT)
+            for i in range(DIMMERS_COUNT):
+                dimKey = 'dim' + str(i)
+                dimSettings = dimmers_settings[dimKey]
+                result += struct.pack('<4H',
+                                      values[dimKey],
+                                      dimSettings['value_change_step'],
+                                      dimSettings['min_lightness_micros'],
+                                      dimSettings['max_lightness_micros']
+                )
+            result += struct.pack('<B', SWITCHERS_COUNT)
+            for i in range(SWITCHERS_COUNT):
+                swKey = 'sw' + str(i)
+                result += struct.pack('<2B', values[swKey], switchers_inverted[swKey])
+            self.send_response_advanced(200, 'application/octet-stream', result)
+
+        elif self.path == '/get_info?minimal':
             result = {
                 'mac': MAC_ADDRESS,
                 'name': name
