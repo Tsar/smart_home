@@ -2,13 +2,13 @@ package ru.tsar_ioann.smarthome;
 
 import android.util.Log;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Iterator;
 
 public class DeviceInfo {
     public static final String ACCESS_POINT_ADDRESS = "http://192.168.4.1";
@@ -65,106 +65,62 @@ public class DeviceInfo {
         void onDeviceDiscovered();
     }
 
-    public static class InvalidMacAddressException extends Exception {
-        public InvalidMacAddressException(String macAddress) {
-            super("Invalid MAC address '" + macAddress + "'");
+    public static class BinaryInfoParseException extends Exception {
+        public BinaryInfoParseException(String message) {
+            super(message);
         }
-    }
-
-    public static DeviceInfo parseMinimalJson(String json) throws JSONException, InvalidMacAddressException {
-        return parseJson(json, true);
-    }
-
-    public static DeviceInfo parseJson(String json) throws JSONException, InvalidMacAddressException {
-        return parseJson(json, false);
-    }
-
-    private static DeviceInfo parseJson(String json, boolean minimal) throws JSONException, InvalidMacAddressException {
-        JSONObject obj = new JSONObject(json);
-        String macAddress = obj.getString("mac");
-        if (!Utils.isValidMacAddress(macAddress)) {
-            throw new InvalidMacAddressException(macAddress);
-        }
-        DeviceInfo result = new DeviceInfo(macAddress, obj.getString("name"));
-        if (minimal) {
-            return result;
-        }
-
-        JSONObject values = obj.getJSONObject("values");
-        Iterator<String> keys = values.keys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            if (key.startsWith(DIMMER_PREFIX)) {
-                try {
-                    int n = Integer.parseInt(key.substring(DIMMER_PREFIX.length()));
-                    result.setDimmerValue(n, values.getInt(key));
-                } catch (NumberFormatException ignored) {
-                    // skipping field
-                }
-            } else if (key.startsWith(SWITCHER_PREFIX)) {
-                try {
-                    int n = Integer.parseInt(key.substring(SWITCHER_PREFIX.length()));
-                    result.setSwitcherValue(n, values.getInt(key) != 0);
-                } catch (NumberFormatException ignored) {
-                    // skipping field
-                }
-            }
-        }
-
-        JSONObject dimmersSettings = obj.getJSONObject("dimmers_settings");
-        keys = dimmersSettings.keys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            if (key.startsWith(DIMMER_PREFIX)) {
-                try {
-                    int n = Integer.parseInt(key.substring(DIMMER_PREFIX.length()));
-                    if (n >= 0 && n < DIMMERS_COUNT) {
-                        JSONObject dimmerSettings = dimmersSettings.getJSONObject(key);
-                        result.dimmersSettings[n] = new DimmerSettings(
-                                dimmerSettings.getInt("value_change_step"),
-                                dimmerSettings.getInt("min_lightness_micros"),
-                                dimmerSettings.getInt("max_lightness_micros")
-                        );
-                    }
-                } catch (NumberFormatException ignored) {
-                    // skipping field
-                }
-            }
-        }
-
-        JSONObject switchersInverted = obj.getJSONObject("switchers_inverted");
-        keys = switchersInverted.keys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            if (key.startsWith(SWITCHER_PREFIX)) {
-                try {
-                    int n = Integer.parseInt(key.substring(SWITCHER_PREFIX.length()));
-                    if (n >= 0 && n < SWITCHERS_COUNT) {
-                        result.switchersInverted[n] = switchersInverted.getInt(key) != 0;
-                    }
-                } catch (NumberFormatException ignored) {
-                    // skipping field
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private DeviceInfo(String macAddress, String name) {
-        this.macAddress = macAddress;
-        this.name = name;
-        Arrays.fill(this.dimmerValues, 500);
     }
 
     public DeviceInfo(String macAddress, String name, String ipAddress, int port, boolean permanentIp, String httpPassword, Listener listener) {
-        this(macAddress, name);
+        this.macAddress = macAddress;
+        this.name = name;
         this.ipAddress = ipAddress;
         this.port = port;
         this.permanentIp = permanentIp;
         this.httpPassword = httpPassword;
         this.listener = listener;
         Arrays.fill(this.dimmerValues, 500);
+    }
+
+    public DeviceInfo(byte[] binaryInfo) throws BinaryInfoParseException {
+        ByteBuffer buffer = ByteBuffer.allocate(binaryInfo.length)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .put(binaryInfo);
+        buffer.position(0);
+
+        try {
+            byte[] macAddressBytes = new byte[6];
+            buffer.get(macAddressBytes);
+            macAddress = Utils.macAddressBytesToString(macAddressBytes);
+
+            short nameLength = buffer.getShort();
+            byte[] nameBytes = new byte[nameLength];
+            buffer.get(nameBytes);
+            name = new String(nameBytes, StandardCharsets.UTF_8);
+
+            byte dimmersCount = buffer.get();
+            if (dimmersCount != DIMMERS_COUNT) {
+                throw new BinaryInfoParseException("Unsupported dimmers count " + dimmersCount + ", expected " + DIMMERS_COUNT);
+            }
+            for (int i = 0; i < DIMMERS_COUNT; ++i) {
+                dimmerValues[i] = buffer.getShort();
+                int valueChangeStep = buffer.getShort();
+                int minLightnessMicros = buffer.getShort();
+                int maxLightnessMicros = buffer.getShort();
+                dimmersSettings[i] = new DimmerSettings(valueChangeStep, minLightnessMicros, maxLightnessMicros);
+            }
+
+            byte switchersCount = buffer.get();
+            if (switchersCount != SWITCHERS_COUNT) {
+                throw new BinaryInfoParseException("Unsupported switchers count " + switchersCount + ", expected " + SWITCHERS_COUNT);
+            }
+            for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+                switcherValues[i] = (buffer.get() != 0);
+                switchersInverted[i] = (buffer.get() != 0);
+            }
+        } catch (BufferUnderflowException e) {
+            throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
+        }
     }
 
     public String getMacAddress() {
@@ -300,7 +256,7 @@ public class DeviceInfo {
             return;
         }
         Http.asyncRequest(
-                getHttpAddress() + "/get_info",
+                getHttpAddress() + "/get_info?binary",
                 null,
                 httpPassword,
                 null,
@@ -314,8 +270,8 @@ public class DeviceInfo {
                         }
                         DeviceInfo info;
                         try {
-                            info = DeviceInfo.parseJson(response.getDataAsStr());
-                        } catch (JSONException | InvalidMacAddressException e) {
+                            info = new DeviceInfo(response.getData());
+                        } catch (BinaryInfoParseException e) {
                             Log.d(LOG_TAG, "Discover failed: could not parse response: " + e.getMessage());
                             return;
                         }

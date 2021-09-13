@@ -3,8 +3,6 @@ package ru.tsar_ioann.smarthome.screens;
 import android.app.Activity;
 import android.widget.TextView;
 
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Timer;
@@ -27,7 +25,7 @@ public class DeviceConnected extends BaseScreen {
         assert deviceInfo != null;
 
         Http.asyncRequest(
-                deviceInfo.getHttpAddress() + "/get_info?minimal",
+                deviceInfo.getHttpAddress() + "/get_info?binary",
                 null,
                 DeviceInfo.DEFAULT_HTTP_PASSWORD,
                 null,
@@ -37,7 +35,7 @@ public class DeviceConnected extends BaseScreen {
                     public void onResponse(Http.Response response) {
                         if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
                             try {
-                                DeviceInfo deviceInfoAgain = DeviceInfo.parseMinimalJson(response.getDataAsStr());
+                                DeviceInfo deviceInfoAgain = new DeviceInfo(response.getData());
                                 if (deviceInfo.getMacAddress().equals(deviceInfoAgain.getMacAddress())) {
                                     // Disable access point on device
                                     Http.asyncRequest(
@@ -59,7 +57,7 @@ public class DeviceConnected extends BaseScreen {
                                 } else {
                                     showErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
                                 }
-                            } catch (JSONException | DeviceInfo.InvalidMacAddressException e) {
+                            } catch (DeviceInfo.BinaryInfoParseException e) {
                                 showErrorAndGoToMainScreen(tr(R.string.device_unexpected_response));
                             }
                         } else {

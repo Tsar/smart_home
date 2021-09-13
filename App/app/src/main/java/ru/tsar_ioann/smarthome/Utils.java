@@ -24,6 +24,17 @@ public class Utils {
         }
     }
 
+    public static String macAddressBytesToString(byte[] macAddressBytes) {
+        StringBuilder sb = new StringBuilder(18);
+        for (byte b : macAddressBytes) {
+            if (sb.length() > 0) {
+                sb.append(':');
+            }
+            sb.append(String.format("%02X", b));
+        }
+        return sb.toString();
+    }
+
     public static boolean isValidMacAddress(String macAddress) {
         return macAddress.matches(MAC_ADDRESS_REGEX);
     }

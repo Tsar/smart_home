@@ -7,8 +7,6 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
@@ -52,7 +50,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
             btnAddDevice.setEnabled(false);
 
             Http.asyncRequest(
-                    DeviceInfo.getHttpAddress(ipAddress, port) + "/get_info?minimal",
+                    DeviceInfo.getHttpAddress(ipAddress, port) + "/get_info?binary",
                     null,
                     httpPassword,
                     null,
@@ -75,7 +73,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
                             final int respCode = response.getHttpCode();
                             if (respCode == HttpURLConnection.HTTP_OK) {
                                 try {
-                                    DeviceInfo deviceInfo = DeviceInfo.parseMinimalJson(response.getDataAsStr());
+                                    DeviceInfo deviceInfo = new DeviceInfo(response.getData());
                                     deviceInfo.setParams(deviceInfo.getName(), ipAddress, port, permanentIp, httpPassword);
 
                                     DeviceInfo existingDeviceWithSameMac = commonData.getDevices().getDeviceByMacAddress(deviceInfo.getMacAddress());
@@ -104,7 +102,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
                                         commonData.getDevices().addDevice(deviceInfo);
                                         activity.runOnUiThread(() -> commonData.getScreenLauncher().launchScreen(ScreenId.MAIN));
                                     }
-                                } catch (JSONException | DeviceInfo.InvalidMacAddressException e) {
+                                } catch (DeviceInfo.BinaryInfoParseException e) {
                                     showErrorAndEnableUI(tr(R.string.device_unexpected_response));
                                 }
                             } else if (respCode == HttpURLConnection.HTTP_FORBIDDEN) {
