@@ -118,7 +118,7 @@ public class Http {
             OutputStream os = connection.getOutputStream();
             os.write(data, 0, data.length);
             os.close();
-            logData("Request data:  ", data);
+            Log.d(LOG_TAG, "Request data:  " + new String(data, StandardCharsets.UTF_8));
         } else {
             connection.setRequestMethod("GET");
         }
@@ -133,16 +133,18 @@ public class Http {
                 response.appendData(buffer, n);
             }
             is.close();
-            logData("Response data: ", response.getData());
+
+            String contentType = connection.getHeaderField("Content-Type");
+            if (contentType != null && contentType.equals("application/octet-stream")) {
+                Log.d(LOG_TAG, "Response data bytes: " + Utils.bytesToHex(response.getData()));
+            } else {
+                Log.d(LOG_TAG, "Response data: " + response.getDataAsStr());
+            }
         } else {
             Log.d(LOG_TAG, "Response code: " + httpCode);
         }
 
         connection.disconnect();
         return response;
-    }
-
-    private static void logData(String prefix, byte[] data) {
-        Log.d(LOG_TAG, prefix + new String(data, StandardCharsets.UTF_8));
     }
 }
