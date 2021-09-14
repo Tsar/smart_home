@@ -190,12 +190,9 @@ ICACHE_RAM_ATTR void onTimerISR() {
   }
 }
 
-void fillDimmerValues(bool fillCurrent = false) {
+void fillDimmerValues() {
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     targetDimmerValues[i] = homeCfg.getDimmerValue(i);
-    if (fillCurrent) {
-      dimmerValues[i] = targetDimmerValues[i];
-    }
   }
 }
 
@@ -655,7 +652,7 @@ void setup() {
   homeCfg.loadOrReset(resetCfgHappened);
 
   dimmersSettings = homeCfg.getDimmersSettings();
-  fillDimmerValues(true);
+  fillDimmerValues();
   createEventsQueue();
   applySwitcherValues();
 
