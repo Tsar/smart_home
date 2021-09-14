@@ -282,11 +282,13 @@ bool checkPassword() {
     return true;
   }
   server.send(403, "text/plain", "Forbidden");
+  Serial.printf("Sent 403 for %s\n", server.uri().c_str());
   return false;
 }
 
 void sendBadRequest() {
   server.send(400, "text/plain", "Bad Request");
+  Serial.printf("Sent 400 for %s\n", server.uri().c_str());
 }
 
 // Create JSON (inefficiently)
@@ -390,7 +392,7 @@ void generateInfoBinary() {
 }
 
 void handleGetInfo() {
-  const auto tsStart = millis();
+  const auto tsStart = micros64();
 
   if (!checkPassword()) return;
 
@@ -401,8 +403,8 @@ void handleGetInfo() {
     server.send(200, "application/json", generateInfoJson(server.hasArg("minimal")));
   }
 
-  const auto tsEnd = millis();
-  Serial.printf("Handled %s, spent %ld ms\n", server.uri().c_str(), tsEnd - tsStart);
+  const auto tsEnd = micros64();
+  Serial.printf("Handled %s, spent %.2lf ms\n", server.uri().c_str(), (tsEnd - tsStart) / 1000.0);
 }
 
 void handleSetupWiFi() {
@@ -465,6 +467,8 @@ void handleTurnOffAccessPoint() {
 }
 
 void handleSetValues() {
+  const auto tsStart = micros64();
+
   if (!checkPassword()) return;
 
   bool dimmersChanged = false;
@@ -502,10 +506,21 @@ void handleSetValues() {
     if (switchersChanged) {
       applySwitcherValues();
     }
-    homeCfg.save();
     server.send(200, "text/plain", "ACCEPTED\n");
+
+    const auto tsSaveCfgStart = micros64();
+    homeCfg.save();
+
+    const auto tsEnd = micros64();
+    Serial.printf(
+      "Handled %s, spent %.2lf ms (%.2lf for handling + %.2lf for saving to flash), accepted new values\n", server.uri().c_str(),
+      (tsEnd - tsStart) / 1000.0, (tsSaveCfgStart - tsStart) / 1000.0, (tsEnd - tsSaveCfgStart) / 1000.0
+    );
   } else {
     server.send(200, "text/plain", "NOTHING_CHANGED\n");
+
+    const auto tsEnd = micros64();
+    Serial.printf("Handled %s, spent %.2lf ms, nothing was changed\n", server.uri().c_str(), (tsEnd - tsStart) / 1000.0);
   }
 }
 
@@ -556,6 +571,7 @@ void handleSetSettings() {
 
   homeCfg.save();
   server.send(200, "text/plain", "ACCEPTED\n");
+  Serial.printf("Handled %s\n", server.uri().c_str());
 }
 
 void handleSetPassword() {
@@ -569,10 +585,12 @@ void handleSetPassword() {
   homeCfg.setPassword(server.arg("password"));
   homeCfg.save();
   server.send(200, "text/plain", "ACCEPTED\n");
+  Serial.printf("Handled %s\n", server.uri().c_str());
 }
 
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
+  Serial.printf("Sent 404 for %s\n", server.uri().c_str());
 }
 
 void udpHandlePacket() {
