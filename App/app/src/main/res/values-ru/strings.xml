@@ -71,4 +71,5 @@
     <string name="restrictions_for_min_max_micros">Микросекунды для минимальной яркости всегда должны быть больше, чем микросекунды для максимальной яркости.\n\nНеподходящие значения: %1$d и %2$d.</string>
     <string name="device_was_already_in_the_list">Устройство с таким MAC-адресом уже было у вас в списке!\n\nТеперь оно перенастроено. Параметры для подключения к нему обновлены.</string>
     <string name="others_devices_mac_address">По указанным настройкам подключения отвечает другое устройство (с другим MAC-адресом)!</string>
+    <string name="function_unavailable">К сожалению, этот функционал недоступен для Android меньше 10!</string>
 </resources>

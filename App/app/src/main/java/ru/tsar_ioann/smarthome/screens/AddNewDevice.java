@@ -28,6 +28,12 @@ public class AddNewDevice extends BaseScreen {
         btnAddConfigured.setText(Html.fromHtml(tr(R.string.add_configured_device)));
 
         btnAddFresh.setOnClickListener(v -> {
+            // TODO: support Android < Q
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+                showOkDialog(tr(R.string.warning), tr(R.string.function_unavailable));
+                return;
+            }
+
             if (!commonData.getWifi().isWifiEnabled()) {
                 showOkDialog(tr(R.string.wifi_is_off), tr(R.string.enable_wifi_prompt));
                 return;

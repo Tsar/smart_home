@@ -71,4 +71,5 @@
     <string name="restrictions_for_min_max_micros">Microseconds for min lightness must always be greater than microseconds for max lightness.\n\nBad values: %1$d and %2$d.</string>
     <string name="device_was_already_in_the_list">Device with this MAC address was already in your list!\n\nNow it has been reconfigured. And it\'s connection settings have been updated.</string>
     <string name="others_devices_mac_address">Other device (with different MAC address) answers by specified connection settings!</string>
+    <string name="function_unavailable">Sorry, but this feature is not available for Android lower than 10!</string>
 </resources>
