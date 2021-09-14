@@ -16,7 +16,8 @@
     <string name="search_finished_nothing_found">Поиск свежих устройств завершён.\n\nСвежие устройства не найдены.</string>
     <string name="search_finished_choose_device">Поиск свежих устройств завершён.\n\nЕсли Вы видите своё устройство в списке, нажмите на него.</string>
     <string name="connecting_to_device">Выполняется подключение к устройству…</string>
-    <string name="connected_to_device">Подключение к устройству успешно выполнено.\n\nТеперь выберите свою домашнюю сеть или введите её название вручную.</string>
+    <string name="connected_to_device">Подключение к устройству успешно выполнено.\n</string>
+    <string name="choose_your_home_network">Теперь выберите свою домашнюю сеть или введите её название вручную. Поиск Wi-Fi сетей…</string>
     <string name="input_network_manually">Ввести название сети вручную</string>
     <string name="network_ssid">Название сети (SSID)</string>
     <string name="passphrase">Пароль</string>

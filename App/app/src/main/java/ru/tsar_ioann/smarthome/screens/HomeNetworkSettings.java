@@ -142,9 +142,4 @@ public class HomeNetworkSettings extends BaseScreen {
     public int getViewFlipperChildId() {
         return 4;
     }
-
-    @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
-    }
 }

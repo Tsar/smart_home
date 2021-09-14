@@ -1,8 +1,10 @@
 package ru.tsar_ioann.smarthome.screens;
 
 import android.app.Activity;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.util.HashSet;
@@ -19,6 +21,7 @@ public class FreshDevices extends BaseScreen {
 
         Activity activity = commonData.getActivity();
         TextView txtSearchTitle = activity.findViewById(R.id.txtSearchTitle);
+        ProgressBar pbFreshDevicesSearch = activity.findViewById(R.id.pbFreshDevicesSearch);
         ListView lstNewDevices = activity.findViewById(R.id.lstNewDevices);
 
         ArrayAdapter<String> lstNewDevicesAdapter = new ArrayAdapter<>(activity, android.R.layout.simple_list_item_1);
@@ -30,6 +33,7 @@ public class FreshDevices extends BaseScreen {
         });
 
         txtSearchTitle.setText(tr(R.string.searching_fresh_devices));
+        pbFreshDevicesSearch.setVisibility(View.VISIBLE);
         Set<String> devices = new HashSet<>();
         lstNewDevicesAdapter.clear();
         commonData.getWifi().scan(30, new Wifi.ScanListener() {
@@ -47,10 +51,12 @@ public class FreshDevices extends BaseScreen {
 
             @Override
             public void onScanFinished() {
-                activity.runOnUiThread(() -> txtSearchTitle.setText(tr(lstNewDevicesAdapter.getCount() > 0
-                        ? R.string.search_finished_choose_device
-                        : R.string.search_finished_nothing_found))
-                );
+                activity.runOnUiThread(() -> {
+                    pbFreshDevicesSearch.setVisibility(View.GONE);
+                    txtSearchTitle.setText(tr(lstNewDevicesAdapter.getCount() > 0
+                                    ? R.string.search_finished_choose_device
+                                    : R.string.search_finished_nothing_found));
+                });
             }
         });
     }
@@ -58,10 +64,5 @@ public class FreshDevices extends BaseScreen {
     @Override
     public int getViewFlipperChildId() {
         return 2;
-    }
-
-    @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
     }
 }

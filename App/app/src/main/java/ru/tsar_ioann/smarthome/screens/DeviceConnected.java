@@ -82,9 +82,4 @@ public class DeviceConnected extends BaseScreen {
     public int getViewFlipperChildId() {
         return 5;
     }
-
-    @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
-    }
 }

@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ public class ConfiguredDevices extends BaseScreen {
 
     private final Activity activity;
     private final ArrayAdapter<DeviceInfo> lstConfiguredDevicesAdapter;
+    private final Timer timerMulticastRepeater;
 
     private final List<DeviceInfo> configuredDevicesList;
     private final Set<String> configuredDevices;
@@ -37,10 +39,12 @@ public class ConfiguredDevices extends BaseScreen {
 
         activity = commonData.getActivity();
         TextView txtSearchingConfigured = activity.findViewById(R.id.txtSearchingConfigured);
+        ProgressBar pbConfiguredDevicesSearch = activity.findViewById(R.id.pbConfiguredDevicesSearch);
         ListView lstConfiguredDevices = activity.findViewById(R.id.lstConfiguredDevices);
         Button btnInputIP = activity.findViewById(R.id.btnInputIP);
 
         txtSearchingConfigured.setText(tr(R.string.searching_configured_devices));
+        pbConfiguredDevicesSearch.setVisibility(View.VISIBLE);
 
         configuredDevices = new HashSet<>();
         for (DeviceInfo addedDevice : commonData.getDevices().getList()) {
@@ -69,7 +73,7 @@ public class ConfiguredDevices extends BaseScreen {
         };
         lstConfiguredDevices.setAdapter(lstConfiguredDevicesAdapter);
 
-        Timer timerMulticastRepeater = new Timer();
+        timerMulticastRepeater = new Timer();
         timerMulticastRepeater.schedule(new TimerTask() {
             private int sentMulticasts = 0;
 
@@ -77,10 +81,12 @@ public class ConfiguredDevices extends BaseScreen {
             public void run() {
                 if (sentMulticasts >= MULTICASTS_COUNT) {
                     timerMulticastRepeater.cancel();
-                    activity.runOnUiThread(() -> txtSearchingConfigured.setText(tr(configuredDevicesList.size() > 0
-                            ? R.string.search_configured_finished_choose_device
-                            : R.string.search_configured_finished_nothing_found))
-                    );
+                    activity.runOnUiThread(() -> {
+                        pbConfiguredDevicesSearch.setVisibility(View.GONE);
+                        txtSearchingConfigured.setText(tr(configuredDevicesList.size() > 0
+                                        ? R.string.search_configured_finished_choose_device
+                                        : R.string.search_configured_finished_nothing_found));
+                    });
                     return;
                 }
 
@@ -94,7 +100,6 @@ public class ConfiguredDevices extends BaseScreen {
         }, 0, DELAY_BETWEEN_MULTICASTS);
 
         lstConfiguredDevices.setOnItemClickListener((adapterView, view, position, id) -> {
-            timerMulticastRepeater.cancel();
             DeviceInfo chosenDevice = (DeviceInfo)adapterView.getItemAtPosition(position);
             ConfiguredDeviceParams screen = (ConfiguredDeviceParams)commonData
                     .getScreenLauncher().launchScreen(ScreenId.CONFIGURED_DEVICE_PARAMS);
@@ -118,12 +123,12 @@ public class ConfiguredDevices extends BaseScreen {
     }
 
     @Override
-    public int getViewFlipperChildId() {
-        return 6;
+    public void onScreenLeave() {
+        timerMulticastRepeater.cancel();
     }
 
     @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
+    public int getViewFlipperChildId() {
+        return 6;
     }
 }

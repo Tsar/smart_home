@@ -340,9 +340,4 @@ public class DeviceSettings extends BaseScreen {
     public int getViewFlipperChildId() {
         return 8;
     }
-
-    @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
-    }
 }

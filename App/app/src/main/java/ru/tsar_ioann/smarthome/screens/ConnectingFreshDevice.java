@@ -4,9 +4,11 @@ import android.app.Activity;
 import android.net.Network;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -18,6 +20,8 @@ import ru.tsar_ioann.smarthome.*;
 
 public class ConnectingFreshDevice extends BaseScreen {
     private final TextView txtConnecting;
+    private final ProgressBar pbConnecting;
+    private final ViewGroup layoutSearchingNetworks;
     private final ListView lstNetworks;
     private final Button btnSetNetwork;
     private final ArrayAdapter<String> lstNetworksAdapter;
@@ -27,6 +31,8 @@ public class ConnectingFreshDevice extends BaseScreen {
 
         Activity activity = commonData.getActivity();
         txtConnecting = activity.findViewById(R.id.txtConnecting);
+        pbConnecting = activity.findViewById(R.id.pbConnecting);
+        layoutSearchingNetworks = activity.findViewById(R.id.layoutSearchingNetworks);
         lstNetworks = activity.findViewById(R.id.lstNetworks);
         btnSetNetwork = activity.findViewById(R.id.btnSetNetwork);
 
@@ -43,6 +49,8 @@ public class ConnectingFreshDevice extends BaseScreen {
 
     public void connectToDevice(String deviceSsid) {
         txtConnecting.setText(R.string.connecting_to_device);
+        pbConnecting.setVisibility(View.VISIBLE);
+        layoutSearchingNetworks.setVisibility(View.GONE);
         lstNetworks.setVisibility(View.GONE);
         btnSetNetwork.setVisibility(View.GONE);
 
@@ -67,9 +75,11 @@ public class ConnectingFreshDevice extends BaseScreen {
                             commonData.setNewDeviceInfo(deviceInfo);
                             commonData.getActivity().runOnUiThread(() -> {
                                 txtConnecting.setText(R.string.connected_to_device);
+                                pbConnecting.setVisibility(View.GONE);
                                 Set<String> networks = new HashSet<>();
                                 lstNetworksAdapter.clear();
 
+                                layoutSearchingNetworks.setVisibility(View.VISIBLE);
                                 lstNetworks.setVisibility(View.VISIBLE);
                                 btnSetNetwork.setVisibility(View.VISIBLE);
 
@@ -117,10 +127,5 @@ public class ConnectingFreshDevice extends BaseScreen {
     @Override
     public int getViewFlipperChildId() {
         return 3;
-    }
-
-    @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
     }
 }

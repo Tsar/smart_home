@@ -4,16 +4,57 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/txtConnecting"
-        android:layout_alignParentTop="true"
+    <RelativeLayout
+        android:id="@+id/layoutConnecting"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/connected_to_device" />
+        android:layout_alignParentTop="true">
+
+        <TextView
+            android:id="@+id/txtConnecting"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@id/pbConnecting"
+            android:text="@string/connected_to_device" />
+
+        <ProgressBar
+            android:id="@+id/pbConnecting"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:indeterminate="true" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/layoutSearchingNetworks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/layoutConnecting">
+
+        <TextView
+            android:id="@+id/txtSearchingNetworks"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@id/pbSearchingNetworks"
+            android:text="@string/choose_your_home_network" />
+
+        <ProgressBar
+            android:id="@+id/pbSearchingNetworks"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:indeterminate="true" />
+
+    </RelativeLayout>
 
     <ListView
         android:id="@+id/lstNetworks"
-        android:layout_below="@id/txtConnecting"
+        android:layout_below="@id/layoutSearchingNetworks"
         android:layout_above="@id/btnSetNetwork"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />

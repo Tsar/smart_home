@@ -153,9 +153,4 @@ public class ConfiguredDeviceParams extends BaseScreen {
     public int getViewFlipperChildId() {
         return 7;
     }
-
-    @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
-    }
 }

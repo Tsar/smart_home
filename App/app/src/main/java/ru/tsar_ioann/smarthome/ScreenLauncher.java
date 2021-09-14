@@ -20,6 +20,9 @@ public class ScreenLauncher {
     }
 
     public BaseScreen launchScreen(ScreenId screenId) {
+        if (currentScreen != null) {
+            currentScreen.onScreenLeave();
+        }
         if (screenId != ScreenId.MAIN) {
             menuVisibilityChanger.setMenuVisibility(false, false, false);
         }

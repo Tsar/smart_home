@@ -80,11 +80,6 @@ public class Main extends BaseScreen implements DevicesList.Listener {
     }
 
     @Override
-    public boolean shouldMenuBeVisible() {
-        return true;
-    }
-
-    @Override
     public void onAnyDeviceInfoChanged() {
         activity.runOnUiThread(devicesAdapter::notifyDataSetChanged);
     }

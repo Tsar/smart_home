@@ -71,9 +71,4 @@ public class AddNewDevice extends BaseScreen {
     public int getViewFlipperChildId() {
         return 1;
     }
-
-    @Override
-    public boolean shouldMenuBeVisible() {
-        return false;
-    }
 }

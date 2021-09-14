@@ -16,7 +16,8 @@
     <string name="search_finished_nothing_found">Search for fresh devices has finished.\n\nNo fresh devices were found.</string>
     <string name="search_finished_choose_device">Search for fresh devices has finished.\n\nIf you see your device in the list, tap it.</string>
     <string name="connecting_to_device">Connecting to the device…</string>
-    <string name="connected_to_device">Connected to the device successfully.\n\nNow choose your home network or input it\'s name manually.</string>
+    <string name="connected_to_device">Connected to the device successfully.\n</string>
+    <string name="choose_your_home_network">Now choose your home network or input it\'s name manually. Searching for Wi-Fi networks…</string>
     <string name="input_network_manually">Input network name manually</string>
     <string name="network_ssid">Network name (SSID)</string>
     <string name="passphrase">Passphrase</string>

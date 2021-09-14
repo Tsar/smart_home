@@ -4,16 +4,33 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/txtSearchingConfigured"
-        android:layout_alignParentTop="true"
+    <RelativeLayout
+        android:id="@+id/layoutSeachingConfiguredTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/searching_configured_devices" />
+        android:layout_alignParentTop="true">
+
+        <TextView
+            android:id="@+id/txtSearchingConfigured"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@id/pbConfiguredDevicesSearch"
+            android:text="@string/searching_configured_devices" />
+
+        <ProgressBar
+            android:id="@+id/pbConfiguredDevicesSearch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:indeterminate="true" />
+
+    </RelativeLayout>
 
     <ListView
         android:id="@+id/lstConfiguredDevices"
-        android:layout_below="@id/txtSearchingConfigured"
+        android:layout_below="@id/layoutSeachingConfiguredTitle"
         android:layout_above="@id/btnInputIP"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
