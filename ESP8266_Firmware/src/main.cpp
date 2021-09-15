@@ -211,6 +211,14 @@ void fastBlinkForever() {
   }
 }
 
+// Same as WiFi.disconnect(true), but without touching config
+void disconnectWiFi() {
+    if (WiFi.getMode() & WIFI_STA) {
+      wifi_station_disconnect();
+    }
+    WiFi.enableSTA(false);
+}
+
 void rejoinMulticastGroup() {
   const auto& ip = WiFi.localIP();
   Serial.printf("IGMP leave group %s\n", igmp_leavegroup(ip, UDP_MULTICAST_IP) == ERR_OK ? "OK" : "failed");
@@ -243,7 +251,6 @@ bool connectToWiFi(const char* ssid, const char* passphrase, bool connectInfinit
   digitalWrite(LED_BUILTIN, LOW);
   udp.stop();
 
-  WiFi.disconnect(true);
   Serial.printf("Connecting to wi-fi: SSID '%s', passphrase '%s'\n", ssid, passphrase);
   WiFi.begin(ssid, passphrase);
 
@@ -417,7 +424,9 @@ void handleSetupWiFi() {
 
   wifiSetupState = WiFiSetupState::IN_PROGRESS;
   server.send(200, "text/plain", "TRYING_TO_CONNECT");
+  Serial.printf("Sent response to %s\n", server.uri().c_str());
   delay(100);  // задержка нужна, чтобы успеть отправить ответ до попытки
+  disconnectWiFi();
   wifiSetupState = connectToWiFi(server.arg("ssid").c_str(), server.arg("passphrase").c_str(), false)
                       ? WiFiSetupState::SUCCESS
                       : WiFiSetupState::FAIL;
@@ -444,6 +453,7 @@ void handleGetSetupWiFiState() {
       break;
   }
   server.send(200, "text/plain", result);
+  Serial.printf("Handled %s (response: %s)\n", server.uri().c_str(), result.c_str());
 }
 
 void handleResetWiFi() {
@@ -695,11 +705,9 @@ void setup() {
   WiFi.setAutoConnect(false);
   WiFi.setAutoReconnect(true);
 
-  station_config stationCfg;
-  wifi_station_get_config_default(&stationCfg);
-
-  WiFi.disconnect(true);
-  WiFi.softAPdisconnect(true);
+  // Не используем disconnect и softAPdisconnect, чтобы не трогать сохранённые настройки, а то reset в неподходящий момент всё портит
+  disconnectWiFi();
+  WiFi.enableAP(false);
   isAccessPointEnabled = false;
 
   // This should partly help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
@@ -707,6 +715,8 @@ void setup() {
     Serial.println("Failed to set wi-fi sleep mode to None!");
   }
 
+  station_config stationCfg;
+  wifi_station_get_config_default(&stationCfg);
   const char* cfgSsid = reinterpret_cast<char*>(stationCfg.ssid);
   const char* cfgPassphrase = reinterpret_cast<char*>(stationCfg.password);
 
