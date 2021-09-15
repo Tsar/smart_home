@@ -19,6 +19,7 @@ public class Http {
 
     private static final int CONNECT_TIMEOUT_MS = 2500;
     private static final int READ_TIMEOUT_MS = 2500;
+    private static final int PAUSE_BETWEEN_RETRIES_MS = 50;  // helps when connect exception happens immediately
 
     public static class Response {
         private final int httpCode;
@@ -86,9 +87,14 @@ public class Http {
                 response = request(url, data, password, network);
             } catch (IOException e) {
                 if (spentAttempts == attempts) {
+                    Log.d(LOG_TAG, "Failed with exception '" + e.getMessage() + "', all " + attempts + " attempts spent");
                     throw e;
                 }
-                Log.d(LOG_TAG, "Skipping exception '" + e.getMessage() + "' because not all attempts were spent");
+                Log.d(LOG_TAG, "Skipping exception '" + e.getMessage() + "' because only " + spentAttempts + " of " + attempts + " attempts spent");
+                try {
+                    Thread.sleep(PAUSE_BETWEEN_RETRIES_MS);
+                } catch (InterruptedException ignored) {
+                }
             }
         }
         return response;

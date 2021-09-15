@@ -705,7 +705,7 @@ void setup() {
   WiFi.setAutoConnect(false);
   WiFi.setAutoReconnect(true);
 
-  // Не используем disconnect и softAPdisconnect, чтобы не трогать сохранённые настройки, а то reset в неподходящий момент всё портит
+  // Не используем WiFi.disconnect и WiFi.softAPdisconnect, чтобы не трогать сохранённые настройки, а то reset в неподходящий момент всё портит
   disconnectWiFi();
   WiFi.enableAP(false);
   isAccessPointEnabled = false;

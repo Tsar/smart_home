@@ -29,7 +29,7 @@ public class DeviceConnected extends BaseScreen {
                 null,
                 DeviceInfo.DEFAULT_HTTP_PASSWORD,
                 null,
-                500,
+                1000,
                 new Http.Listener() {
                     @Override
                     public void onResponse(Http.Response response) {

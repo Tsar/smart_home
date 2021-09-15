@@ -72,7 +72,7 @@ public class HomeNetworkSettings extends BaseScreen {
                                                             null,
                                                             DeviceInfo.DEFAULT_HTTP_PASSWORD,
                                                             deviceNetwork,
-                                                            20
+                                                            30
                                                     );
                                                     if (respState.getHttpCode() == HttpURLConnection.HTTP_OK) {
                                                         state = respState.getDataAsStr();
