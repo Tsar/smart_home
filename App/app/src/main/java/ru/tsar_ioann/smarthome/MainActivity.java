@@ -85,6 +85,14 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (screenLauncher.getCurrentScreenId() == ScreenId.MAIN) {
+            ((Main)screenLauncher.getCurrentScreen()).asyncRefresh(true);
+        }
+    }
+
+    @Override
     public void setMenuVisibility(boolean addVisible, boolean setupVisible, boolean updateVisible) {
         mnAddNewDeviceVisible = addVisible;
         mnSetupVisible = setupVisible;
@@ -132,7 +140,7 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
 
     public void onUpdateStatuses(MenuItem menuItem) {
         if (screenLauncher.getCurrentScreenId() == ScreenId.MAIN) {
-            ((Main)screenLauncher.getCurrentScreen()).asyncRefresh();
+            ((Main)screenLauncher.getCurrentScreen()).asyncRefresh(false);
         }
     }
 

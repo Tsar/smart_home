@@ -1,6 +1,7 @@
 package ru.tsar_ioann.smarthome.screens;
 
 import android.app.Activity;
+import android.os.SystemClock;
 import android.util.Log;
 import android.widget.ListView;
 
@@ -8,11 +9,13 @@ import ru.tsar_ioann.smarthome.*;
 
 public class Main extends BaseScreen implements DevicesList.Listener {
     private static final String LOG_TAG = "Main";
+    private static final long ASYNC_REFRESH_INTERVAL_MS = 1000;
 
     private final Activity activity;
     private final DevicesList devices;
     private final DevicesAdapter devicesAdapter;
 
+    private long lastAsyncRefreshET = 0;
     private boolean setupMode = false;
 
     public Main(CommonData commonData, MenuVisibilityChanger menuVisibilityChanger) {
@@ -30,10 +33,21 @@ public class Main extends BaseScreen implements DevicesList.Listener {
 
         menuVisibilityChanger.setMenuVisibility(true, !devices.getList().isEmpty(), true);
 
-        asyncRefresh();
+        asyncRefresh(false);
     }
 
-    public void asyncRefresh() {
+    public void asyncRefresh(boolean checkTimePassed) {
+        synchronized (this) {
+            long nowET = SystemClock.elapsedRealtime();
+            if (checkTimePassed) {
+                if (nowET - lastAsyncRefreshET < ASYNC_REFRESH_INTERVAL_MS) {
+                    Log.d(LOG_TAG, "Skipping refresh because previous was done recently");
+                    return;
+                }
+            }
+            lastAsyncRefreshET = nowET;
+        }
+
         devices.rediscoverAll();
         devicesAdapter.notifyDataSetChanged();
 
