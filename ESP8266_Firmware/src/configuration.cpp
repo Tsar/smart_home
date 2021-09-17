@@ -2,7 +2,7 @@
 
 #include <EEPROM.h>
 
-#define CONFIGURATION_MAGIC 0x37B9AFBE
+#define CONFIGURATION_MAGIC 0x426A74CB
 #define CONFIGURATION_FORMAT_VERSION 3  // увеличивать при изменении формата конфигурации
 
 namespace smart_home {
@@ -81,10 +81,6 @@ void writeString(int& pos, const String& value) {
 
 }
 
-bool DimmerSettings::areValid() {
-    return valueChangeStep > 0 && maxLightnessMicros < minLightnessMicros && maxLightnessMicros > 0 && minLightnessMicros < 10000;
-}
-
 Configuration::Configuration() {
     EEPROM.begin(4096);
 }
@@ -103,16 +99,7 @@ void Configuration::loadOrReset(bool& resetHappened) {
 
     name_ = readString(pos);
     password_ = readString(pos);
-    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-        switchers_[i] = readBool(pos);
-        switchersInverted_[i] = readBool(pos);
-    }
-    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-        dimmers_[i] = readInt32(pos);
-        dimmersSettings_[i].valueChangeStep = readInt32(pos);
-        dimmersSettings_[i].minLightnessMicros = readInt32(pos);
-        dimmersSettings_[i].maxLightnessMicros = readInt32(pos);
-    }
+    switcher_ = readBool(pos);
     wifiResetSequenceLength = readUInt8(pos);
 }
 
@@ -122,31 +109,15 @@ void Configuration::save() const {
     writeInt32(pos, CONFIGURATION_FORMAT_VERSION);
     writeString(pos, name_);
     writeString(pos, password_);
-    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-        writeBool(pos, switchers_[i]);
-        writeBool(pos, switchersInverted_[i]);
-    }
-    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-        writeInt32(pos, dimmers_[i]);
-        writeInt32(pos, dimmersSettings_[i].valueChangeStep);
-        writeInt32(pos, dimmersSettings_[i].minLightnessMicros);
-        writeInt32(pos, dimmersSettings_[i].maxLightnessMicros);
-    }
+    writeBool(pos, switcher_);
     writeUInt8(pos, wifiResetSequenceLength);
     EEPROM.commit();
 }
 
 void Configuration::resetAndSave() {
-    setName("new-device");
+    setName("MLP 2.0");
     setPassword(DEFAULT_HTTP_PASSWORD);
-    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-        setSwitcherValue(i, false);
-        setSwitcherInverted(i, false);
-    }
-    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-        setDimmerValue(i, 0);
-        setDimmerSettings(i, DimmerSettings());
-    }
+    setSwitcherValue(false);
     wifiResetSequenceLength = 0;
 
     save();
@@ -168,38 +139,12 @@ void Configuration::setPassword(const String& password) {
     password_ = password;
 }
 
-bool Configuration::getSwitcherValue(uint8_t index) const {
-    return switchers_[index];
+bool Configuration::getSwitcherValue() const {
+    return switcher_;
 }
 
-void Configuration::setSwitcherValue(uint8_t index, bool value) {
-    switchers_[index] = value;
-}
-
-bool Configuration::isSwitcherInverted(uint8_t index) const {
-    return switchersInverted_[index];
-}
-
-void Configuration::setSwitcherInverted(uint8_t index, bool inverted) {
-    switchersInverted_[index] = inverted;
-}
-
-int32_t Configuration::getDimmerValue(uint8_t index) const {
-    return dimmers_[index];
-}
-
-void Configuration::setDimmerValue(uint8_t index, int32_t value) {
-    dimmers_[index] = value;
-}
-
-const volatile DimmerSettings* Configuration::getDimmersSettings() const {
-    return dimmersSettings_;
-}
-
-void Configuration::setDimmerSettings(uint8_t index, const DimmerSettings& settings) {
-    dimmersSettings_[index].valueChangeStep = settings.valueChangeStep;
-    dimmersSettings_[index].minLightnessMicros = settings.minLightnessMicros;
-    dimmersSettings_[index].maxLightnessMicros = settings.maxLightnessMicros;
+void Configuration::setSwitcherValue(bool value) {
+    switcher_ = value;
 }
 
 uint8_t Configuration::getWiFiResetSequenceLength() const {

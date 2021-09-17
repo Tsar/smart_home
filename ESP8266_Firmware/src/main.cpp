@@ -7,45 +7,22 @@
 
 #include "configuration.hpp"
 
-#define SIGN(val) (val > 0 ? 1 : (val < 0 ? -1 : 0))
-
 #define HTTP_SERVER_PORT 80
 
-#define DIMMER_PREFIX   "dim"
-#define SWITCHER_PREFIX "sw"
+#define SWITCHER_ARG_NAME "sw0"
 
-#define INPUT_PIN 14  // for 50 Hz meander
+#define INPUT_PIN 15
 
-volatile uint32_t inputFallTimeMs = 0;
-volatile uint32_t inputFallsCount = 0;
+#define OUTPUT_PIN_A  12
+#define OUTPUT_PIN_B  13
+#define OUTPUT_PIN_EN 4
 
-const uint8_t DIMMER_PINS[DIMMERS_COUNT] = {4, 5, 12};
-const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 9, 10};
+#define TIMER_ACTION_SWITCH_AB 0
+#define TIMER_ACTION_EN_TO_LOW 1
 
-#define DIMMER_MAX_VALUE 1000
-
-volatile int32_t dimmerValues[DIMMERS_COUNT] = {};  // 0 - диммер выключен, 1 - минимальная яркость, 1000 - максимальная яркость
-volatile int32_t targetDimmerValues[DIMMERS_COUNT] = {};
-
-const volatile smart_home::DimmerSettings* dimmersSettings;
-
-struct Event {
-  uint32_t ticks;  // число тиков таймера, начиная от input fall
-  uint8_t pin;
-  uint8_t value;
-};
-
-#define DIMMER_EVENTS_COUNT 4  // число событий для одного выхода диммера
-
-// настройки событий
-const uint32_t EVENT_ADDITIONAL_OFFSETS[DIMMER_EVENTS_COUNT] = {0, 500, 50000, 50500};
-const uint8_t  EVENT_VALUES            [DIMMER_EVENTS_COUNT] = {HIGH, LOW, HIGH, LOW};
-
-#define MAX_EVENTS_COUNT (DIMMERS_COUNT * DIMMER_EVENTS_COUNT)
-
-volatile Event eventsQueue[MAX_EVENTS_COUNT];
-volatile uint8_t eventsQueueSize = 0;
-volatile uint8_t nextEventId = 0;
+volatile uint32_t inputRiseTimeMs = 0;
+volatile uint8_t timerAction;
+volatile uint8_t outputAState;
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
 smart_home::Configuration homeCfg;
@@ -80,125 +57,33 @@ Ticker rejoinMulticastGroupTicker;
 const std::vector<uint32_t> WIFI_RESET_SEQUENCE = {20000, 2000, 10000};
 Ticker wifiResetSequenceDetectorTicker;
 
-// Плавное изменение яркости
-ICACHE_RAM_ATTR void smoothLightnessChange() {
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    const int32_t delta = targetDimmerValues[i] - dimmerValues[i];
-    if (delta != 0) {
-      const int32_t valueChangeStep = dimmersSettings[i].valueChangeStep;
-      dimmerValues[i] += std::abs(delta) > valueChangeStep ? SIGN(delta) * valueChangeStep : delta;
-    }
-  }
+ICACHE_RAM_ATTR void startSwitchAB() {
+  outputAState = !outputAState;
+  digitalWrite(OUTPUT_PIN_EN, HIGH);
+  timerAction = TIMER_ACTION_SWITCH_AB;
+  timer1_write(156250);  // 500 ms
 }
 
-#define COSINE_FORMULA  // если закомментировать, то будет линейная интерполяция
-
-#ifdef COSINE_FORMULA
-// Не удаётся использовать обычный cos, прошивка начинает крешиться (видимо, потому что он не в RAM)
-// Источник этой реализации: https://stackoverflow.com/a/28050328
-ICACHE_RAM_ATTR double fastCos(double x) {
-    constexpr double tp = 1. / (2. * PI);
-    x *= tp;
-    x -= 0.25 + static_cast<int>(x + 0.25);  // using static_cast instead of floor, because in our case following is always true: x + 0.25 > 0
-    x *= 16. * (std::abs(x) - 0.5);
-    x += 0.225 * x * (std::abs(x) - 1.);
-    return x;
-}
-#endif
-
-// Переводит значение со слайдера в отступ импульса в микросекундах, см. dimmer_micros_adjustment.png
-ICACHE_RAM_ATTR uint32_t dimmerValueToMicros(int32_t value, uint8_t dimmerId) {
-  const int32_t minLM = dimmersSettings[dimmerId].minLightnessMicros;  // дефолт = 8300
-  const int32_t maxLM = dimmersSettings[dimmerId].maxLightnessMicros;  // дефолт = 4000
-#ifdef COSINE_FORMULA
-  return fastCos(PI * (value - 1) / 2 / (DIMMER_MAX_VALUE - 1)) * (minLM - maxLM) + maxLM + 0.5;
-#else
-  return static_cast<double>(value - 1) * (maxLM - minLM) / (DIMMER_MAX_VALUE - 1) + minLM;
-#endif
-}
-
-// Формируем новую очередь событий, начнутся со следующего input fall
-ICACHE_RAM_ATTR void createEventsQueue() {
-  uint8_t ev = 0;
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    if (dimmerValues[i] <= 0) {
-      // для подстраховки: пин по идее и без этого должен стоять в LOW
-      digitalWrite(DIMMER_PINS[i], LOW);
-    } else {
-      // добавляем 4 события для диммера в очередь
-      const uint32_t offsetTicks = 5 * dimmerValueToMicros(dimmerValues[i], i);
-      for (uint8_t j = 0; j < DIMMER_EVENTS_COUNT; ++j) {
-        eventsQueue[ev].pin = DIMMER_PINS[i];
-        eventsQueue[ev].ticks = offsetTicks + EVENT_ADDITIONAL_OFFSETS[j];
-        eventsQueue[ev].value = EVENT_VALUES[j];
-        ++ev;
-      }
-    }
-  }
-  eventsQueueSize = ev;
-
-  // bubble sort is good enough for 12 or less elements
-  for (uint8_t i = 0; i < eventsQueueSize - 1; ++i) {
-    for (uint8_t j = 0; j < eventsQueueSize - i - 1; ++j) {
-      if (eventsQueue[j].ticks > eventsQueue[j + 1].ticks) {
-        std::swap(eventsQueue[j].ticks, eventsQueue[j + 1].ticks);
-        std::swap(eventsQueue[j].pin, eventsQueue[j + 1].pin);
-        std::swap(eventsQueue[j].value, eventsQueue[j + 1].value);
-      }
-    }
-  }
-}
-
-ICACHE_RAM_ATTR void onInputFall() {
-  // защита от многократных срабатываний на одном FALLING
-  // и от срабатываний на RISING, которые тоже иногда случались
+ICACHE_RAM_ATTR void onInputRise() {
+  // защита от многократных срабатываний
   const uint32_t now = millis();
-  if (now - inputFallTimeMs < 15) return;
-  inputFallTimeMs = now;
-  ++inputFallsCount;
+  if (now - inputRiseTimeMs < 1500) return;
+  inputRiseTimeMs = now;
 
-  nextEventId = 0;
-  if (eventsQueueSize > 0) {
-    timer1_write(eventsQueue[0].ticks);
-  } else {
-    smoothLightnessChange();
-    createEventsQueue();
-  }
+  startSwitchAB();
 }
 
 ICACHE_RAM_ATTR void onTimerISR() {
-  if (nextEventId >= eventsQueueSize) return;
-
-  // выполнить event
-  const auto& event = eventsQueue[nextEventId++];
-  digitalWrite(event.pin, event.value);
-
-  // выполнить все следующие event'ы с такой же меткой времени
-  while (nextEventId < eventsQueueSize && eventsQueue[nextEventId].ticks == event.ticks) {
-    const auto& nextEvent = eventsQueue[nextEventId];
-    digitalWrite(nextEvent.pin, nextEvent.value);
-    ++nextEventId;
-  }
-
-  if (nextEventId < eventsQueueSize) {
-    const uint32_t ticksTillNextEvent = eventsQueue[nextEventId].ticks - event.ticks;  // в случае корректной работы всегда будет >= 5
-    timer1_write(ticksTillNextEvent >= 5 ? ticksTillNextEvent : 5);                    // но подстрахуемся
-  } else {
-    // после выполнения всех event'ов
-    smoothLightnessChange();
-    createEventsQueue();
-  }
-}
-
-void fillDimmerValues() {
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    targetDimmerValues[i] = homeCfg.getDimmerValue(i);
-  }
-}
-
-void applySwitcherValues() {
-  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    digitalWrite(SWITCHER_PINS[i], homeCfg.getSwitcherValue(i) != homeCfg.isSwitcherInverted(i) ? HIGH : LOW);
+  switch (timerAction) {
+    case TIMER_ACTION_SWITCH_AB:
+      digitalWrite(OUTPUT_PIN_A, outputAState);
+      digitalWrite(OUTPUT_PIN_B, !outputAState);
+      timerAction = TIMER_ACTION_EN_TO_LOW;
+      timer1_write(156250);  // 500 ms
+      break;
+    case TIMER_ACTION_EN_TO_LOW:
+      digitalWrite(OUTPUT_PIN_EN, LOW);
+      break;
   }
 }
 
@@ -298,43 +183,6 @@ void sendBadRequest() {
   Serial.printf("Sent 400 for %s\n", server.uri().c_str());
 }
 
-// Create JSON (inefficiently)
-String generateInfoJson(bool minimal) {
-  String result = "{\n  \"mac\": \"" + WiFi.macAddress() + "\",\n  \"name\": \"" + homeCfg.getName() + "\"";
-  if (!minimal) {
-    result += ",\n  \"values\": {\n    \"";
-    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-      result += DIMMER_PREFIX + String(i) + "\": " + String(homeCfg.getDimmerValue(i)) + ",\n    \"";
-    }
-    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-      result += SWITCHER_PREFIX + String(i) + "\": " + (homeCfg.getSwitcherValue(i) ? "1" : "0") + (i + 1 == SWITCHERS_COUNT ? "" : ",\n    \"");
-    }
-    result += "\n  },\n  \"micros\": {\n    \"";
-    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-      int32_t value = homeCfg.getDimmerValue(i);
-      result += DIMMER_PREFIX + String(i) + "\": " + String(value > 0 ? dimmerValueToMicros(value, i) : -1) + (i + 1 == DIMMERS_COUNT ? "" : ",\n    \"");
-    }
-    result += "\n  },\n  \"dimmers_settings\": {\n    \"";
-    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-      result += DIMMER_PREFIX + String(i) + "\": {\n      \"value_change_step\": " + String(dimmersSettings[i].valueChangeStep)
-                                              + ",\n      \"min_lightness_micros\": " + String(dimmersSettings[i].minLightnessMicros)
-                                              + ",\n      \"max_lightness_micros\": " + String(dimmersSettings[i].maxLightnessMicros)
-                                              + "\n    }" + (i + 1 == DIMMERS_COUNT ? "" : ",\n    \"");
-    }
-    result += "\n  },\n  \"switchers_inverted\": {\n    \"";
-    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-      result += SWITCHER_PREFIX + String(i) + "\": " + (homeCfg.isSwitcherInverted(i) ? "1" : "0") + (i + 1 == SWITCHERS_COUNT ? "" : ",\n    \"");
-    }
-    result += "\n  },\n  \"order\": {\n    \"dimmers\": [0, 1, 2],\n    \"switchers\": [0, 1, 2, 3]\n  }";  // TODO: dynamic order
-    const auto currentUptime = millis();
-    result += ",\n  \"uptime_ms\": " + String(currentUptime)
-            + ",\n  \"input_falls_count\": " + String(inputFallsCount)
-            + ",\n  \"average_input_fall_interval_ms\": " + String(static_cast<double>(currentUptime) / inputFallsCount, 5);
-  }
-  result += "\n}\n";
-  return result;
-}
-
 class UnalignedBinarySerializer {
 public:
   UnalignedBinarySerializer(char* buffer) : buffer_(buffer), pos_(0) {}
@@ -373,24 +221,27 @@ void generateInfoBinary() {
   const String name = homeCfg.getName();
   const size_t sz = WL_MAC_ADDR_LENGTH        // MAC size
                   + 2 + name.length()         // name length and name size
-                  + 1 + DIMMERS_COUNT * 8     // dimmers values size (4 x uint16_t)
-                  + 1 + SWITCHERS_COUNT * 2;  // switchers values size (2 x uint8_t)
+                  + 1 + 3 * 8                 // dimmers values size (4 x uint16_t)
+                  + 1 + 4 * 2;                // switchers values size (2 x uint8_t)
   binInfoStorage.resize(sz);
 
   UnalignedBinarySerializer serializer(binInfoStorage.data());
   serializer.writeWiFiMacAddress();
   serializer.writeString(name);
-  serializer.writeUInt8(DIMMERS_COUNT);
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    serializer.writeUInt16(homeCfg.getDimmerValue(i));
-    serializer.writeUInt16(dimmersSettings[i].valueChangeStep);
-    serializer.writeUInt16(dimmersSettings[i].minLightnessMicros);
-    serializer.writeUInt16(dimmersSettings[i].maxLightnessMicros);
+  // Пишем заглушки для совместимости с текущим приложением
+  serializer.writeUInt8(3);
+  for (uint8_t i = 0; i < 3; ++i) {
+    serializer.writeUInt16(0);
+    serializer.writeUInt16(10);
+    serializer.writeUInt16(8000);
+    serializer.writeUInt16(4000);
   }
-  serializer.writeUInt8(SWITCHERS_COUNT);
-  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    serializer.writeUInt8(homeCfg.getSwitcherValue(i));
-    serializer.writeUInt8(homeCfg.isSwitcherInverted(i));
+  serializer.writeUInt8(4);
+  serializer.writeUInt8(outputAState);
+  serializer.writeUInt8(0);
+  for (uint8_t i = 0; i < 3; ++i) {
+    serializer.writeUInt8(0);
+    serializer.writeUInt8(0);
   }
 
   if (serializer.getWrittenSize() != sz) {
@@ -403,12 +254,8 @@ void handleGetInfo() {
 
   if (!checkPassword()) return;
 
-  if (server.hasArg("binary")) {
-    generateInfoBinary();
-    server.send(200, "application/octet-stream", binInfoStorage.data(), binInfoStorage.size());
-  } else {
-    server.send(200, "application/json", generateInfoJson(server.hasArg("minimal")));
-  }
+  generateInfoBinary();
+  server.send(200, "application/octet-stream", binInfoStorage.data(), binInfoStorage.size());
 
   const auto tsEnd = micros64();
   Serial.printf("Handled %s, spent %.2lf ms\n", server.uri().c_str(), (tsEnd - tsStart) / 1000.0);
@@ -481,57 +328,23 @@ void handleSetValues() {
 
   if (!checkPassword()) return;
 
-  bool dimmersChanged = false;
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    const String argName = DIMMER_PREFIX + String(i);
-    if (server.hasArg(argName)) {
-      const int32_t value = server.arg(argName).toInt();
-      if (value < 0 || value > DIMMER_MAX_VALUE) {
-        sendBadRequest();
-        return;
-      }
-      if (value != homeCfg.getDimmerValue(i)) {
-        homeCfg.setDimmerValue(i, value);
-        dimmersChanged = true;
-      }
+  bool switcherChanged = false;
+  if (server.hasArg(SWITCHER_ARG_NAME)) {
+    const uint8_t value = server.arg(SWITCHER_ARG_NAME).toInt();
+    if (value != outputAState) {
+      startSwitchAB();
+      switcherChanged = true;
     }
   }
 
-  bool switchersChanged = false;
-  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    const String argName = SWITCHER_PREFIX + String(i);
-    if (server.hasArg(argName)) {
-      const bool value = server.arg(argName).toInt();
-      if (value != homeCfg.getSwitcherValue(i)) {
-        homeCfg.setSwitcherValue(i, value);
-        switchersChanged = true;
-      }
-    }
-  }
-
-  if (dimmersChanged || switchersChanged) {
-    if (dimmersChanged) {
-      fillDimmerValues();
-    }
-    if (switchersChanged) {
-      applySwitcherValues();
-    }
-    server.send(200, "text/plain", "ACCEPTED\n");
-
-    const auto tsSaveCfgStart = micros64();
-    homeCfg.save();
-
-    const auto tsEnd = micros64();
-    Serial.printf(
-      "Handled %s, spent %.2lf ms (%.2lf for handling + %.2lf for saving to flash), accepted new values\n", server.uri().c_str(),
-      (tsEnd - tsStart) / 1000.0, (tsSaveCfgStart - tsStart) / 1000.0, (tsEnd - tsSaveCfgStart) / 1000.0
-    );
-  } else {
-    server.send(200, "text/plain", "NOTHING_CHANGED\n");
-
-    const auto tsEnd = micros64();
-    Serial.printf("Handled %s, spent %.2lf ms, nothing was changed\n", server.uri().c_str(), (tsEnd - tsStart) / 1000.0);
-  }
+  server.send(200, "text/plain", switcherChanged ? "ACCEPTED\n" : "NOTHING_CHANGED\n");
+  const auto tsEnd = micros64();
+  Serial.printf(
+    "Handled %s, spent %.2lf ms, %s\n",
+    server.uri().c_str(),
+    (tsEnd - tsStart) / 1000.0,
+    switcherChanged ? "accepted new value" : "nothing was changed"
+  );
 }
 
 void handleSetSettings() {
@@ -539,44 +352,6 @@ void handleSetSettings() {
 
   if (server.hasArg("name")) {
     homeCfg.setName(server.arg("name"));
-  }
-
-  bool resetCfgHappened;
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    const String argName = DIMMER_PREFIX + String(i);
-    if (server.hasArg(argName)) {
-      const String settingsStr = server.arg(argName);
-      const int comma1Pos = settingsStr.indexOf(",");
-      if (comma1Pos < 0) {
-        homeCfg.loadOrReset(resetCfgHappened);  // used to revert cfg
-        sendBadRequest();
-        return;
-      }
-      const int comma2Pos = settingsStr.indexOf(",", comma1Pos + 1);
-      if (comma2Pos < 0) {
-        homeCfg.loadOrReset(resetCfgHappened);  // used to revert cfg
-        sendBadRequest();
-        return;
-      }
-      smart_home::DimmerSettings settings;
-      settings.valueChangeStep = settingsStr.substring(0, comma1Pos).toInt();
-      settings.minLightnessMicros = settingsStr.substring(comma1Pos + 1, comma2Pos).toInt();
-      settings.maxLightnessMicros = settingsStr.substring(comma2Pos + 1).toInt();
-      if (!settings.areValid()) {
-        homeCfg.loadOrReset(resetCfgHappened);  // used to revert cfg
-        sendBadRequest();
-        return;
-      }
-      homeCfg.setDimmerSettings(i, settings);
-    }
-  }
-
-  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    const String argName = SWITCHER_PREFIX + String(i);
-    if (server.hasArg(argName)) {
-      const bool inverted = server.arg(argName).toInt();
-      homeCfg.setSwitcherInverted(i, inverted);
-    }
   }
 
   homeCfg.save();
@@ -668,27 +443,23 @@ void checkWiFiResetSequence() {
 }
 
 void setup() {
-  for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    pinMode(DIMMER_PINS[i], OUTPUT);
-    digitalWrite(DIMMER_PINS[i], LOW);
-  }
-  for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    pinMode(SWITCHER_PINS[i], OUTPUT);
-  }
+  pinMode(OUTPUT_PIN_A, OUTPUT);
+  pinMode(OUTPUT_PIN_B, OUTPUT);
+  pinMode(OUTPUT_PIN_EN, OUTPUT);
 
   bool resetCfgHappened;
   homeCfg.loadOrReset(resetCfgHappened);
 
-  dimmersSettings = homeCfg.getDimmersSettings();
-  fillDimmerValues();
-  createEventsQueue();
-  applySwitcherValues();
+  outputAState = homeCfg.getSwitcherValue() ? HIGH : LOW;
+  digitalWrite(OUTPUT_PIN_A, outputAState);
+  digitalWrite(OUTPUT_PIN_B, outputAState == LOW ? HIGH : LOW);
+  digitalWrite(OUTPUT_PIN_EN, outputAState);
 
   timer1_attachInterrupt(onTimerISR);
-  timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
+  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
 
   pinMode(INPUT_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputFall, FALLING);
+  attachInterrupt(digitalPinToInterrupt(INPUT_PIN), onInputRise, RISING);
 
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
@@ -746,6 +517,13 @@ void setup() {
 }
 
 void loop() {
+  if (homeCfg.getSwitcherValue() != outputAState) {
+    Serial.print("Saving new output A state to flash ... ");
+    homeCfg.setSwitcherValue(outputAState);
+    homeCfg.save();
+    Serial.println("Done");
+  }
+
   server.handleClient();
   udpHandlePacket();
 }
