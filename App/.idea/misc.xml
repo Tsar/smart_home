@@ -3,6 +3,7 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="../../../../../layout/custom_preview.xml" value="0.37552083333333336" />
         <entry key="../../../Android/Sdk/platforms/android-30/data/res/drawable/control_background_40dp_material.xml" value="0.4390625" />
         <entry key="../../../Android/Sdk/platforms/android-30/data/res/drawable/seekbar_thumb_material_anim.xml" value="0.4390625" />
         <entry key="../../../Android/Sdk/platforms/android-30/data/res/drawable/seekbar_thumb_pressed_to_unpressed.xml" value="0.4390625" />
@@ -16,6 +17,7 @@
         <entry key="../../../Android/Sdk/platforms/android-30/data/res/layout/simple_list_item_2.xml" value="0.42291666666666666" />
         <entry key="app/src/main/res/drawable/arrow_up.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/plus_sign.xml" value="0.4390625" />
+        <entry key="app/src/main/res/drawable/reorder_handle.xml" value="0.3765625" />
         <entry key="app/src/main/res/drawable/seekbar_thumb.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/seekbar_thumb_pressed_to_unpressed.xml" value="0.4390625" />
         <entry key="app/src/main/res/drawable/seekbar_thumb_pressed_to_unpressed_animation.xml" value="0.4390625" />
@@ -40,6 +42,8 @@
         <entry key="app/src/main/res/layout/fresh_devices.xml" value="0.37726449275362317" />
         <entry key="app/src/main/res/layout/home_network_settings.xml" value="0.23731884057971014" />
         <entry key="app/src/main/res/layout/item_device.xml" value="0.2598958333333333" />
+        <entry key="app/src/main/res/layout/item_dimmer_settings.xml" value="0.36041666666666666" />
+        <entry key="app/src/main/res/layout/item_switcher_settings.xml" value="0.36041666666666666" />
         <entry key="app/src/main/res/layout/main.xml" value="0.4048913043478261" />
         <entry key="app/src/main/res/layout/management.xml" value="0.3999094202898551" />
         <entry key="app/src/main/res/menu/menu.xml" value="0.42291666666666666" />

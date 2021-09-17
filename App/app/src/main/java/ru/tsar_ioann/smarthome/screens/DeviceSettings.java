@@ -8,10 +8,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
+
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -19,6 +21,7 @@ import java.net.HttpURLConnection;
 import ru.tsar_ioann.smarthome.*;
 
 public class DeviceSettings extends BaseScreen {
+    /*
     private static final int MIN_VALUE_CHANGE_STEP = 1;
     private static final int MAX_VALUE_CHANGE_STEP = 50;
     private static final int MIN_LIGHTNESS_MICROS = 50;
@@ -31,6 +34,7 @@ public class DeviceSettings extends BaseScreen {
             // Do not use more than 1 in min value here
             new Utils.IntInRangeInputFilter(1, MAX_LIGHTNESS_MICROS)
     };
+    */
 
     private static class SVFChild {
         private static final int DEVICE_SETTINGS_UNAVAILABLE = 0;
@@ -42,16 +46,11 @@ public class DeviceSettings extends BaseScreen {
     private DeviceInfo device;
     private boolean deviceIsDiscovered;
 
-    private final int dimmersCount;
-    private final int switchersCount;
-
     private final EditText edtName;
-
-    private final EditText[] edtsValueChangeStep;
-    private final EditText[] edtsMinLightnessMicros;
-    private final EditText[] edtsMaxLightnessMicros;
-
-    private final CheckBox[] cbsSwInverted;
+    private final RecyclerView rcvDimmersSettings;
+    private final RecyclerView rcvSwitchersSettings;
+    private final ItemTouchHelper ithDimmersSettings;
+    private final ItemTouchHelper ithSwitchersSettings;
 
     private final EditText edtIpAddress;
     private final EditText edtPort;
@@ -71,47 +70,20 @@ public class DeviceSettings extends BaseScreen {
 
         edtName = activity.findViewById(R.id.edtName);
 
-        LinearLayout[] layoutsDimSettings = new LinearLayout[]{
-                activity.findViewById(R.id.layoutDimSettings1),
-                activity.findViewById(R.id.layoutDimSettings2),
-                activity.findViewById(R.id.layoutDimSettings3)
-        };
-        dimmersCount = layoutsDimSettings.length;
-        edtsValueChangeStep = new EditText[dimmersCount];
-        edtsMinLightnessMicros = new EditText[dimmersCount];
-        edtsMaxLightnessMicros = new EditText[dimmersCount];
-        for (int i = 0; i < dimmersCount; ++i) {
-            LinearLayout layoutDimSettings = layoutsDimSettings[i];
-            TextView txtDimNumber = layoutDimSettings.findViewById(R.id.txtDimNumber);
-            txtDimNumber.setText(Integer.toString(i + 1));
-            edtsValueChangeStep[i] = layoutDimSettings.findViewById(R.id.edtDimValueChangeStep);
-            edtsMinLightnessMicros[i] = layoutDimSettings.findViewById(R.id.edtDimMinLightnessMicros);
-            edtsMaxLightnessMicros[i] = layoutDimSettings.findViewById(R.id.edtDimMaxLightnessMicros);
-            edtsValueChangeStep[i].setFilters(INPUT_FILTERS_VALUE_CHANGE_STEP);
-            edtsMinLightnessMicros[i].setFilters(INPUT_FILTERS_MICROS);
-            edtsMaxLightnessMicros[i].setFilters(INPUT_FILTERS_MICROS);
-        }
+        rcvDimmersSettings = activity.findViewById(R.id.rcvDimmersSettings);
+        rcvDimmersSettings.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false));
+        ithDimmersSettings = new ReorderItemTouchHelper(rcvDimmersSettings);
 
-        LinearLayout[] layoutsSwSettings = new LinearLayout[]{
-                activity.findViewById(R.id.layoutSwSettings1),
-                activity.findViewById(R.id.layoutSwSettings2),
-                activity.findViewById(R.id.layoutSwSettings3),
-                activity.findViewById(R.id.layoutSwSettings4)
-        };
-        switchersCount = layoutsSwSettings.length;
-        cbsSwInverted = new CheckBox[switchersCount];
-        for (int i = 0; i < switchersCount; ++i) {
-            LinearLayout layoutSwSettings = layoutsSwSettings[i];
-            TextView txtSwNumber = layoutSwSettings.findViewById(R.id.txtSwNumber);
-            txtSwNumber.setText(Integer.toString(i + 1));
-            cbsSwInverted[i] = layoutSwSettings.findViewById(R.id.cbSwInverted);
-        }
+        rcvSwitchersSettings = activity.findViewById(R.id.rcvSwitchersSettings);
+        rcvSwitchersSettings.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false));
+        ithSwitchersSettings = new ReorderItemTouchHelper(rcvSwitchersSettings);
 
         Button btnSaveDeviceSettings = activity.findViewById(R.id.btnSaveDeviceSettings);
 
         btnSaveDeviceSettings.setOnClickListener(v -> {
             StringBuilder argsStr = new StringBuilder();
             argsStr.append("name=").append(Utils.urlEncode(edtName.getText().toString()));
+            /*
             for (int i = 0; i < dimmersCount; ++i) {
                 final String valueChangeStepStr = edtsValueChangeStep[i].getText().toString();
                 final String minLightnessMicrosStr = edtsMinLightnessMicros[i].getText().toString();
@@ -156,6 +128,7 @@ public class DeviceSettings extends BaseScreen {
                         .append(DeviceInfo.SWITCHER_PREFIX).append(i).append("=")
                         .append(cbsSwInverted[i].isChecked() ? "1" : "0");
             }
+            */
 
             btnSaveDeviceSettings.setEnabled(false);
             Http.asyncRequest(
@@ -312,22 +285,14 @@ public class DeviceSettings extends BaseScreen {
         }
 
         edtName.setText(device.getName());
-        DeviceInfo.DimmerSettings[] dimmersSettings = device.getDimmersSettings();
-        for (int i = 0; i < dimmersCount; ++i) {
-            if (dimmersSettings[i] != null) {
-                edtsValueChangeStep[i].setText(Integer.toString(dimmersSettings[i].valueChangeStep));
-                edtsMinLightnessMicros[i].setText(Integer.toString(dimmersSettings[i].minLightnessMicros));
-                edtsMaxLightnessMicros[i].setText(Integer.toString(dimmersSettings[i].maxLightnessMicros));
-            } else {
-                edtsValueChangeStep[i].setText("");
-                edtsMinLightnessMicros[i].setText("");
-                edtsMaxLightnessMicros[i].setText("");
-            }
-        }
-        for (int i = 0; i < switchersCount; ++i) {
-            cbsSwInverted[i].setChecked(device.isSwitcherInverted(i));
-            cbsSwInverted[i].jumpDrawablesToCurrentState();
-        }
+        rcvDimmersSettings.setAdapter(new DimmersSettingsAdapter(
+                ithDimmersSettings,
+                device.getDimmersSettings()
+        ));
+        rcvSwitchersSettings.setAdapter(new SwitchersSettingsAdapter(
+                ithSwitchersSettings,
+                device.getSwitchersInverted()
+        ));
 
         edtIpAddress.setText(device.getIpAddress());
         edtPort.setText(Integer.toString(device.getPort()));

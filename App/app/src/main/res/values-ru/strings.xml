@@ -60,7 +60,8 @@
     <string name="device_settings_successfully_saved">Настройки успешно сохранены на устройстве!</string>
     <string name="connection_settings_updated">Настройки подключения успешно обновлены!</string>
     <string name="failed_to_save_settings">Не удалось сохранить настройки на устройстве!</string>
-    <string name="number">№</string>
+    <string name="pin">Пин</string>
+    <string name="order">Порядок</string>
     <string name="change_speed">Скорость изменения</string>
     <string name="min_lightness">Мин яркость (мкс)</string>
     <string name="max_lightness">Макс яркость (мкс)</string>
@@ -72,4 +73,5 @@
     <string name="device_was_already_in_the_list">Устройство с таким MAC-адресом уже было у вас в списке!\n\nТеперь оно перенастроено. Параметры для подключения к нему обновлены.</string>
     <string name="others_devices_mac_address">По указанным настройкам подключения отвечает другое устройство (с другим MAC-адресом)!</string>
     <string name="function_unavailable">К сожалению, этот функционал недоступен для Android меньше 10!</string>
+    <string name="enabled">Включен</string>
 </resources>

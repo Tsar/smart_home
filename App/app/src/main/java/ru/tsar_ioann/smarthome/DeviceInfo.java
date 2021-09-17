@@ -179,8 +179,8 @@ public class DeviceInfo {
         return dimmersSettings;
     }
 
-    public boolean isSwitcherInverted(int n) {
-        return switchersInverted[n];
+    public boolean[] getSwitchersInverted() {
+        return switchersInverted;
     }
 
     public void setParams(String name, String ipAddress, int port, boolean permanentIp, String httpPassword) {

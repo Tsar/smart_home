@@ -3,17 +3,30 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="horizontal"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:gravity="center">
 
     <TextView
-        android:id="@+id/txtDimNumber"
+        android:id="@+id/txtDimPin"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="2"
-        android:layout_gravity="center"
         android:textAlignment="center"
         android:text="1"
         tools:ignore="HardcodedText" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:gravity="center">
+
+        <CheckBox
+            android:id="@+id/cbDimEnabled"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
 
     <EditText
         android:id="@+id/edtDimValueChangeStep"
@@ -44,5 +57,14 @@
         android:textAlignment="center"
         android:maxLength="4"
         tools:ignore="Autofill,LabelFor" />
+
+    <ImageView
+        android:id="@+id/imgDimReorderHandle"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.5"
+        android:scaleType="center"
+        android:src="@drawable/reorder_handle"
+        tools:ignore="ContentDescription" />
 
 </LinearLayout>

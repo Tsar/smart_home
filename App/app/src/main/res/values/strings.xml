@@ -60,7 +60,8 @@
     <string name="device_settings_successfully_saved">Settings were saved on the device successfully!</string>
     <string name="connection_settings_updated">Connection settings were updated successfully!</string>
     <string name="failed_to_save_settings">Failed to save settings on the device!</string>
-    <string name="number">#</string>
+    <string name="pin">Pin</string>
+    <string name="order">Order</string>
     <string name="change_speed">Change speed</string>
     <string name="min_lightness">Min lightness (μs)</string>
     <string name="max_lightness">Max lightness (μs)</string>
@@ -72,4 +73,5 @@
     <string name="device_was_already_in_the_list">Device with this MAC address was already in your list!\n\nNow it has been reconfigured. And it\'s connection settings have been updated.</string>
     <string name="others_devices_mac_address">Other device (with different MAC address) answers by specified connection settings!</string>
     <string name="function_unavailable">Sorry, but this feature is not available for Android lower than 10!</string>
+    <string name="enabled">Enabled</string>
 </resources>
