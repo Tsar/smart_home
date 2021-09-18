@@ -116,7 +116,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     seekBar.setEnabled(false);
                     Http.asyncRequest(
-                            device.getHttpAddress() + "/set_values?dim" + finalI + "=" + seekBar.getProgress(),
+                            device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?dim" + finalI + "=" + seekBar.getProgress(),
                             null,
                             httpPassword,
                             null,
@@ -162,7 +162,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                     CompoundButton.OnCheckedChangeListener checkedChangeListener = this;
                     buttonView.setEnabled(false);
                     Http.asyncRequest(
-                            device.getHttpAddress() + "/set_values?sw" + finalI + "=" + (isChecked ? 1 : 0),
+                            device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?sw" + finalI + "=" + (isChecked ? 1 : 0),
                             null,
                             httpPassword,
                             null,

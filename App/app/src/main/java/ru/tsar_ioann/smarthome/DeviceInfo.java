@@ -15,6 +15,15 @@ public class DeviceInfo {
     public static final String ACCESS_POINT_PASSPHRASE = "setup12345";
     public static final String DEFAULT_HTTP_PASSWORD = "12345";
 
+    public static final class Handlers {
+        public static final String GET_INFO             = "/get_info?binary";
+        public static final String SETUP_WIFI           = "/setup_wifi";
+        public static final String GET_SETUP_WIFI_STATE = "/get_setup_wifi_state";
+        public static final String TURN_OFF_AP          = "/turn_off_ap";
+        public static final String SET_VALUES           = "/set_values";
+        public static final String SET_SETTINGS         = "/set_settings";
+    }
+
     public static final String DIMMER_PREFIX = "dim";
     public static final String SWITCHER_PREFIX = "sw";
 
@@ -256,7 +265,7 @@ public class DeviceInfo {
             return;
         }
         Http.asyncRequest(
-                getHttpAddress() + "/get_info?binary",
+                getHttpAddress() + Handlers.GET_INFO,
                 null,
                 httpPassword,
                 null,

@@ -132,7 +132,7 @@ public class DeviceSettings extends BaseScreen {
 
             btnSaveDeviceSettings.setEnabled(false);
             Http.asyncRequest(
-                    device.getHttpAddress() + "/set_settings",
+                    device.getHttpAddress() + DeviceInfo.Handlers.SET_SETTINGS,
                     argsStr.toString().getBytes(),
                     device.getHttpPassword(),
                     null,
@@ -191,7 +191,7 @@ public class DeviceSettings extends BaseScreen {
             btnSaveConnectionSettings.setEnabled(false);
 
             Http.asyncRequest(
-                    DeviceInfo.getHttpAddress(ipAddress, port) + "/get_info?binary",
+                    DeviceInfo.getHttpAddress(ipAddress, port) + DeviceInfo.Handlers.GET_INFO,
                     null,
                     httpPassword,
                     null,

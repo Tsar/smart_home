@@ -50,7 +50,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
             btnAddDevice.setEnabled(false);
 
             Http.asyncRequest(
-                    DeviceInfo.getHttpAddress(ipAddress, port) + "/get_info?binary",
+                    DeviceInfo.getHttpAddress(ipAddress, port) + DeviceInfo.Handlers.GET_INFO,
                     null,
                     httpPassword,
                     null,

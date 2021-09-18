@@ -62,7 +62,7 @@ public class ConnectingFreshDevice extends BaseScreen {
                 commonData.setNewDeviceNetwork(network);
                 try {
                     Http.Response response = Http.request(
-                            DeviceInfo.ACCESS_POINT_ADDRESS + "/get_info?binary",
+                            DeviceInfo.ACCESS_POINT_ADDRESS + DeviceInfo.Handlers.GET_INFO,
                             null,
                             DeviceInfo.DEFAULT_HTTP_PASSWORD,
                             network,
