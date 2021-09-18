@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 
 #define CONFIGURATION_MAGIC 0x37B9AFBE
-#define CONFIGURATION_FORMAT_VERSION 3  // увеличивать при изменении формата конфигурации
+#define CONFIGURATION_FORMAT_VERSION 4  // увеличивать при изменении формата конфигурации
 
 namespace smart_home {
 
@@ -113,6 +113,7 @@ void Configuration::loadOrReset(bool& resetHappened) {
         dimmersSettings_[i].minLightnessMicros = readInt32(pos);
         dimmersSettings_[i].maxLightnessMicros = readInt32(pos);
     }
+    additionalBlob_ = readString(pos);
     wifiResetSequenceLength = readUInt8(pos);
 }
 
@@ -132,6 +133,7 @@ void Configuration::save() const {
         writeInt32(pos, dimmersSettings_[i].minLightnessMicros);
         writeInt32(pos, dimmersSettings_[i].maxLightnessMicros);
     }
+    writeString(pos, additionalBlob_);
     writeUInt8(pos, wifiResetSequenceLength);
     EEPROM.commit();
 }
@@ -147,12 +149,13 @@ void Configuration::resetAndSave() {
         setDimmerValue(i, 0);
         setDimmerSettings(i, DimmerSettings());
     }
+    setAdditionalBlob("");
     wifiResetSequenceLength = 0;
 
     save();
 }
 
-String Configuration::getName() const {
+const String& Configuration::getName() const {
     return name_;
 }
 
@@ -160,7 +163,7 @@ void Configuration::setName(const String& name) {
     name_ = name;
 }
 
-String Configuration::getPassword() const {
+const String& Configuration::getPassword() const {
     return password_;
 }
 
@@ -200,6 +203,14 @@ void Configuration::setDimmerSettings(uint8_t index, const DimmerSettings& setti
     dimmersSettings_[index].valueChangeStep = settings.valueChangeStep;
     dimmersSettings_[index].minLightnessMicros = settings.minLightnessMicros;
     dimmersSettings_[index].maxLightnessMicros = settings.maxLightnessMicros;
+}
+
+const String& Configuration::getAdditionalBlob() const {
+    return additionalBlob_;
+}
+
+void Configuration::setAdditionalBlob(const String& additionalBlob) {
+    additionalBlob_ = additionalBlob;
 }
 
 uint8_t Configuration::getWiFiResetSequenceLength() const {

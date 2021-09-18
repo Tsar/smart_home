@@ -24,10 +24,10 @@ class Configuration {
         void loadOrReset(bool& resetHappened);
         void save() const;
 
-        String getName() const;
+        const String& getName() const;
         void setName(const String& name);
 
-        String getPassword() const;
+        const String& getPassword() const;
         void setPassword(const String& password);
 
         bool getSwitcherValue(uint8_t index) const;
@@ -41,6 +41,9 @@ class Configuration {
 
         const volatile DimmerSettings* getDimmersSettings() const;
         void setDimmerSettings(uint8_t index, const DimmerSettings& settings);
+
+        const String& getAdditionalBlob() const;
+        void setAdditionalBlob(const String& additionalBlob);
 
         uint8_t getWiFiResetSequenceLength() const;
         void setWiFiResetSequenceLengthAndSave(uint8_t value);
@@ -56,6 +59,8 @@ class Configuration {
 
         int32_t dimmers_[DIMMERS_COUNT];
         volatile DimmerSettings dimmersSettings_[DIMMERS_COUNT];
+
+        String additionalBlob_;  // for allowing App to save some GUI display settings on controller
 
         uint8_t wifiResetSequenceLength;  // длина кодовой последовательности продолжительности включений контроллера для сброса настроек wi-fi
 };

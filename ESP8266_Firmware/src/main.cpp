@@ -298,7 +298,7 @@ void sendBadRequest() {
   Serial.printf("Sent 400 for %s\n", server.uri().c_str());
 }
 
-// Create JSON (inefficiently)
+// Create JSON (inefficient function, only for manual debugging)
 String generateInfoJson(bool minimal) {
   String result = "{\n  \"mac\": \"" + WiFi.macAddress() + "\",\n  \"name\": \"" + homeCfg.getName() + "\"";
   if (!minimal) {
@@ -325,9 +325,13 @@ String generateInfoJson(bool minimal) {
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
       result += SWITCHER_PREFIX + String(i) + "\": " + (homeCfg.isSwitcherInverted(i) ? "1" : "0") + (i + 1 == SWITCHERS_COUNT ? "" : ",\n    \"");
     }
-    result += "\n  },\n  \"order\": {\n    \"dimmers\": [0, 1, 2],\n    \"switchers\": [0, 1, 2, 3]\n  }";  // TODO: dynamic order
+    const String& additionalBlob = homeCfg.getAdditionalBlob();
+    result += "\n  },\n  \"additional_blob\": \"";
+    for (unsigned int i = 0; i < additionalBlob.length(); ++i) {
+      result += String(additionalBlob[i], 16) + (i + 1 == additionalBlob.length() ? "" : " ");
+    }
     const auto currentUptime = millis();
-    result += ",\n  \"uptime_ms\": " + String(currentUptime)
+    result += "\",\n  \"uptime_ms\": " + String(currentUptime)
             + ",\n  \"input_falls_count\": " + String(inputFallsCount)
             + ",\n  \"average_input_fall_interval_ms\": " + String(static_cast<double>(currentUptime) / inputFallsCount, 5);
   }
@@ -369,12 +373,17 @@ private:
 };
 
 // Fill binInfoStorage
-void generateInfoBinary() {
+void generateInfoBinary(uint8_t version) {
+  const bool v2 = version >= 2;
+
   const String name = homeCfg.getName();
-  const size_t sz = WL_MAC_ADDR_LENGTH        // MAC size
-                  + 2 + name.length()         // name length and name size
-                  + 1 + DIMMERS_COUNT * 8     // dimmers values size (4 x uint16_t)
-                  + 1 + SWITCHERS_COUNT * 2;  // switchers values size (2 x uint8_t)
+  const String additionalBlob = homeCfg.getAdditionalBlob();
+
+  const size_t sz = WL_MAC_ADDR_LENGTH                       // MAC size
+                  + 2 + name.length()                        // name length and name size
+                  + 1 + DIMMERS_COUNT * (v2 ? 9 : 8)         // dimmers info size
+                  + 1 + SWITCHERS_COUNT * (v2 ? 3 : 2)       // switchers info size
+                  + (v2 ? 2 + additionalBlob.length() : 0);  // some App's GUI display settings
   binInfoStorage.resize(sz);
 
   UnalignedBinarySerializer serializer(binInfoStorage.data());
@@ -382,6 +391,9 @@ void generateInfoBinary() {
   serializer.writeString(name);
   serializer.writeUInt8(DIMMERS_COUNT);
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+    if (v2) {
+      serializer.writeUInt8(DIMMER_PINS[i]);
+    }
     serializer.writeUInt16(homeCfg.getDimmerValue(i));
     serializer.writeUInt16(dimmersSettings[i].valueChangeStep);
     serializer.writeUInt16(dimmersSettings[i].minLightnessMicros);
@@ -389,8 +401,14 @@ void generateInfoBinary() {
   }
   serializer.writeUInt8(SWITCHERS_COUNT);
   for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
+    if (v2) {
+      serializer.writeUInt8(SWITCHER_PINS[i]);
+    }
     serializer.writeUInt8(homeCfg.getSwitcherValue(i));
     serializer.writeUInt8(homeCfg.isSwitcherInverted(i));
+  }
+  if (v2) {
+    serializer.writeString(additionalBlob);
   }
 
   if (serializer.getWrittenSize() != sz) {
@@ -404,7 +422,7 @@ void handleGetInfo() {
   if (!checkPassword()) return;
 
   if (server.hasArg("binary")) {
-    generateInfoBinary();
+    generateInfoBinary(server.hasArg("v") ? server.arg("v").toInt() : 1);
     server.send(200, "application/octet-stream", binInfoStorage.data(), binInfoStorage.size());
   } else {
     server.send(200, "application/json", generateInfoJson(server.hasArg("minimal")));
@@ -577,6 +595,10 @@ void handleSetSettings() {
       const bool inverted = server.arg(argName).toInt();
       homeCfg.setSwitcherInverted(i, inverted);
     }
+  }
+
+  if (server.hasArg("blob")) {
+    homeCfg.setAdditionalBlob(server.arg("blob"));
   }
 
   homeCfg.save();
