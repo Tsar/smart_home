@@ -18,25 +18,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 
 import ru.tsar_ioann.smarthome.*;
 
 public class DeviceSettings extends BaseScreen {
-    /*
-    private static final int MIN_VALUE_CHANGE_STEP = 1;
-    private static final int MAX_VALUE_CHANGE_STEP = 50;
-    private static final int MIN_LIGHTNESS_MICROS = 50;
-    private static final int MAX_LIGHTNESS_MICROS = 9950;
-
-    private static final InputFilter[] INPUT_FILTERS_VALUE_CHANGE_STEP = new InputFilter[]{
-            new Utils.IntInRangeInputFilter(1, MAX_VALUE_CHANGE_STEP)
-    };
-    private static final InputFilter[] INPUT_FILTERS_MICROS = new InputFilter[]{
-            // Do not use more than 1 in min value here
-            new Utils.IntInRangeInputFilter(1, MAX_LIGHTNESS_MICROS)
-    };
-    */
-
     private static class SVFChild {
         private static final int DEVICE_SETTINGS_UNAVAILABLE = 0;
         private static final int DEVICE_SETTINGS = 1;
@@ -86,52 +72,76 @@ public class DeviceSettings extends BaseScreen {
         btnSaveDeviceSettings.setOnClickListener(v -> {
             StringBuilder argsStr = new StringBuilder();
             argsStr.append("name=").append(Utils.urlEncode(edtName.getText().toString()));
-            /*
-            for (int i = 0; i < dimmersCount; ++i) {
-                final String valueChangeStepStr = edtsValueChangeStep[i].getText().toString();
-                final String minLightnessMicrosStr = edtsMinLightnessMicros[i].getText().toString();
-                final String maxLightnessMicrosStr = edtsMaxLightnessMicros[i].getText().toString();
 
-                if (!Utils.isValidIntInRange(valueChangeStepStr, MIN_VALUE_CHANGE_STEP, MAX_VALUE_CHANGE_STEP)) {
-                    showOkDialog(tr(R.string.error), tr(
-                            R.string.restrictions_for_change_speed,
-                            MIN_VALUE_CHANGE_STEP,
-                            MAX_VALUE_CHANGE_STEP,
-                            valueChangeStepStr
-                    ));
-                    return;
-                }
-                for (String lightnessMicrosStr : new String[]{minLightnessMicrosStr, maxLightnessMicrosStr}) {
-                    if (!Utils.isValidIntInRange(lightnessMicrosStr, MIN_LIGHTNESS_MICROS, MAX_LIGHTNESS_MICROS)) {
+            DimmersSettingsAdapter dimmersSettingsAdapter = (DimmersSettingsAdapter)rcvDimmersSettings.getAdapter();
+            if (dimmersSettingsAdapter != null) {
+                for (int i = 0; i < rcvDimmersSettings.getChildCount(); ++i) {
+                    final DeviceInfo.DimmerSettings dimSettings = device.getDimmersSettings()[i];
+                    final DimmersSettingsAdapter.ViewHolder dimHolder
+                            = (DimmersSettingsAdapter.ViewHolder)rcvDimmersSettings.findViewHolderForAdapterPosition(
+                                    dimSettings.order
+                    );
+                    assert dimHolder != null;
+                    dimSettings.active = dimHolder.isActive();
+
+                    final String valueChangeStepStr = dimHolder.getDimValueChangeStep();
+                    final String minLightnessMicrosStr = dimHolder.getDimMinLightnessMicros();
+                    final String maxLightnessMicrosStr = dimHolder.getDimMaxLightnessMicros();
+
+                    if (!Utils.isValidIntInRange(valueChangeStepStr, DeviceInfo.MIN_VALUE_CHANGE_STEP, DeviceInfo.MAX_VALUE_CHANGE_STEP)) {
                         showOkDialog(tr(R.string.error), tr(
-                                R.string.restrictions_for_micros,
-                                MIN_LIGHTNESS_MICROS,
-                                MAX_LIGHTNESS_MICROS,
-                                lightnessMicrosStr
+                                R.string.restrictions_for_change_speed,
+                                DeviceInfo.MIN_VALUE_CHANGE_STEP,
+                                DeviceInfo.MAX_VALUE_CHANGE_STEP,
+                                valueChangeStepStr
                         ));
                         return;
                     }
-                }
+                    for (String lightnessMicrosStr : new String[]{minLightnessMicrosStr, maxLightnessMicrosStr}) {
+                        if (!Utils.isValidIntInRange(lightnessMicrosStr, DeviceInfo.MIN_LIGHTNESS_MICROS, DeviceInfo.MAX_LIGHTNESS_MICROS)) {
+                            showOkDialog(tr(R.string.error), tr(
+                                    R.string.restrictions_for_micros,
+                                    DeviceInfo.MIN_LIGHTNESS_MICROS,
+                                    DeviceInfo.MAX_LIGHTNESS_MICROS,
+                                    lightnessMicrosStr
+                            ));
+                            return;
+                        }
+                    }
 
-                final int minLightnessMicros = Integer.parseInt(minLightnessMicrosStr);
-                final int maxLightnessMicros = Integer.parseInt(maxLightnessMicrosStr);
-                if (minLightnessMicros <= maxLightnessMicros) {
-                    showOkDialog(tr(R.string.error), tr(R.string.restrictions_for_min_max_micros, minLightnessMicros, maxLightnessMicros));
-                    return;
-                }
+                    final int minLightnessMicros = Integer.parseInt(minLightnessMicrosStr);
+                    final int maxLightnessMicros = Integer.parseInt(maxLightnessMicrosStr);
+                    if (minLightnessMicros <= maxLightnessMicros) {
+                        showOkDialog(tr(R.string.error), tr(R.string.restrictions_for_min_max_micros, minLightnessMicros, maxLightnessMicros));
+                        return;
+                    }
 
-                argsStr.append("&")
-                        .append(DeviceInfo.DIMMER_PREFIX).append(i).append("=")
-                        .append(valueChangeStepStr).append(",")
-                        .append(minLightnessMicros).append(",")
-                        .append(maxLightnessMicros);
+                    argsStr.append("&")
+                            .append(DeviceInfo.DIMMER_PREFIX).append(i).append("=")
+                            .append(valueChangeStepStr).append(",")
+                            .append(minLightnessMicros).append(",")
+                            .append(maxLightnessMicros);
+                }
             }
-            for (int i = 0; i < switchersCount; ++i) {
-                argsStr.append("&")
-                        .append(DeviceInfo.SWITCHER_PREFIX).append(i).append("=")
-                        .append(cbsSwInverted[i].isChecked() ? "1" : "0");
+
+            SwitchersSettingsAdapter switchersSettingsAdapter = (SwitchersSettingsAdapter)rcvSwitchersSettings.getAdapter();
+            if (switchersSettingsAdapter != null) {
+                for (int i = 0; i < rcvSwitchersSettings.getChildCount(); ++i) {
+                    final DeviceInfo.SwitcherSettings swSettings = device.getSwitchersSettings()[i];
+                    final SwitchersSettingsAdapter.ViewHolder swHolder
+                            = (SwitchersSettingsAdapter.ViewHolder)rcvSwitchersSettings.findViewHolderForAdapterPosition(
+                                    swSettings.order
+                    );
+                    assert swHolder != null;
+                    swSettings.active = swHolder.isActive();
+
+                    argsStr.append("&")
+                            .append(DeviceInfo.SWITCHER_PREFIX).append(i).append("=")
+                            .append(swHolder.isInverted() ? "1" : "0");
+                }
             }
-            */
+
+            argsStr.append("&blob=").append(Utils.urlEncode(new String(device.generateAdditionalBlob(), StandardCharsets.UTF_8)));
 
             btnSaveDeviceSettings.setEnabled(false);
             Http.asyncRequest(
@@ -278,7 +288,7 @@ public class DeviceSettings extends BaseScreen {
     @SuppressLint("SetTextI18n")
     public void setDevice(DeviceInfo device) {
         this.device = device;
-        this.deviceIsDiscovered = device.isDiscovered();  // saving discovered as it was
+        deviceIsDiscovered = device.isDiscovered();  // saving discovered as it was
         if (settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS
                 || settingsViewFlipper.getDisplayedChild() == SVFChild.DEVICE_SETTINGS_UNAVAILABLE) {
             settingsViewFlipper.setDisplayedChild(deviceIsDiscovered
@@ -287,16 +297,18 @@ public class DeviceSettings extends BaseScreen {
             );
         }
 
-        edtName.setText(device.getName());
-        txtInputPin.setText(tr(R.string.input_pin, device.getInputPin()));
-        rcvDimmersSettings.setAdapter(new DimmersSettingsAdapter(
-                ithDimmersSettings,
-                device.getDimmersSettings()
-        ));
-        rcvSwitchersSettings.setAdapter(new SwitchersSettingsAdapter(
-                ithSwitchersSettings,
-                device.getSwitchersSettings()
-        ));
+        if (deviceIsDiscovered) {
+            edtName.setText(device.getName());
+            txtInputPin.setText(tr(R.string.input_pin, device.getInputPin()));
+            rcvDimmersSettings.setAdapter(new DimmersSettingsAdapter(
+                    ithDimmersSettings,
+                    device.getDimmersSettings()
+            ));
+            rcvSwitchersSettings.setAdapter(new SwitchersSettingsAdapter(
+                    ithSwitchersSettings,
+                    device.getSwitchersSettings()
+            ));
+        }
 
         edtIpAddress.setText(device.getIpAddress());
         edtPort.setText(Integer.toString(device.getPort()));

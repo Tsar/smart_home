@@ -51,7 +51,7 @@
                 android:layout_weight="2"
                 android:textAlignment="center"
                 android:textSize="12sp"
-                android:text="@string/enabled" />
+                android:text="@string/active" />
 
             <TextView
                 android:layout_width="0dp"
@@ -116,7 +116,7 @@
                 android:layout_weight="2"
                 android:textAlignment="center"
                 android:textSize="16sp"
-                android:text="@string/enabled" />
+                android:text="@string/active" />
 
             <TextView
                 android:layout_width="0dp"

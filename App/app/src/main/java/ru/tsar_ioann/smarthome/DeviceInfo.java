@@ -24,17 +24,37 @@ public class DeviceInfo {
         public static final String SET_SETTINGS         = "/set_settings";
     }
 
+    public static final int MIN_VALUE_CHANGE_STEP = 1;
+    public static final int MAX_VALUE_CHANGE_STEP = 50;
+    public static final int MIN_LIGHTNESS_MICROS = 50;
+    public static final int MAX_LIGHTNESS_MICROS = 9950;
+
     public static final String DIMMER_PREFIX = "dim";
     public static final String SWITCHER_PREFIX = "sw";
 
-    public static class DimmerSettings {
+    public static class BaseSettings {
         public byte pin;
+        public boolean active;
+        public int order;
+
+        public BaseSettings(byte pin) {
+            this.pin = pin;
+        }
+
+        protected boolean equals(BaseSettings other) {
+            return pin == other.pin
+                    && active == other.active
+                    && order == other.order;
+        }
+    }
+
+    public static class DimmerSettings extends BaseSettings {
         public int valueChangeStep;
         public int minLightnessMicros;
         public int maxLightnessMicros;
 
         public DimmerSettings(byte pin, int valueChangeStep, int minLightnessMicros, int maxLightnessMicros) {
-            this.pin = pin;
+            super(pin);
             this.valueChangeStep = valueChangeStep;
             this.minLightnessMicros = minLightnessMicros;
             this.maxLightnessMicros = maxLightnessMicros;
@@ -44,19 +64,18 @@ public class DeviceInfo {
             if (other == null) {
                 return false;
             }
-            return pin == other.pin
+            return super.equals(other)
                     && valueChangeStep == other.valueChangeStep
                     && minLightnessMicros == other.minLightnessMicros
                     && maxLightnessMicros == other.maxLightnessMicros;
         }
-    };
+    }
 
-    public static class SwitcherSettings {
-        public byte pin;
+    public static class SwitcherSettings extends BaseSettings {
         public boolean inverted;
 
         public SwitcherSettings(byte pin, boolean inverted) {
-            this.pin = pin;
+            super(pin);
             this.inverted = inverted;
         }
 
@@ -64,7 +83,7 @@ public class DeviceInfo {
             if (other == null) {
                 return false;
             }
-            return pin == other.pin && inverted == other.inverted;
+            return super.equals(other) && inverted == other.inverted;
         }
     }
 
@@ -150,16 +169,53 @@ public class DeviceInfo {
             }
             for (int i = 0; i < SWITCHERS_COUNT; ++i) {
                 byte pin = buffer.get();
-                switcherValues[i] = (buffer.get() != 0);
-                boolean inverted = (buffer.get() != 0);
+                switcherValues[i] = buffer.get() != 0;
+                boolean inverted = buffer.get() != 0;
                 switchersSettings[i] = new SwitcherSettings(pin, inverted);
             }
 
-            short blobLength = buffer.getShort();
-            // TODO: validate and use blob
+            parseAdditionalBlob(buffer);
         } catch (BufferUnderflowException e) {
             throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
         }
+    }
+
+    private void parseAdditionalBlob(ByteBuffer buffer) {
+        try {
+            buffer.getShort();  // blob length
+            for (int i = 0; i < DIMMERS_COUNT; ++i) {
+                dimmersSettings[i].active = buffer.get() != 0;
+                dimmersSettings[i].order = buffer.get();
+            }
+            for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+                switchersSettings[i].active = buffer.get() != 0;
+                switchersSettings[i].order = buffer.get();
+            }
+        } catch (BufferUnderflowException e) {
+            Log.d(LOG_TAG, "Failed to parse additional blob, fallback to default");
+            for (int i = 0; i < DIMMERS_COUNT; ++i) {
+                dimmersSettings[i].active = true;
+                dimmersSettings[i].order = i;
+            }
+            for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+                switchersSettings[i].active = true;
+                switchersSettings[i].order = i;
+            }
+        }
+    }
+
+    public byte[] generateAdditionalBlob() {
+        ByteBuffer buffer = ByteBuffer.allocate((DIMMERS_COUNT + SWITCHERS_COUNT) * 2)
+                .order(ByteOrder.LITTLE_ENDIAN);
+        for (int i = 0; i < DIMMERS_COUNT; ++i) {
+            buffer.put((byte)(dimmersSettings[i].active ? 1 : 0));
+            buffer.put((byte)dimmersSettings[i].order);
+        }
+        for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+            buffer.put((byte)(switchersSettings[i].active ? 1 : 0));
+            buffer.put((byte)switchersSettings[i].order);
+        }
+        return buffer.array();
     }
 
     public String getMacAddress() {
