@@ -106,9 +106,11 @@ public class DeviceInfo {
 
     private final boolean[] switcherValues = new boolean[SWITCHERS_COUNT];
     private final SwitcherSettings[] switchersSettings = new SwitcherSettings[SWITCHERS_COUNT];
+    private OrderingKeeper switchersOrder;
 
     private final int[] dimmerValues = new int[DIMMERS_COUNT];
     private final DimmerSettings[] dimmersSettings = new DimmerSettings[DIMMERS_COUNT];
+    private OrderingKeeper dimmersOrder;
 
     public interface Listener {
         void onDeviceInfoChanged();
@@ -178,6 +180,9 @@ public class DeviceInfo {
         } catch (BufferUnderflowException e) {
             throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
         }
+
+        switchersOrder = new OrderingKeeper(switchersSettings);
+        dimmersOrder = new OrderingKeeper(dimmersSettings);
     }
 
     private void parseAdditionalBlob(ByteBuffer buffer) {
@@ -278,8 +283,44 @@ public class DeviceInfo {
         return dimmersSettings;
     }
 
+    public OrderingKeeper getDimmersOrder() {
+        return dimmersOrder;
+    }
+
+    public boolean isDimmerActive(int id) {
+        if (dimmersSettings[id] != null) {
+            return dimmersSettings[id].active;
+        }
+        return true;
+    }
+
+    public int getDimmerIndexByOrder(int order) {
+        if (dimmersOrder != null) {
+            return dimmersOrder.getIndex(order);
+        }
+        return order;
+    }
+
     public SwitcherSettings[] getSwitchersSettings() {
         return switchersSettings;
+    }
+
+    public OrderingKeeper getSwitchersOrder() {
+        return switchersOrder;
+    }
+
+    public boolean isSwitcherActive(int id) {
+        if (switchersSettings[id] != null) {
+            return switchersSettings[id].active;
+        }
+        return true;
+    }
+
+    public int getSwitcherIndexByOrder(int order) {
+        if (switchersOrder != null) {
+            return switchersOrder.getIndex(order);
+        }
+        return order;
     }
 
     public void setParams(String name, String ipAddress, int port, boolean permanentIp, String httpPassword) {
@@ -347,6 +388,8 @@ public class DeviceInfo {
                 anythingChanged = true;
             }
         }
+        dimmersOrder = info.dimmersOrder;
+        switchersOrder = info.switchersOrder;
         if (inputPin != info.inputPin) {
             inputPin = info.inputPin;
             anythingChanged = true;

@@ -42,10 +42,10 @@ public class SwitchersSettingsAdapter extends RecyclerView.Adapter<SwitchersSett
         }
     }
 
-    public SwitchersSettingsAdapter(ItemTouchHelper itemTouchHelper, DeviceInfo.SwitcherSettings[] switchersSettings) {
+    public SwitchersSettingsAdapter(ItemTouchHelper itemTouchHelper, DeviceInfo.SwitcherSettings[] switchersSettings, OrderingKeeper ordering) {
         this.itemTouchHelper = itemTouchHelper;
         this.switchersSettings = switchersSettings;
-        ordering = new OrderingKeeper(switchersSettings);
+        this.ordering = ordering;
     }
 
     @NonNull

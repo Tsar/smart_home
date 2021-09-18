@@ -64,10 +64,10 @@ public class DimmersSettingsAdapter extends RecyclerView.Adapter<DimmersSettings
         }
     }
 
-    public DimmersSettingsAdapter(ItemTouchHelper itemTouchHelper, DeviceInfo.DimmerSettings[] dimmersSettings) {
+    public DimmersSettingsAdapter(ItemTouchHelper itemTouchHelper, DeviceInfo.DimmerSettings[] dimmersSettings, OrderingKeeper ordering) {
         this.itemTouchHelper = itemTouchHelper;
         this.dimmersSettings = dimmersSettings;
-        ordering = new OrderingKeeper(dimmersSettings);
+        this.ordering = ordering;
     }
 
     @NonNull

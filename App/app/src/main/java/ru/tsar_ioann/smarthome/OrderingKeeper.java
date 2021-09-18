@@ -30,6 +30,7 @@ public class OrderingKeeper {
     private void fillFallbackOrdering() {
         Log.d(LOG_TAG, "Got invalid order of settings, fallback to default");
         for (int i = 0; i < orderToIndex.length; ++i) {
+            settings[i].order = i;
             orderToIndex[i] = i;
         }
     }

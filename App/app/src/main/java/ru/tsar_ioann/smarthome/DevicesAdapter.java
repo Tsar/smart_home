@@ -59,7 +59,13 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 convertView.findViewById(R.id.sw0),
                 convertView.findViewById(R.id.sw1),
                 convertView.findViewById(R.id.sw2),
-                convertView.findViewById(R.id.sw3),
+                convertView.findViewById(R.id.sw3)
+        };
+        final View[] switcherSpaces = new View[]{
+                convertView.findViewById(R.id.sw0_space),
+                convertView.findViewById(R.id.sw1_space),
+                convertView.findViewById(R.id.sw2_space),
+                convertView.findViewById(R.id.sw3_space)
         };
 
         final LinearLayout layoutSettingsButtons = convertView.findViewById(R.id.layoutSettingsButtons);
@@ -97,9 +103,14 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
         final boolean discovered = device.isDiscovered();
 
         for (int i = 0; i < dimmers.length; ++i) {
-            dimmers[i].setProgress(device.getDimmerValue(i));
+            final int dimId = device.getDimmerIndexByOrder(i);
+            if (!device.isDimmerActive(dimId)) {
+                dimmers[i].setVisibility(View.GONE);
+                continue;
+            }
+            dimmers[i].setVisibility(View.VISIBLE);
+            dimmers[i].setProgress(device.getDimmerValue(dimId));
             dimmers[i].setEnabled(discovered);
-            int finalI = i;
             dimmers[i].setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 private int oldProgress = 0;
 
@@ -116,7 +127,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     seekBar.setEnabled(false);
                     Http.asyncRequest(
-                            device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?dim" + finalI + "=" + seekBar.getProgress(),
+                            device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?dim" + dimId + "=" + seekBar.getProgress(),
                             null,
                             httpPassword,
                             null,
@@ -127,7 +138,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                                     if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
                                         final String responseStr = response.getDataAsStr();
                                         if (responseStr.startsWith("ACCEPTED") || responseStr.startsWith("NOTHING_CHANGED")) {
-                                            device.setDimmerValue(finalI, seekBar.getProgress());
+                                            device.setDimmerValue(dimId, seekBar.getProgress());
                                             activity.runOnUiThread(() -> seekBar.setEnabled(true));
                                         } else {
                                             onError(new IOException("Bad response: " + responseStr));
@@ -151,18 +162,25 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
         }
 
         for (int i = 0; i < switchers.length; ++i) {
+            final int swId = device.getSwitcherIndexByOrder(i);
+            if (!device.isSwitcherActive(swId)) {
+                switchers[i].setVisibility(View.GONE);
+                switcherSpaces[i].setVisibility(View.GONE);
+                continue;
+            }
+            switchers[i].setVisibility(View.VISIBLE);
+            switcherSpaces[i].setVisibility(View.VISIBLE);
             switchers[i].setOnCheckedChangeListener(null);
-            switchers[i].setChecked(device.getSwitcherValue(i));
+            switchers[i].setChecked(device.getSwitcherValue(swId));
             switchers[i].jumpDrawablesToCurrentState();
             switchers[i].setEnabled(discovered);
-            int finalI = i;
             switchers[i].setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                     CompoundButton.OnCheckedChangeListener checkedChangeListener = this;
                     buttonView.setEnabled(false);
                     Http.asyncRequest(
-                            device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?sw" + finalI + "=" + (isChecked ? 1 : 0),
+                            device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?sw" + swId + "=" + (isChecked ? 1 : 0),
                             null,
                             httpPassword,
                             null,
@@ -173,7 +191,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                                     if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
                                         final String responseStr = response.getDataAsStr();
                                         if (responseStr.startsWith("ACCEPTED") || responseStr.startsWith("NOTHING_CHANGED")) {
-                                            device.setSwitcherValue(finalI, isChecked);
+                                            device.setSwitcherValue(swId, isChecked);
                                             activity.runOnUiThread(() -> buttonView.setEnabled(true));
                                         } else {
                                             onError(new IOException("Bad response: " + responseStr));

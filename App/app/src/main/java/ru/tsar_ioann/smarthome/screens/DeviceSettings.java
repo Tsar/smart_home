@@ -302,11 +302,13 @@ public class DeviceSettings extends BaseScreen {
             txtInputPin.setText(tr(R.string.input_pin, device.getInputPin()));
             rcvDimmersSettings.setAdapter(new DimmersSettingsAdapter(
                     ithDimmersSettings,
-                    device.getDimmersSettings()
+                    device.getDimmersSettings(),
+                    device.getDimmersOrder()
             ));
             rcvSwitchersSettings.setAdapter(new SwitchersSettingsAdapter(
                     ithSwitchersSettings,
-                    device.getSwitchersSettings()
+                    device.getSwitchersSettings(),
+                    device.getSwitchersOrder()
             ));
         }
 
