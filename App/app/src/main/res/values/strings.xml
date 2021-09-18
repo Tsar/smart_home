@@ -55,6 +55,7 @@
     <string name="connection_settings">Connection settings</string>
     <string name="save">Save</string>
     <string name="name">Name</string>
+    <string name="input_pin">Input pin — %1$d</string>
     <string name="dimmer_settings">Dimmers settings</string>
     <string name="this_settings_are_unavailable">This settings are unavailable, because device is not connected.\n\nCheck \"Connection settings\".</string>
     <string name="device_settings_successfully_saved">Settings were saved on the device successfully!</string>

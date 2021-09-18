@@ -55,6 +55,7 @@
     <string name="connection_settings">Настройки подключения</string>
     <string name="save">Сохранить</string>
     <string name="name">Название</string>
+    <string name="input_pin">Входной пин — %1$d</string>
     <string name="dimmer_settings">Настройки диммеров</string>
     <string name="this_settings_are_unavailable">Этот раздел настроек недоступен, потому что нет связи с устройством.\n\nПроверьте \"Настройки подключения\".</string>
     <string name="device_settings_successfully_saved">Настройки успешно сохранены на устройстве!</string>

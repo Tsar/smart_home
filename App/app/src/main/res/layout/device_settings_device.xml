@@ -22,6 +22,12 @@
             tools:ignore="Autofill,LabelFor" />
 
         <TextView
+            android:id="@+id/txtInputPin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/input_pin" />
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/dimmer_settings" />

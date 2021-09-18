@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
@@ -47,6 +48,7 @@ public class DeviceSettings extends BaseScreen {
     private boolean deviceIsDiscovered;
 
     private final EditText edtName;
+    private final TextView txtInputPin;
     private final RecyclerView rcvDimmersSettings;
     private final RecyclerView rcvSwitchersSettings;
     private final ItemTouchHelper ithDimmersSettings;
@@ -69,6 +71,7 @@ public class DeviceSettings extends BaseScreen {
         settingsViewFlipper = activity.findViewById(R.id.settingsViewFlipper);
 
         edtName = activity.findViewById(R.id.edtName);
+        txtInputPin = activity.findViewById(R.id.txtInputPin);
 
         rcvDimmersSettings = activity.findViewById(R.id.rcvDimmersSettings);
         rcvDimmersSettings.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false));
@@ -285,6 +288,7 @@ public class DeviceSettings extends BaseScreen {
         }
 
         edtName.setText(device.getName());
+        txtInputPin.setText(tr(R.string.input_pin, device.getInputPin()));
         rcvDimmersSettings.setAdapter(new DimmersSettingsAdapter(
                 ithDimmersSettings,
                 device.getDimmersSettings()

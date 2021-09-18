@@ -154,6 +154,9 @@ public class DeviceInfo {
                 boolean inverted = (buffer.get() != 0);
                 switchersSettings[i] = new SwitcherSettings(pin, inverted);
             }
+
+            short blobLength = buffer.getShort();
+            // TODO: validate and use blob
         } catch (BufferUnderflowException e) {
             throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
         }
@@ -209,6 +212,10 @@ public class DeviceInfo {
 
     public boolean getSwitcherValue(int n) {
         return switcherValues[n];
+    }
+
+    public byte getInputPin() {
+        return inputPin;
     }
 
     public DimmerSettings[] getDimmersSettings() {
@@ -283,6 +290,10 @@ public class DeviceInfo {
                 switchersSettings[i] = info.switchersSettings[i];
                 anythingChanged = true;
             }
+        }
+        if (inputPin != info.inputPin) {
+            inputPin = info.inputPin;
+            anythingChanged = true;
         }
         return anythingChanged;
     }
