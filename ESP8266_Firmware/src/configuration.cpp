@@ -1,9 +1,13 @@
 #include "configuration.hpp"
 
+#include <Arduino.h>
 #include <EEPROM.h>
+#include <HardwareSerial.h>
 
 #define CONFIGURATION_MAGIC 0x37B9AFBE
 #define CONFIGURATION_FORMAT_VERSION 4  // увеличивать при изменении формата конфигурации
+
+#define PROCESS_ASYNC_EVENTS_INTERVAL_MS 2200
 
 namespace smart_home {
 
@@ -85,8 +89,10 @@ bool DimmerSettings::areValid() {
     return valueChangeStep > 0 && maxLightnessMicros < minLightnessMicros && maxLightnessMicros > 0 && minLightnessMicros < 10000;
 }
 
-Configuration::Configuration() {
+Configuration::Configuration()
+    : needsSave_(false) {
     EEPROM.begin(4096);
+    asyncEventsTicker_.attach_ms_scheduled(PROCESS_ASYNC_EVENTS_INTERVAL_MS, [this]() { processAsyncEvents(); });
 }
 
 void Configuration::loadOrReset(bool& resetHappened) {
@@ -117,7 +123,10 @@ void Configuration::loadOrReset(bool& resetHappened) {
     wifiResetSequenceLength = readUInt8(pos);
 }
 
-void Configuration::save() const {
+void Configuration::save() {
+    needsSave_ = false;
+    const auto tsStart = micros64();
+
     int pos = 0;
     writeInt32(pos, CONFIGURATION_MAGIC);
     writeInt32(pos, CONFIGURATION_FORMAT_VERSION);
@@ -136,6 +145,19 @@ void Configuration::save() const {
     writeString(pos, additionalBlob_);
     writeUInt8(pos, wifiResetSequenceLength);
     EEPROM.commit();
+
+    const auto tsEnd = micros64();
+    Serial.printf("Saved configuration to flash, spent %.2lf ms\n", (tsEnd - tsStart) / 1000.0);
+}
+
+void Configuration::asyncSave() {
+    needsSave_ = true;
+}
+
+void Configuration::processAsyncEvents() {
+    if (needsSave_) {
+        save();
+    }
 }
 
 void Configuration::resetAndSave() {

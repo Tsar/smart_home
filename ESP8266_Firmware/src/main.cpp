@@ -3,7 +3,6 @@
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
 #include <lwip/igmp.h>
-#include <Ticker.h>
 
 #include "configuration.hpp"
 
@@ -531,6 +530,7 @@ void handleSetValues() {
     }
   }
 
+  bool accepted = false;
   if (dimmersChanged || switchersChanged) {
     if (dimmersChanged) {
       fillDimmerValues();
@@ -539,21 +539,19 @@ void handleSetValues() {
       applySwitcherValues();
     }
     server.send(200, "text/plain", "ACCEPTED\n");
-
-    const auto tsSaveCfgStart = micros64();
-    homeCfg.save();
-
-    const auto tsEnd = micros64();
-    Serial.printf(
-      "Handled %s, spent %.2lf ms (%.2lf for handling + %.2lf for saving to flash), accepted new values\n", server.uri().c_str(),
-      (tsEnd - tsStart) / 1000.0, (tsSaveCfgStart - tsStart) / 1000.0, (tsEnd - tsSaveCfgStart) / 1000.0
-    );
+    homeCfg.asyncSave();
+    accepted = true;
   } else {
     server.send(200, "text/plain", "NOTHING_CHANGED\n");
-
-    const auto tsEnd = micros64();
-    Serial.printf("Handled %s, spent %.2lf ms, nothing was changed\n", server.uri().c_str(), (tsEnd - tsStart) / 1000.0);
   }
+
+  const auto tsEnd = micros64();
+  Serial.printf(
+    "Handled %s, spent %.2lf ms, %s\n",
+    server.uri().c_str(),
+    (tsEnd - tsStart) / 1000.0,
+    accepted ? "accepted new values" : "nothing was changed"
+  );
 }
 
 void handleSetSettings() {

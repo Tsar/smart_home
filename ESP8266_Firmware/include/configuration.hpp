@@ -1,6 +1,7 @@
 #pragma once
 
 #include <WString.h>
+#include <Ticker.h>
 
 #define SWITCHERS_COUNT 4
 #define DIMMERS_COUNT   3
@@ -22,7 +23,8 @@ class Configuration {
         Configuration();
 
         void loadOrReset(bool& resetHappened);
-        void save() const;
+        void save();
+        void asyncSave();
 
         const String& getName() const;
         void setName(const String& name);
@@ -50,6 +52,10 @@ class Configuration {
 
     private:
         void resetAndSave();
+        void processAsyncEvents();  // called regularly
+
+        Ticker asyncEventsTicker_;
+        bool needsSave_;
 
         String name_;
         String password_;  // password for managing device by HTTP, NOT wi-fi passphrase
