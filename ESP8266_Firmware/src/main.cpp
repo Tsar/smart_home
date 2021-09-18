@@ -381,6 +381,7 @@ void generateInfoBinary(uint8_t version) {
 
   const size_t sz = WL_MAC_ADDR_LENGTH                       // MAC size
                   + 2 + name.length()                        // name length and name size
+                  + (v2 ? 1 : 0)                             // input pin
                   + 1 + DIMMERS_COUNT * (v2 ? 9 : 8)         // dimmers info size
                   + 1 + SWITCHERS_COUNT * (v2 ? 3 : 2)       // switchers info size
                   + (v2 ? 2 + additionalBlob.length() : 0);  // some App's GUI display settings
@@ -389,6 +390,9 @@ void generateInfoBinary(uint8_t version) {
   UnalignedBinarySerializer serializer(binInfoStorage.data());
   serializer.writeWiFiMacAddress();
   serializer.writeString(name);
+  if (v2) {
+    serializer.writeUInt8(INPUT_PIN);
+  }
   serializer.writeUInt8(DIMMERS_COUNT);
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     if (v2) {
