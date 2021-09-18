@@ -53,18 +53,20 @@ public class DimmersSettingsAdapter extends RecyclerView.Adapter<DimmersSettings
     @SuppressLint({"SetTextI18n", "ClickableViewAccessibility"})
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.txtDimPin.setText("4");
         final DeviceInfo.DimmerSettings dimSettings = dimmersSettings[position];
         // TODO: set holder.cbDimEnabled
         if (dimSettings != null) {
+            holder.txtDimPin.setText(Byte.toString(dimSettings.pin));
             holder.edtDimValueChangeStep.setText(Integer.toString(dimSettings.valueChangeStep));
             holder.edtDimMinLightnessMicros.setText(Integer.toString(dimSettings.minLightnessMicros));
             holder.edtDimMaxLightnessMicros.setText(Integer.toString(dimSettings.maxLightnessMicros));
         } else {
+            holder.txtDimPin.setText("");
             holder.edtDimValueChangeStep.setText("");
             holder.edtDimMinLightnessMicros.setText("");
             holder.edtDimMaxLightnessMicros.setText("");
         }
+
         holder.imgDimReorderHandle.setOnTouchListener((v, event) -> {
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
                 itemTouchHelper.startDrag(holder);

@@ -15,7 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class SwitchersSettingsAdapter extends RecyclerView.Adapter<SwitchersSettingsAdapter.ViewHolder> {
     private final ItemTouchHelper itemTouchHelper;
-    private final boolean[] switchersInverted;
+    private final DeviceInfo.SwitcherSettings[] switchersSettings;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         private final TextView txtSwPin;
@@ -32,9 +32,9 @@ public class SwitchersSettingsAdapter extends RecyclerView.Adapter<SwitchersSett
         }
     }
 
-    public SwitchersSettingsAdapter(ItemTouchHelper itemTouchHelper, boolean[] switchersInverted) {
+    public SwitchersSettingsAdapter(ItemTouchHelper itemTouchHelper, DeviceInfo.SwitcherSettings[] switchersSettings) {
         this.itemTouchHelper = itemTouchHelper;
-        this.switchersInverted = switchersInverted;
+        this.switchersSettings = switchersSettings;
     }
 
     @NonNull
@@ -45,12 +45,20 @@ public class SwitchersSettingsAdapter extends RecyclerView.Adapter<SwitchersSett
         );
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint({"ClickableViewAccessibility", "SetTextI18n"})
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.txtSwPin.setText("9");
-        holder.cbSwInverted.setChecked(switchersInverted[position]);
+        final DeviceInfo.SwitcherSettings swSettings = switchersSettings[position];
+        // TODO: set holder.cbSwEnabled
+        if (swSettings != null) {
+            holder.txtSwPin.setText(Byte.toString(swSettings.pin));
+            holder.cbSwInverted.setChecked(swSettings.inverted);
+        } else {
+            holder.txtSwPin.setText("");
+            holder.cbSwInverted.setChecked(false);
+        }
         holder.cbSwInverted.jumpDrawablesToCurrentState();
+
         holder.imgSwReorderHandle.setOnTouchListener((v, event) -> {
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
                 itemTouchHelper.startDrag(holder);
@@ -61,6 +69,6 @@ public class SwitchersSettingsAdapter extends RecyclerView.Adapter<SwitchersSett
 
     @Override
     public int getItemCount() {
-        return switchersInverted.length;
+        return switchersSettings.length;
     }
 }

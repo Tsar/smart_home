@@ -16,7 +16,7 @@ public class DeviceInfo {
     public static final String DEFAULT_HTTP_PASSWORD = "12345";
 
     public static final class Handlers {
-        public static final String GET_INFO             = "/get_info?binary";
+        public static final String GET_INFO             = "/get_info?binary&v=2";
         public static final String SETUP_WIFI           = "/setup_wifi";
         public static final String GET_SETUP_WIFI_STATE = "/get_setup_wifi_state";
         public static final String TURN_OFF_AP          = "/turn_off_ap";
@@ -28,11 +28,13 @@ public class DeviceInfo {
     public static final String SWITCHER_PREFIX = "sw";
 
     public static class DimmerSettings {
+        public byte pin;
         public int valueChangeStep;
         public int minLightnessMicros;
         public int maxLightnessMicros;
 
-        public DimmerSettings(int valueChangeStep, int minLightnessMicros, int maxLightnessMicros) {
+        public DimmerSettings(byte pin, int valueChangeStep, int minLightnessMicros, int maxLightnessMicros) {
+            this.pin = pin;
             this.valueChangeStep = valueChangeStep;
             this.minLightnessMicros = minLightnessMicros;
             this.maxLightnessMicros = maxLightnessMicros;
@@ -42,11 +44,29 @@ public class DeviceInfo {
             if (other == null) {
                 return false;
             }
-            return valueChangeStep == other.valueChangeStep
+            return pin == other.pin
+                    && valueChangeStep == other.valueChangeStep
                     && minLightnessMicros == other.minLightnessMicros
                     && maxLightnessMicros == other.maxLightnessMicros;
         }
     };
+
+    public static class SwitcherSettings {
+        public byte pin;
+        public boolean inverted;
+
+        public SwitcherSettings(byte pin, boolean inverted) {
+            this.pin = pin;
+            this.inverted = inverted;
+        }
+
+        public boolean equals(SwitcherSettings other) {
+            if (other == null) {
+                return false;
+            }
+            return pin == other.pin && inverted == other.inverted;
+        }
+    }
 
     private static final String LOG_TAG = "DeviceInfo";
 
@@ -63,8 +83,10 @@ public class DeviceInfo {
     private boolean discovered = false;
     private Listener listener = null;
 
+    private byte inputPin;
+
     private final boolean[] switcherValues = new boolean[SWITCHERS_COUNT];
-    private final boolean[] switchersInverted = new boolean[SWITCHERS_COUNT];
+    private final SwitcherSettings[] switchersSettings = new SwitcherSettings[SWITCHERS_COUNT];
 
     private final int[] dimmerValues = new int[DIMMERS_COUNT];
     private final DimmerSettings[] dimmersSettings = new DimmerSettings[DIMMERS_COUNT];
@@ -107,16 +129,19 @@ public class DeviceInfo {
             buffer.get(nameBytes);
             name = new String(nameBytes, StandardCharsets.UTF_8);
 
+            inputPin = buffer.get();
+
             byte dimmersCount = buffer.get();
             if (dimmersCount != DIMMERS_COUNT) {
                 throw new BinaryInfoParseException("Unsupported dimmers count " + dimmersCount + ", expected " + DIMMERS_COUNT);
             }
             for (int i = 0; i < DIMMERS_COUNT; ++i) {
+                byte pin = buffer.get();
                 dimmerValues[i] = buffer.getShort();
                 int valueChangeStep = buffer.getShort();
                 int minLightnessMicros = buffer.getShort();
                 int maxLightnessMicros = buffer.getShort();
-                dimmersSettings[i] = new DimmerSettings(valueChangeStep, minLightnessMicros, maxLightnessMicros);
+                dimmersSettings[i] = new DimmerSettings(pin, valueChangeStep, minLightnessMicros, maxLightnessMicros);
             }
 
             byte switchersCount = buffer.get();
@@ -124,8 +149,10 @@ public class DeviceInfo {
                 throw new BinaryInfoParseException("Unsupported switchers count " + switchersCount + ", expected " + SWITCHERS_COUNT);
             }
             for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+                byte pin = buffer.get();
                 switcherValues[i] = (buffer.get() != 0);
-                switchersInverted[i] = (buffer.get() != 0);
+                boolean inverted = (buffer.get() != 0);
+                switchersSettings[i] = new SwitcherSettings(pin, inverted);
             }
         } catch (BufferUnderflowException e) {
             throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
@@ -188,8 +215,8 @@ public class DeviceInfo {
         return dimmersSettings;
     }
 
-    public boolean[] getSwitchersInverted() {
-        return switchersInverted;
+    public SwitcherSettings[] getSwitchersSettings() {
+        return switchersSettings;
     }
 
     public void setParams(String name, String ipAddress, int port, boolean permanentIp, String httpPassword) {
@@ -250,9 +277,10 @@ public class DeviceInfo {
                 anythingChanged = true;
             }
         }
-        for (int i = 0; i < switchersInverted.length; ++i) {
-            if (switchersInverted[i] != info.switchersInverted[i]) {
-                switchersInverted[i] = info.switchersInverted[i];
+        for (int i = 0; i < switchersSettings.length; ++i) {
+            if ((switchersSettings[i] == null && info.switchersSettings[i] != null)
+                    || (switchersSettings[i] != null && !switchersSettings[i].equals(info.switchersSettings[i]))) {
+                switchersSettings[i] = info.switchersSettings[i];
                 anythingChanged = true;
             }
         }

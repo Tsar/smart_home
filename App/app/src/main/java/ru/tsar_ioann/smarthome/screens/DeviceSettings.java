@@ -291,7 +291,7 @@ public class DeviceSettings extends BaseScreen {
         ));
         rcvSwitchersSettings.setAdapter(new SwitchersSettingsAdapter(
                 ithSwitchersSettings,
-                device.getSwitchersInverted()
+                device.getSwitchersSettings()
         ));
 
         edtIpAddress.setText(device.getIpAddress());
