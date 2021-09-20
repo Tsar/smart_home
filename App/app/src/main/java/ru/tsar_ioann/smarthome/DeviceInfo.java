@@ -388,8 +388,8 @@ public class DeviceInfo {
                 anythingChanged = true;
             }
         }
-        dimmersOrder = info.dimmersOrder;
-        switchersOrder = info.switchersOrder;
+        switchersOrder = new OrderingKeeper(switchersSettings);
+        dimmersOrder = new OrderingKeeper(dimmersSettings);
         if (inputPin != info.inputPin) {
             inputPin = info.inputPin;
             anythingChanged = true;
