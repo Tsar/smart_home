@@ -25,6 +25,11 @@ public class ReorderItemTouchHelper extends ItemTouchHelper {
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {}
+
+            @Override
+            public boolean isLongPressDragEnabled() {
+                return false;
+            }
         });
         attachToRecyclerView(recyclerView);
     }

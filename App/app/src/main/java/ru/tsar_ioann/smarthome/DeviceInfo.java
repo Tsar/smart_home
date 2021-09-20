@@ -177,12 +177,12 @@ public class DeviceInfo {
             }
 
             parseAdditionalBlob(buffer);
+
+            switchersOrder = new OrderingKeeper(switchersSettings);
+            dimmersOrder = new OrderingKeeper(dimmersSettings);
         } catch (BufferUnderflowException e) {
             throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
         }
-
-        switchersOrder = new OrderingKeeper(switchersSettings);
-        dimmersOrder = new OrderingKeeper(dimmersSettings);
     }
 
     private void parseAdditionalBlob(ByteBuffer buffer) {
