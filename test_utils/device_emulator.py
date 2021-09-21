@@ -64,6 +64,8 @@ switchers_inverted = {
     'sw3': 1
 }
 
+additional_blob = b''
+
 def info(msg):
     print('[%s, %d, %s] %s' % (
         datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
@@ -120,13 +122,20 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if not self.checkPassword():
             return
 
-        if self.path == '/get_info?binary':
+        binaryV1 = self.path == '/get_info?binary'
+        binaryV2 = self.path == '/get_info?binary&v=2'
+
+        if binaryV1 or binaryV2:
             nameBin = name.encode('UTF-8')
             result = struct.pack('<6sH', MAC_ADDRESS_BYTES, len(nameBin)) + nameBin
+            if binaryV2:
+                result += struct.pack('<B', 14)  # fake input pin number
             result += struct.pack('<B', DIMMERS_COUNT)
             for i in range(DIMMERS_COUNT):
                 dimKey = 'dim' + str(i)
                 dimSettings = dimmers_settings[dimKey]
+                if binaryV2:
+                    result += struct.pack('<B', i + 4)  # fake dimmer pin number
                 result += struct.pack('<4H',
                                       values[dimKey],
                                       dimSettings['value_change_step'],
@@ -136,7 +145,11 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             result += struct.pack('<B', SWITCHERS_COUNT)
             for i in range(SWITCHERS_COUNT):
                 swKey = 'sw' + str(i)
+                if binaryV2:
+                    result += struct.pack('<B', i + 9)  # fake switcher pin number
                 result += struct.pack('<2B', values[swKey], switchers_inverted[swKey])
+            if binaryV2:
+                result += struct.pack('<H', len(additional_blob)) + additional_blob
             self.send_response_advanced(200, 'application/octet-stream', result)
 
         elif self.path == '/get_info?minimal':
@@ -172,7 +185,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_response_advanced(404, 'text/plain', 'Not Found')
 
     def do_POST(self):
-        global name, dimmers_settings, switchers_inverted
+        global name, dimmers_settings, switchers_inverted, additional_blob
 
         if not self.checkPassword():
             return
@@ -208,6 +221,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         value = int(value)
                         assert value in [0, 1]
                         switchers_inverted[key] = value
+                    elif key == 'blob':
+                        additional_blob = urllib.parse.unquote_plus(value).encode('UTF-8')
                 self.send_response_advanced(200, 'text/plain', 'ACCEPTED\n')
             except:
                 self.send_response_advanced(400, 'text/plain', 'Bad Request')
