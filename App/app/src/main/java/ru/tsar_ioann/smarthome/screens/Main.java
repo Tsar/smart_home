@@ -94,7 +94,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
     }
 
     @Override
-    public void onAnyDeviceInfoChanged() {
+    public void onAnyDeviceInfoUpdated() {
         activity.runOnUiThread(devicesAdapter::notifyDataSetChanged);
     }
 }

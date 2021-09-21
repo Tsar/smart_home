@@ -92,8 +92,8 @@ public class DeviceInfo {
     private static final int DIMMERS_COUNT = 3;
     private static final int SWITCHERS_COUNT = 4;
 
-    private final String macAddress;
-    private String name;
+    private String macAddress = null;
+    private String name = null;
     private String ipAddress = null;
     private int port = Http.DEFAULT_PORT;
     private boolean permanentIp = false;
@@ -113,8 +113,8 @@ public class DeviceInfo {
     private OrderingKeeper dimmersOrder;
 
     public interface Listener {
-        void onDeviceInfoChanged();
-        void onDeviceDiscovered();
+        void onDeviceUpdated(DeviceInfo device);
+        void onDeviceStoredInfoChanged(DeviceInfo device);
     }
 
     public static class BinaryInfoParseException extends Exception {
@@ -135,20 +135,34 @@ public class DeviceInfo {
     }
 
     public DeviceInfo(byte[] binaryInfo) throws BinaryInfoParseException {
+        updateFromBytes(binaryInfo);
+    }
+
+    private boolean updateFromBytes(byte[] binaryInfo) throws BinaryInfoParseException {
         ByteBuffer buffer = ByteBuffer.allocate(binaryInfo.length)
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .put(binaryInfo);
         buffer.position(0);
 
+        boolean storedInfoChanged = false;
         try {
             byte[] macAddressBytes = new byte[6];
             buffer.get(macAddressBytes);
-            macAddress = Utils.macAddressBytesToString(macAddressBytes);
+            final String macAddressParsed = Utils.macAddressBytesToString(macAddressBytes);
+            if (macAddress == null) {
+                macAddress = macAddressParsed;
+            } else if (!macAddress.equals(macAddressParsed)) {
+                throw new BinaryInfoParseException("MAC address differs");
+            }
 
             short nameLength = buffer.getShort();
             byte[] nameBytes = new byte[nameLength];
             buffer.get(nameBytes);
-            name = new String(nameBytes, StandardCharsets.UTF_8);
+            String nameParsed = new String(nameBytes, StandardCharsets.UTF_8);
+            if (name == null || !name.equals(nameParsed)) {
+                name = nameParsed;
+                storedInfoChanged = true;
+            }
 
             inputPin = buffer.get();
 
@@ -180,6 +194,8 @@ public class DeviceInfo {
 
             switchersOrder = new OrderingKeeper(switchersSettings);
             dimmersOrder = new OrderingKeeper(dimmersSettings);
+
+            return storedInfoChanged;
         } catch (BufferUnderflowException e) {
             throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
         }
@@ -331,7 +347,8 @@ public class DeviceInfo {
             this.permanentIp = permanentIp;
             this.httpPassword = httpPassword;
             if (listener != null) {
-                listener.onDeviceInfoChanged();
+                listener.onDeviceUpdated(this);
+                listener.onDeviceStoredInfoChanged(this);
             }
         }
     }
@@ -356,47 +373,6 @@ public class DeviceInfo {
         this.listener = listener;
     }
 
-    private boolean syncTo(DeviceInfo info) {
-        boolean anythingChanged = false;
-        if (!name.equals(info.name)) {
-            name = info.name;
-            anythingChanged = true;
-        }
-        for (int i = 0; i < dimmerValues.length; ++i) {
-            if (dimmerValues[i] != info.dimmerValues[i]) {
-                dimmerValues[i] = info.dimmerValues[i];
-                anythingChanged = true;
-            }
-        }
-        for (int i = 0; i < switcherValues.length; ++i) {
-            if (switcherValues[i] != info.switcherValues[i]) {
-                switcherValues[i] = info.switcherValues[i];
-                anythingChanged = true;
-            }
-        }
-        for (int i = 0; i < dimmersSettings.length; ++i) {
-            if ((dimmersSettings[i] == null && info.dimmersSettings[i] != null)
-                    || (dimmersSettings[i] != null && !dimmersSettings[i].equals(info.dimmersSettings[i]))) {
-                dimmersSettings[i] = info.dimmersSettings[i];
-                anythingChanged = true;
-            }
-        }
-        for (int i = 0; i < switchersSettings.length; ++i) {
-            if ((switchersSettings[i] == null && info.switchersSettings[i] != null)
-                    || (switchersSettings[i] != null && !switchersSettings[i].equals(info.switchersSettings[i]))) {
-                switchersSettings[i] = info.switchersSettings[i];
-                anythingChanged = true;
-            }
-        }
-        switchersOrder = new OrderingKeeper(switchersSettings);
-        dimmersOrder = new OrderingKeeper(dimmersSettings);
-        if (inputPin != info.inputPin) {
-            inputPin = info.inputPin;
-            anythingChanged = true;
-        }
-        return anythingChanged;
-    }
-
     public void asyncTryToDiscover() {
         if (ipAddress == null) {
             Log.d(LOG_TAG, "Discover failed: IP address is not set");
@@ -415,25 +391,19 @@ public class DeviceInfo {
                             Log.d(LOG_TAG, "Discover failed: got bad response code " + response.getHttpCode());
                             return;
                         }
-                        DeviceInfo info;
-                        try {
-                            info = new DeviceInfo(response.getData());
-                        } catch (BinaryInfoParseException e) {
-                            Log.d(LOG_TAG, "Discover failed: could not parse response: " + e.getMessage());
-                            return;
-                        }
-                        synchronized (this) {
-                            if (info.getMacAddress().equals(macAddress)) {
-                                if (syncTo(info) && listener != null) {
-                                    listener.onDeviceInfoChanged();
-                                }
-                                if (!discovered && listener != null) {
-                                    listener.onDeviceDiscovered();
+                        synchronized (DeviceInfo.this) {
+                            try {
+                                final boolean storedInfoChanged = updateFromBytes(response.getData());
+                                if (listener != null) {
+                                    listener.onDeviceUpdated(DeviceInfo.this);
+                                    if (storedInfoChanged) {
+                                        listener.onDeviceStoredInfoChanged(DeviceInfo.this);
+                                    }
                                 }
                                 discovered = true;
                                 Log.d(LOG_TAG, "Device " + macAddress + " discovered");
-                            } else {
-                                Log.d(LOG_TAG, "Discover failed: MAC address differs");
+                            } catch (BinaryInfoParseException e) {
+                                Log.d(LOG_TAG, "Discover failed: could not parse response: " + e.getMessage());
                             }
                         }
                     }

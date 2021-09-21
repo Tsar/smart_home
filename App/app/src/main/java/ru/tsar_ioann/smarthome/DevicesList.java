@@ -1,6 +1,7 @@
 package ru.tsar_ioann.smarthome;
 
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 public class DevicesList implements DeviceInfo.Listener {
+    private static final String LOG_TAG = "DevicesList";
+
     private static final String KEY_COUNT = "count";
     private static final String KEY_MAC_PREFIX = "mac-";
     private static final String KEY_NAME_PREFIX = "name-";
@@ -27,7 +30,7 @@ public class DevicesList implements DeviceInfo.Listener {
     }
 
     public interface Listener {
-        void onAnyDeviceInfoChanged();
+        void onAnyDeviceInfoUpdated();
     }
 
     public DevicesList(SharedPreferences devicesLocalStorage) {
@@ -126,17 +129,15 @@ public class DevicesList implements DeviceInfo.Listener {
     }
 
     @Override
-    public void onDeviceInfoChanged() {
+    public void onDeviceUpdated(DeviceInfo device) {
         if (listener != null) {
-            listener.onAnyDeviceInfoChanged();
+            listener.onAnyDeviceInfoUpdated();
         }
-        saveStorage();  // TODO: save only device, which has changed
     }
 
     @Override
-    public void onDeviceDiscovered() {
-        if (listener != null) {
-            listener.onAnyDeviceInfoChanged();
-        }
+    public void onDeviceStoredInfoChanged(DeviceInfo device) {
+        saveStorage();  // TODO: save only device, which has changed
+        Log.d(LOG_TAG, "Saved storage, because stored info changed for device " + device.getMacAddress());
     }
 }
