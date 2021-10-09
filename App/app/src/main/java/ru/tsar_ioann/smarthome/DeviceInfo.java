@@ -8,7 +8,6 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 public class DeviceInfo {
     public static final String ACCESS_POINT_ADDRESS = "http://192.168.4.1";
@@ -40,12 +39,6 @@ public class DeviceInfo {
         public BaseSettings(byte pin) {
             this.pin = pin;
         }
-
-        protected boolean equals(BaseSettings other) {
-            return pin == other.pin
-                    && active == other.active
-                    && order == other.order;
-        }
     }
 
     public static class DimmerSettings extends BaseSettings {
@@ -59,16 +52,6 @@ public class DeviceInfo {
             this.minLightnessMicros = minLightnessMicros;
             this.maxLightnessMicros = maxLightnessMicros;
         }
-
-        public boolean equals(DimmerSettings other) {
-            if (other == null) {
-                return false;
-            }
-            return super.equals(other)
-                    && valueChangeStep == other.valueChangeStep
-                    && minLightnessMicros == other.minLightnessMicros
-                    && maxLightnessMicros == other.maxLightnessMicros;
-        }
     }
 
     public static class SwitcherSettings extends BaseSettings {
@@ -78,19 +61,9 @@ public class DeviceInfo {
             super(pin);
             this.inverted = inverted;
         }
-
-        public boolean equals(SwitcherSettings other) {
-            if (other == null) {
-                return false;
-            }
-            return super.equals(other) && inverted == other.inverted;
-        }
     }
 
     private static final String LOG_TAG = "DeviceInfo";
-
-    private static final int DIMMERS_COUNT = 3;
-    private static final int SWITCHERS_COUNT = 4;
 
     private String macAddress = null;
     private String name = null;
@@ -104,13 +77,15 @@ public class DeviceInfo {
 
     private byte inputPin;
 
-    private final boolean[] switcherValues = new boolean[SWITCHERS_COUNT];
-    private final SwitcherSettings[] switchersSettings = new SwitcherSettings[SWITCHERS_COUNT];
-    private OrderingKeeper switchersOrder;
-
-    private final int[] dimmerValues = new int[DIMMERS_COUNT];
-    private final DimmerSettings[] dimmersSettings = new DimmerSettings[DIMMERS_COUNT];
+    private int dimmersCount = 0;
+    private int[] dimmerValues;
+    private DimmerSettings[] dimmersSettings;
     private OrderingKeeper dimmersOrder;
+
+    private int switchersCount = 0;
+    private boolean[] switcherValues;
+    private SwitcherSettings[] switchersSettings;
+    private OrderingKeeper switchersOrder;
 
     public interface Listener {
         void onDeviceUpdated(DeviceInfo device);
@@ -131,7 +106,6 @@ public class DeviceInfo {
         this.permanentIp = permanentIp;
         this.httpPassword = httpPassword;
         this.listener = listener;
-        Arrays.fill(this.dimmerValues, 500);
     }
 
     public DeviceInfo(byte[] binaryInfo) throws BinaryInfoParseException {
@@ -166,11 +140,14 @@ public class DeviceInfo {
 
             inputPin = buffer.get();
 
-            byte dimmersCount = buffer.get();
-            if (dimmersCount != DIMMERS_COUNT) {
-                throw new BinaryInfoParseException("Unsupported dimmers count " + dimmersCount + ", expected " + DIMMERS_COUNT);
+            dimmersCount = buffer.get();
+            if (dimmerValues == null || dimmerValues.length != dimmersCount) {
+                dimmerValues = new int[dimmersCount];
             }
-            for (int i = 0; i < DIMMERS_COUNT; ++i) {
+            if (dimmersSettings == null || dimmersSettings.length != dimmersCount) {
+                dimmersSettings = new DimmerSettings[dimmersCount];
+            }
+            for (int i = 0; i < dimmersCount; ++i) {
                 byte pin = buffer.get();
                 dimmerValues[i] = buffer.getShort();
                 int valueChangeStep = buffer.getShort();
@@ -179,11 +156,14 @@ public class DeviceInfo {
                 dimmersSettings[i] = new DimmerSettings(pin, valueChangeStep, minLightnessMicros, maxLightnessMicros);
             }
 
-            byte switchersCount = buffer.get();
-            if (switchersCount != SWITCHERS_COUNT) {
-                throw new BinaryInfoParseException("Unsupported switchers count " + switchersCount + ", expected " + SWITCHERS_COUNT);
+            switchersCount = buffer.get();
+            if (switcherValues == null || switcherValues.length != switchersCount) {
+                switcherValues = new boolean[switchersCount];
             }
-            for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+            if (switchersSettings == null || switchersSettings.length != switchersCount) {
+                switchersSettings = new SwitcherSettings[switchersCount];
+            }
+            for (int i = 0; i < switchersCount; ++i) {
                 byte pin = buffer.get();
                 switcherValues[i] = buffer.get() != 0;
                 boolean inverted = buffer.get() != 0;
@@ -204,21 +184,21 @@ public class DeviceInfo {
     private void parseAdditionalBlob(ByteBuffer buffer) {
         try {
             buffer.getShort();  // blob length
-            for (int i = 0; i < DIMMERS_COUNT; ++i) {
+            for (int i = 0; i < dimmersCount; ++i) {
                 dimmersSettings[i].active = buffer.get() != 0;
                 dimmersSettings[i].order = buffer.get();
             }
-            for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+            for (int i = 0; i < switchersCount; ++i) {
                 switchersSettings[i].active = buffer.get() != 0;
                 switchersSettings[i].order = buffer.get();
             }
         } catch (BufferUnderflowException e) {
             Log.d(LOG_TAG, "Failed to parse additional blob, fallback to default");
-            for (int i = 0; i < DIMMERS_COUNT; ++i) {
+            for (int i = 0; i < dimmersCount; ++i) {
                 dimmersSettings[i].active = true;
                 dimmersSettings[i].order = i;
             }
-            for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+            for (int i = 0; i < switchersCount; ++i) {
                 switchersSettings[i].active = true;
                 switchersSettings[i].order = i;
             }
@@ -226,13 +206,13 @@ public class DeviceInfo {
     }
 
     public byte[] generateAdditionalBlob() {
-        ByteBuffer buffer = ByteBuffer.allocate((DIMMERS_COUNT + SWITCHERS_COUNT) * 2)
+        ByteBuffer buffer = ByteBuffer.allocate((dimmersCount + switchersCount) * 2)
                 .order(ByteOrder.LITTLE_ENDIAN);
-        for (int i = 0; i < DIMMERS_COUNT; ++i) {
+        for (int i = 0; i < dimmersCount; ++i) {
             buffer.put((byte)(dimmersSettings[i].active ? 1 : 0));
             buffer.put((byte)dimmersSettings[i].order);
         }
-        for (int i = 0; i < SWITCHERS_COUNT; ++i) {
+        for (int i = 0; i < switchersCount; ++i) {
             buffer.put((byte)(switchersSettings[i].active ? 1 : 0));
             buffer.put((byte)switchersSettings[i].order);
         }
@@ -283,12 +263,32 @@ public class DeviceInfo {
         return discovered;
     }
 
+    public int getDimmersCount() {
+        if (dimmerValues == null) {
+            return 3;
+        }
+        return dimmersCount;
+    }
+
     public int getDimmerValue(int n) {
-        return dimmerValues[n];
+        if (n >= 0 && n < dimmersCount && dimmerValues != null) {
+            return dimmerValues[n];
+        }
+        return 500;
+    }
+
+    public int getSwitchersCount() {
+        if (switcherValues == null) {
+            return 4;
+        }
+        return switchersCount;
     }
 
     public boolean getSwitcherValue(int n) {
-        return switcherValues[n];
+        if (n >= 0 && n < switchersCount && switcherValues != null) {
+            return switcherValues[n];
+        }
+        return false;
     }
 
     public byte getInputPin() {
@@ -304,7 +304,7 @@ public class DeviceInfo {
     }
 
     public boolean isDimmerActive(int id) {
-        if (dimmersSettings[id] != null) {
+        if (dimmersSettings != null && dimmersSettings[id] != null) {
             return dimmersSettings[id].active;
         }
         return true;
@@ -326,7 +326,7 @@ public class DeviceInfo {
     }
 
     public boolean isSwitcherActive(int id) {
-        if (switchersSettings[id] != null) {
+        if (switchersSettings != null && switchersSettings[id] != null) {
             return switchersSettings[id].active;
         }
         return true;
@@ -358,13 +358,13 @@ public class DeviceInfo {
     }
 
     public void setDimmerValue(int n, int value) {
-        if (n >= 0 && n < DIMMERS_COUNT) {
+        if (n >= 0 && n < dimmersCount && dimmerValues != null) {
             dimmerValues[n] = value;
         }
     }
 
     public void setSwitcherValue(int n, boolean value) {
-        if (n >= 0 && n < SWITCHERS_COUNT) {
+        if (n >= 0 && n < switchersCount && switcherValues != null) {
             switcherValues[n] = value;
         }
     }

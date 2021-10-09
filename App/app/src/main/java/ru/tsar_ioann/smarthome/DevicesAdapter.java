@@ -42,31 +42,51 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
         DeviceInfo device = getItem(position);
 
         // Check if an existing view is being reused, otherwise inflate the view
+        LayoutInflater inflater = LayoutInflater.from(getContext());
         if (convertView == null) {
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_device, parent, false);
+            convertView = inflater.inflate(R.layout.item_device, parent, false);
         }
 
         // Lookup view for data population
         final TextView txtDeviceName = convertView.findViewById(R.id.txtDeviceName);
         final TextView txtDeviceMac = convertView.findViewById(R.id.txtDeviceMac);
         final TextView txtDeviceIp = convertView.findViewById(R.id.txtDeviceIp);
-        final SeekBar[] dimmers = new SeekBar[]{
-                convertView.findViewById(R.id.dim0),
-                convertView.findViewById(R.id.dim1),
-                convertView.findViewById(R.id.dim2)
-        };
-        final Switch[] switchers = new Switch[]{
-                convertView.findViewById(R.id.sw0),
-                convertView.findViewById(R.id.sw1),
-                convertView.findViewById(R.id.sw2),
-                convertView.findViewById(R.id.sw3)
-        };
-        final View[] switcherSpaces = new View[]{
-                convertView.findViewById(R.id.sw0_space),
-                convertView.findViewById(R.id.sw1_space),
-                convertView.findViewById(R.id.sw2_space),
-                convertView.findViewById(R.id.sw3_space)
-        };
+
+        final LinearLayout layoutDimmers = convertView.findViewById(R.id.layoutDimmers);
+        final int dimmersCount = device.getDimmersCount();
+        while (layoutDimmers.getChildCount() > dimmersCount) {
+            layoutDimmers.removeViewAt(layoutDimmers.getChildCount() - 1);
+        }
+        while (layoutDimmers.getChildCount() < dimmersCount) {
+            inflater.inflate(R.layout.dimmer, layoutDimmers, true);
+        }
+        assert layoutDimmers.getChildCount() == dimmersCount;
+
+        final SeekBar[] dimmers = new SeekBar[dimmersCount];
+        for (int i = 0; i < dimmersCount; ++i) {
+            dimmers[i] = (SeekBar) layoutDimmers.getChildAt(i);
+        }
+
+        final LinearLayout layoutSwitchers = convertView.findViewById(R.id.layoutSwitchers);
+        final int switchersCount = device.getSwitchersCount();
+        final int targetLayoutSwitchersElementsCount = switchersCount * 2 + 1;
+        while (layoutSwitchers.getChildCount() > targetLayoutSwitchersElementsCount) {
+            for (int i = 0; i < 2; ++i) {
+                layoutSwitchers.removeViewAt(layoutSwitchers.getChildCount() - 1);
+            }
+        }
+        while (layoutSwitchers.getChildCount() < targetLayoutSwitchersElementsCount) {
+            inflater.inflate(R.layout.switcher, layoutSwitchers, true);
+            inflater.inflate(R.layout.switcher_space, layoutSwitchers, true);
+        }
+        assert layoutSwitchers.getChildCount() == targetLayoutSwitchersElementsCount;
+
+        final Switch[] switchers = new Switch[switchersCount];
+        final View[] switcherSpaces = new View[switchersCount];
+        for (int i = 0; i < switchersCount; ++i) {
+            switchers[i] = (Switch) layoutSwitchers.getChildAt(i * 2 + 1);
+            switcherSpaces[i] = layoutSwitchers.getChildAt(i * 2 + 2);
+        }
 
         final LinearLayout layoutSettingsButtons = convertView.findViewById(R.id.layoutSettingsButtons);
         if (settingsButtonsVisible) {

@@ -49,77 +49,21 @@
 
         </LinearLayout>
 
-        <SeekBar
-            android:id="@+id/dim0"
+        <LinearLayout
+            android:id="@+id/layoutDimmers"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="7dp" />
-
-        <SeekBar
-            android:id="@+id/dim1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="7dp"
-            android:layout_marginBottom="7dp" />
-
-        <SeekBar
-            android:id="@+id/dim2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="7dp"
-            android:layout_marginBottom="15dp" />
+            android:orientation="vertical"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="8dp" />
 
         <LinearLayout
+            android:id="@+id/layoutSwitchers"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal">
 
             <View
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1" />
-
-            <Switch
-                android:id="@+id/sw0"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <View
-                android:id="@+id/sw0_space"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1" />
-
-            <Switch
-                android:id="@+id/sw1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <View
-                android:id="@+id/sw1_space"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1" />
-
-            <Switch
-                android:id="@+id/sw2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <View
-                android:id="@+id/sw2_space"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1" />
-
-            <Switch
-                android:id="@+id/sw3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <View
-                android:id="@+id/sw3_space"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
