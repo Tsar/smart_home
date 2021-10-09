@@ -23,8 +23,8 @@ UDP_MULTICAST_PORT = 25061
 
 DIMMER_MAX_VALUE = 1000
 
-DIMMERS_COUNT = 3
-SWITCHERS_COUNT = 4
+DIMMERS_COUNT = 5
+SWITCHERS_COUNT = 2
 
 name = 'device-emulator'
 password = '12345'
@@ -33,10 +33,10 @@ values = {
     'dim0': 500,
     'dim1': 250,
     'dim2': 750,
+    'dim3': 0,
+    'dim4': 1000,
     'sw0': 0,
     'sw1': 1,
-    'sw2': 1,
-    'sw3': 0
 }
 
 dimmers_settings = {
@@ -46,12 +46,22 @@ dimmers_settings = {
         'max_lightness_micros': 4000
     },
     'dim1': {
-        'value_change_step': 10,
+        'value_change_step': 12,
         'min_lightness_micros': 8300,
         'max_lightness_micros': 4000
     },
     'dim2': {
-        'value_change_step': 10,
+        'value_change_step': 14,
+        'min_lightness_micros': 8300,
+        'max_lightness_micros': 4000
+    },
+    'dim3': {
+        'value_change_step': 16,
+        'min_lightness_micros': 8300,
+        'max_lightness_micros': 4000
+    },
+    'dim4': {
+        'value_change_step': 18,
         'min_lightness_micros': 8300,
         'max_lightness_micros': 4000
     }
@@ -59,9 +69,7 @@ dimmers_settings = {
 
 switchers_inverted = {
     'sw0': 1,
-    'sw1': 1,
-    'sw2': 0,
-    'sw3': 1
+    'sw1': 0
 }
 
 additional_blob = b''
