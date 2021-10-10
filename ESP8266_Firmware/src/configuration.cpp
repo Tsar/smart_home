@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 
 #define CONFIGURATION_MAGIC 0x426A74CB
-#define CONFIGURATION_FORMAT_VERSION 3  // увеличивать при изменении формата конфигурации
+#define CONFIGURATION_FORMAT_VERSION 4  // увеличивать при изменении формата конфигурации
 
 namespace smart_home {
 
@@ -100,6 +100,7 @@ void Configuration::loadOrReset(bool& resetHappened) {
     name_ = readString(pos);
     password_ = readString(pos);
     switcher_ = readBool(pos);
+    additionalBlob_ = readString(pos);
     wifiResetSequenceLength = readUInt8(pos);
 }
 
@@ -110,6 +111,7 @@ void Configuration::save() const {
     writeString(pos, name_);
     writeString(pos, password_);
     writeBool(pos, switcher_);
+    writeString(pos, additionalBlob_);
     writeUInt8(pos, wifiResetSequenceLength);
     EEPROM.commit();
 }
@@ -118,12 +120,13 @@ void Configuration::resetAndSave() {
     setName("MLP 2.0");
     setPassword(DEFAULT_HTTP_PASSWORD);
     setSwitcherValue(false);
+    setAdditionalBlob("");
     wifiResetSequenceLength = 0;
 
     save();
 }
 
-String Configuration::getName() const {
+const String& Configuration::getName() const {
     return name_;
 }
 
@@ -131,7 +134,7 @@ void Configuration::setName(const String& name) {
     name_ = name;
 }
 
-String Configuration::getPassword() const {
+const String& Configuration::getPassword() const {
     return password_;
 }
 
@@ -145,6 +148,14 @@ bool Configuration::getSwitcherValue() const {
 
 void Configuration::setSwitcherValue(bool value) {
     switcher_ = value;
+}
+
+const String& Configuration::getAdditionalBlob() const {
+    return additionalBlob_;
+}
+
+void Configuration::setAdditionalBlob(const String& additionalBlob) {
+    additionalBlob_ = additionalBlob;
 }
 
 uint8_t Configuration::getWiFiResetSequenceLength() const {

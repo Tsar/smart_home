@@ -219,30 +219,26 @@ private:
 // Fill binInfoStorage
 void generateInfoBinary() {
   const String name = homeCfg.getName();
-  const size_t sz = WL_MAC_ADDR_LENGTH        // MAC size
-                  + 2 + name.length()         // name length and name size
-                  + 1 + 3 * 8                 // dimmers values size (4 x uint16_t)
-                  + 1 + 4 * 2;                // switchers values size (2 x uint8_t)
+  const String additionalBlob = homeCfg.getAdditionalBlob();
+
+  const size_t sz = WL_MAC_ADDR_LENGTH            // MAC size
+                  + 2 + name.length()             // name length and name size
+                  + 1                             // input pin
+                  + 1                             // dimmers info size
+                  + 1 + 3                         // switchers info size
+                  + 2 + additionalBlob.length();  // some App's GUI display settings
   binInfoStorage.resize(sz);
 
   UnalignedBinarySerializer serializer(binInfoStorage.data());
   serializer.writeWiFiMacAddress();
   serializer.writeString(name);
-  // Пишем заглушки для совместимости с текущим приложением
-  serializer.writeUInt8(3);
-  for (uint8_t i = 0; i < 3; ++i) {
-    serializer.writeUInt16(0);
-    serializer.writeUInt16(10);
-    serializer.writeUInt16(8000);
-    serializer.writeUInt16(4000);
-  }
-  serializer.writeUInt8(4);
+  serializer.writeUInt8(INPUT_PIN);
+  serializer.writeUInt8(0);  // dimmers count
+  serializer.writeUInt8(1);  // switchers count
+  serializer.writeUInt8(OUTPUT_PIN_A);
   serializer.writeUInt8(outputAState);
   serializer.writeUInt8(0);
-  for (uint8_t i = 0; i < 3; ++i) {
-    serializer.writeUInt8(0);
-    serializer.writeUInt8(0);
-  }
+  serializer.writeString(additionalBlob);
 
   if (serializer.getWrittenSize() != sz) {
     Serial.printf("WARNING: Serialized: %d, expected: %d\n", serializer.getWrittenSize(), sz);
@@ -352,6 +348,10 @@ void handleSetSettings() {
 
   if (server.hasArg("name")) {
     homeCfg.setName(server.arg("name"));
+  }
+
+  if (server.hasArg("blob")) {
+    homeCfg.setAdditionalBlob(server.arg("blob"));
   }
 
   homeCfg.save();
