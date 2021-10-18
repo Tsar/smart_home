@@ -595,7 +595,10 @@ void handleSetSettings() {
     const String argName = SWITCHER_PREFIX + String(i);
     if (server.hasArg(argName)) {
       const bool inverted = server.arg(argName).toInt();
-      homeCfg.setSwitcherInverted(i, inverted);
+      if (homeCfg.isSwitcherInverted(i) != inverted) {
+        homeCfg.setSwitcherInverted(i, inverted);
+        homeCfg.setSwitcherValue(i, !homeCfg.getSwitcherValue(i));
+      }
     }
   }
 
