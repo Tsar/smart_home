@@ -181,7 +181,7 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
             }
 
             i = 0;
-            for (int j = 0; j < switchers.length; ++j) {
+            for (int j = 0; j < device.getSwitchersCount(); ++j) {
                 final int swId = device.getSwitcherIndexByOrder(j);
                 if (!device.isSwitcherActive(swId)) {
                     continue;
