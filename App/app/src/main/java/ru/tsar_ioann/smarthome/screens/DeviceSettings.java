@@ -83,6 +83,7 @@ public class DeviceSettings extends BaseScreen {
                     );
                     assert dimHolder != null;
                     dimSettings.active = dimHolder.isActive();
+                    device.getDimmersOrder().recalcActiveCount();
 
                     final String valueChangeStepStr = dimHolder.getDimValueChangeStep();
                     final String minLightnessMicrosStr = dimHolder.getDimMinLightnessMicros();
@@ -134,6 +135,7 @@ public class DeviceSettings extends BaseScreen {
                     );
                     assert swHolder != null;
                     swSettings.active = swHolder.isActive();
+                    device.getSwitchersOrder().recalcActiveCount();
 
                     argsStr.append("&")
                             .append(DeviceInfo.SWITCHER_PREFIX).append(i).append("=")

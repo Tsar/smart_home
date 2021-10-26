@@ -10,9 +10,12 @@ public class OrderingKeeper {
 
     private final DeviceInfo.BaseSettings[] settings;
     private final int[] orderToIndex;  // order -> index
+    private int activeCount;
 
     public OrderingKeeper(DeviceInfo.BaseSettings[] settings) {
         this.settings = settings;
+        recalcActiveCount();
+
         final Set<Integer> validationSet = new HashSet<>();
         orderToIndex = new int[settings.length];
         for (int i = 0; i < settings.length; ++i) {
@@ -57,5 +60,18 @@ public class OrderingKeeper {
                 orderSwap(i, i - 1);
             }
         }
+    }
+
+    public void recalcActiveCount() {
+        activeCount = 0;
+        for (DeviceInfo.BaseSettings setting : settings) {
+            if (setting.active) {
+                ++activeCount;
+            }
+        }
+    }
+
+    public int getActiveCount() {
+        return activeCount;
     }
 }

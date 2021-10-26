@@ -32,7 +32,7 @@ public class DeviceInfo {
     public static final String SWITCHER_PREFIX = "sw";
 
     public static class BaseSettings {
-        public byte pin;
+        public final byte pin;
         public boolean active;
         public int order;
 
@@ -270,6 +270,13 @@ public class DeviceInfo {
         return dimmersCount;
     }
 
+    public int getActiveDimmersCount() {
+        if (dimmersOrder == null) {
+            return 3;
+        }
+        return dimmersOrder.getActiveCount();
+    }
+
     public int getDimmerValue(int n) {
         if (n >= 0 && n < dimmersCount && dimmerValues != null) {
             return dimmerValues[n];
@@ -282,6 +289,13 @@ public class DeviceInfo {
             return 4;
         }
         return switchersCount;
+    }
+
+    public int getActiveSwitchersCount() {
+        if (switchersOrder == null) {
+            return 4;
+        }
+        return switchersOrder.getActiveCount();
     }
 
     public boolean getSwitcherValue(int n) {
