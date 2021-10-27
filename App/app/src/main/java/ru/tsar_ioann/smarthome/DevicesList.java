@@ -135,12 +135,8 @@ public class DevicesList implements DeviceInfo.Listener {
         if (listener != null) {
             listener.onAnyDeviceInfoUpdated();
         }
-    }
-
-    @Override
-    public void onDeviceStoredInfoChanged(DeviceInfo device) {
         if (saveDeviceToStorage(device)) {
-            Log.d(LOG_TAG, "Saved storage, because stored info changed for device " + device.getMacAddress());
+            Log.d(LOG_TAG, "Saved device " + device.getMacAddress() + " to storage");
         }
     }
 }

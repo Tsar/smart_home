@@ -3,6 +3,10 @@ package ru.tsar_ioann.smarthome;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.nio.BufferUnderflowException;
@@ -47,6 +51,12 @@ public class DeviceInfo {
         public int minLightnessMicros;
         public int maxLightnessMicros;
 
+        public DimmerSettings(boolean active, int order) {
+            super((byte) 0);
+            this.active = active;
+            this.order = order;
+        }
+
         public DimmerSettings(byte pin, int valueChangeStep, int minLightnessMicros, int maxLightnessMicros) {
             super(pin);
             this.valueChangeStep = valueChangeStep;
@@ -57,6 +67,12 @@ public class DeviceInfo {
 
     public static class SwitcherSettings extends BaseSettings {
         public boolean inverted;
+
+        public SwitcherSettings(boolean active, int order) {
+            super((byte) 0);
+            this.active = active;
+            this.order = order;
+        }
 
         public SwitcherSettings(byte pin, boolean inverted) {
             super(pin);
@@ -72,6 +88,7 @@ public class DeviceInfo {
     private static final String KEY_PORT_PREFIX = "port-";
     private static final String KEY_PERMANENT_IP_PREFIX = "permanent-ip-";
     private static final String KEY_PASSWORD_PREFIX = "pwd-";
+    private static final String KEY_STATE_CACHE_PREFIX = "state-cache-";
 
     private String macAddress = null;
     private String name = null;
@@ -97,7 +114,6 @@ public class DeviceInfo {
 
     public interface Listener {
         void onDeviceUpdated(DeviceInfo device);
-        void onDeviceStoredInfoChanged(DeviceInfo device);
     }
 
     public static class BinaryInfoParseException extends Exception {
@@ -126,6 +142,12 @@ public class DeviceInfo {
         port = storage.getInt(KEY_PORT_PREFIX + idInStorage, Http.DEFAULT_PORT);
         permanentIp = storage.getBoolean(KEY_PERMANENT_IP_PREFIX + idInStorage, false);
         httpPassword = storage.getString(KEY_PASSWORD_PREFIX + idInStorage, DeviceInfo.DEFAULT_HTTP_PASSWORD);
+
+        try {
+            parseStateCache(storage.getString(KEY_STATE_CACHE_PREFIX + idInStorage, ""));
+        } catch (JSONException e) {
+            Log.d(LOG_TAG, "Failed to parse state cache for device " + macAddress);
+        }
     }
 
     public void saveToStorage(SharedPreferences.Editor editor, int idInStorage) {
@@ -135,19 +157,26 @@ public class DeviceInfo {
         editor.putInt(KEY_PORT_PREFIX + idInStorage, port);
         editor.putBoolean(KEY_PERMANENT_IP_PREFIX + idInStorage, permanentIp);
         editor.putString(KEY_PASSWORD_PREFIX + idInStorage, httpPassword);
+
+        String stateCache = "";
+        try {
+            stateCache = generateStateCache();
+        } catch (JSONException e) {
+            Log.d(LOG_TAG, "Failed to generate state cache for device " + macAddress);
+        }
+        editor.putString(KEY_STATE_CACHE_PREFIX + idInStorage, stateCache);
     }
 
     public DeviceInfo(byte[] binaryInfo) throws BinaryInfoParseException {
         updateFromBytes(binaryInfo);
     }
 
-    private boolean updateFromBytes(byte[] binaryInfo) throws BinaryInfoParseException {
+    private void updateFromBytes(byte[] binaryInfo) throws BinaryInfoParseException {
         ByteBuffer buffer = ByteBuffer.allocate(binaryInfo.length)
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .put(binaryInfo);
         buffer.position(0);
 
-        boolean storedInfoChanged = false;
         try {
             byte[] macAddressBytes = new byte[6];
             buffer.get(macAddressBytes);
@@ -161,11 +190,7 @@ public class DeviceInfo {
             short nameLength = buffer.getShort();
             byte[] nameBytes = new byte[nameLength];
             buffer.get(nameBytes);
-            String nameParsed = new String(nameBytes, StandardCharsets.UTF_8);
-            if (name == null || !name.equals(nameParsed)) {
-                name = nameParsed;
-                storedInfoChanged = true;
-            }
+            name = new String(nameBytes, StandardCharsets.UTF_8);
 
             inputPin = buffer.get();
 
@@ -203,8 +228,6 @@ public class DeviceInfo {
 
             switchersOrder = new OrderingKeeper(switchersSettings);
             dimmersOrder = new OrderingKeeper(dimmersSettings);
-
-            return storedInfoChanged;
         } catch (BufferUnderflowException e) {
             throw new BinaryInfoParseException("Binary info too short: " + e.getMessage());
         }
@@ -246,6 +269,80 @@ public class DeviceInfo {
             buffer.put((byte)switchersSettings[i].order);
         }
         return buffer.array();
+    }
+
+    private void parseStateCache(String stateCache) throws JSONException {
+        JSONObject state = new JSONObject(stateCache);
+
+        {
+            JSONArray dimmersArr = state.getJSONArray("dimmers");
+            dimmersCount = dimmersArr.length();
+
+            if (dimmerValues == null || dimmerValues.length != dimmersCount) {
+                dimmerValues = new int[dimmersCount];
+            }
+            if (dimmersSettings == null || dimmersSettings.length != dimmersCount) {
+                dimmersSettings = new DimmerSettings[dimmersCount];
+            }
+
+            for (int i = 0; i < dimmersCount; ++i) {
+                JSONObject dimmerObj = dimmersArr.getJSONObject(i);
+                dimmerValues[i] = dimmerObj.getInt("value");
+                dimmersSettings[i] = new DimmerSettings(dimmerObj.getBoolean("active"), dimmerObj.getInt("order"));
+            }
+
+            dimmersOrder = new OrderingKeeper(dimmersSettings);
+        }
+
+        {
+            JSONArray switchersArr = state.getJSONArray("switchers");
+            switchersCount = switchersArr.length();
+
+            if (switcherValues == null || switcherValues.length != switchersCount) {
+                switcherValues = new boolean[switchersCount];
+            }
+            if (switchersSettings == null || switchersSettings.length != switchersCount) {
+                switchersSettings = new SwitcherSettings[switchersCount];
+            }
+
+            for (int i = 0; i < switchersCount; ++i) {
+                JSONObject switcherObj = switchersArr.getJSONObject(i);
+                switcherValues[i] = switcherObj.getBoolean("value");
+                switchersSettings[i] = new SwitcherSettings(switcherObj.getBoolean("active"), switcherObj.getInt("order"));
+            }
+
+            switchersOrder = new OrderingKeeper(switchersSettings);
+        }
+    }
+
+    private String generateStateCache() throws JSONException {
+        if (dimmerValues == null || switcherValues == null || dimmersSettings == null || switchersSettings == null) {
+            return "";
+        }
+
+        JSONArray dimmersArr = new JSONArray();
+        for (int i = 0; i < dimmersCount; ++i) {
+            JSONObject dimmerObj = new JSONObject();
+            dimmerObj.put("value", dimmerValues[i]);
+            dimmerObj.put("active", dimmersSettings[i].active);
+            dimmerObj.put("order", dimmersSettings[i].order);
+            dimmersArr.put(dimmerObj);
+        }
+
+        JSONArray switchersArr = new JSONArray();
+        for (int i = 0; i < switchersCount; ++i) {
+            JSONObject switcherObj = new JSONObject();
+            switcherObj.put("value", switcherValues[i]);
+            switcherObj.put("active", switchersSettings[i].active);
+            switcherObj.put("order", switchersSettings[i].order);
+            switchersArr.put(switcherObj);
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("dimmers", dimmersArr);
+        result.put("switchers", switchersArr);
+
+        return result.toString();
     }
 
     public String getMacAddress() {
@@ -391,7 +488,6 @@ public class DeviceInfo {
             this.httpPassword = httpPassword;
             if (listener != null) {
                 listener.onDeviceUpdated(this);
-                listener.onDeviceStoredInfoChanged(this);
             }
         }
     }
@@ -436,12 +532,9 @@ public class DeviceInfo {
                         }
                         synchronized (DeviceInfo.this) {
                             try {
-                                final boolean storedInfoChanged = updateFromBytes(response.getData());
+                                updateFromBytes(response.getData());
                                 if (listener != null) {
                                     listener.onDeviceUpdated(DeviceInfo.this);
-                                    if (storedInfoChanged) {
-                                        listener.onDeviceStoredInfoChanged(DeviceInfo.this);
-                                    }
                                 }
                                 discovered = true;
                                 Log.d(LOG_TAG, "Device " + macAddress + " discovered");
