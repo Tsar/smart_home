@@ -486,9 +486,7 @@ public class DeviceInfo {
             this.port = port;
             this.permanentIp = permanentIp;
             this.httpPassword = httpPassword;
-            if (listener != null) {
-                listener.onDeviceUpdated(this);
-            }
+            onDeviceUpdated();
         }
     }
 
@@ -499,12 +497,14 @@ public class DeviceInfo {
     public void setDimmerValue(int n, int value) {
         if (n >= 0 && n < dimmersCount && dimmerValues != null) {
             dimmerValues[n] = value;
+            onDeviceUpdated();
         }
     }
 
     public void setSwitcherValue(int n, boolean value) {
         if (n >= 0 && n < switchersCount && switcherValues != null) {
             switcherValues[n] = value;
+            onDeviceUpdated();
         }
     }
 
@@ -533,9 +533,7 @@ public class DeviceInfo {
                         synchronized (DeviceInfo.this) {
                             try {
                                 updateFromBytes(response.getData());
-                                if (listener != null) {
-                                    listener.onDeviceUpdated(DeviceInfo.this);
-                                }
+                                onDeviceUpdated();
                                 discovered = true;
                                 Log.d(LOG_TAG, "Device " + macAddress + " discovered");
                             } catch (BinaryInfoParseException e) {
@@ -550,5 +548,11 @@ public class DeviceInfo {
                     }
                 }
         );
+    }
+
+    private void onDeviceUpdated() {
+        if (listener != null) {
+            listener.onDeviceUpdated(this);
+        };
     }
 }
