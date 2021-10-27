@@ -12,16 +12,11 @@ public class DevicesList implements DeviceInfo.Listener {
     private static final String LOG_TAG = "DevicesList";
 
     private static final String KEY_COUNT = "count";
-    private static final String KEY_MAC_PREFIX = "mac-";
-    private static final String KEY_NAME_PREFIX = "name-";
-    private static final String KEY_IP_PREFIX = "ip-";
-    private static final String KEY_PORT_PREFIX = "port-";
-    private static final String KEY_PERMANENT_IP_PREFIX = "permanent-ip-";
-    private static final String KEY_PASSWORD_PREFIX = "pwd-";
 
     private final SharedPreferences storage;
     private final List<DeviceInfo> deviceInfoList;
-    private final Map<String, DeviceInfo> deviceMap;
+    private final Map<String, DeviceInfo> deviceMap;  // MAC -> device info
+    private final Map<String, Integer> deviceIdsMap;  // MAC -> id in list
     private Listener listener = null;
 
     public enum AddOrUpdateResult {
@@ -37,6 +32,7 @@ public class DevicesList implements DeviceInfo.Listener {
         storage = devicesLocalStorage;
         deviceInfoList = new ArrayList<>();
         deviceMap = new HashMap<>();
+        deviceIdsMap = new HashMap<>();
         loadStorage();
     }
 
@@ -47,35 +43,27 @@ public class DevicesList implements DeviceInfo.Listener {
     private void loadStorage() {
         int count = storage.getInt(KEY_COUNT, 0);
         for (int i = 0; i < count; ++i) {
-            String macAddress = storage.getString(KEY_MAC_PREFIX + i, null);
-            String name = storage.getString(KEY_NAME_PREFIX + i, null);
-            String ipAddress = storage.getString(KEY_IP_PREFIX + i, null);
-            int port = storage.getInt(KEY_PORT_PREFIX + i, Http.DEFAULT_PORT);
-            boolean permanentIp = storage.getBoolean(KEY_PERMANENT_IP_PREFIX + i, false);
-            String httpPassword = storage.getString(KEY_PASSWORD_PREFIX + i, DeviceInfo.DEFAULT_HTTP_PASSWORD);
-            if (macAddress == null || name == null || ipAddress == null) {
-                // TODO: more reasonable reaction
-                throw new RuntimeException("Devices local storage is broken!");
-            }
-            DeviceInfo device = new DeviceInfo(macAddress, name, ipAddress, port, permanentIp, httpPassword, this);
+            DeviceInfo device = new DeviceInfo(storage, i, this);
             deviceInfoList.add(device);
-            deviceMap.put(device.getMacAddress(), device);
+            final String macAddress = device.getMacAddress();
+            deviceMap.put(macAddress, device);
+            deviceIdsMap.put(macAddress, i);
         }
     }
 
-    private void saveStorage() {
-        SharedPreferences.Editor editor = storage.edit();
-        for (int i = 0; i < deviceInfoList.size(); ++i) {
-            DeviceInfo device = deviceInfoList.get(i);
-            editor.putString(KEY_MAC_PREFIX + i, device.getMacAddress());
-            editor.putString(KEY_NAME_PREFIX + i, device.getName());
-            editor.putString(KEY_IP_PREFIX + i, device.getIpAddress());
-            editor.putInt(KEY_PORT_PREFIX + i, device.getPort());
-            editor.putBoolean(KEY_PERMANENT_IP_PREFIX + i, device.isPermanentIp());
-            editor.putString(KEY_PASSWORD_PREFIX + i, device.getHttpPassword());
-        }
-        editor.putInt(KEY_COUNT, deviceInfoList.size());
+    private void saveDeviceToStorage(DeviceInfo device, int deviceId) {
+        final SharedPreferences.Editor editor = storage.edit();
+        device.saveToStorage(editor, deviceId);
         editor.apply();
+    }
+
+    private boolean saveDeviceToStorage(DeviceInfo device) {
+        final Integer deviceId = deviceIdsMap.get(device.getMacAddress());
+        if (deviceId != null) {
+            saveDeviceToStorage(device, deviceId);
+            return true;
+        }
+        return false;
     }
 
     public AddOrUpdateResult addOrUpdateDevice(DeviceInfo deviceInfo) {
@@ -91,7 +79,7 @@ public class DevicesList implements DeviceInfo.Listener {
                         deviceInfo.isPermanentIp(),
                         deviceInfo.getHttpPassword()
                 );
-                saveStorage();
+                saveDeviceToStorage(existingDeviceInfo);
                 return AddOrUpdateResult.UPDATE;
             }
         }
@@ -99,7 +87,14 @@ public class DevicesList implements DeviceInfo.Listener {
         deviceInfo.setListener(this);
         deviceInfoList.add(deviceInfo);
         deviceMap.put(macAddress, deviceInfo);
-        saveStorage();
+        final int deviceId = deviceInfoList.size() - 1;
+        deviceIdsMap.put(macAddress, deviceId);
+
+        final SharedPreferences.Editor editor = storage.edit();
+        deviceInfo.saveToStorage(editor, deviceId);
+        editor.putInt(KEY_COUNT, deviceInfoList.size());
+        editor.apply();
+
         return AddOrUpdateResult.ADD;
     }
 
@@ -122,10 +117,17 @@ public class DevicesList implements DeviceInfo.Listener {
         if (n1 < 0 || n1 >= deviceInfoList.size() || n2 < 0 || n2 >= deviceInfoList.size() || n1 == n2) {
             return;
         }
-        DeviceInfo temp = deviceInfoList.get(n1);
-        deviceInfoList.set(n1, deviceInfoList.get(n2));
-        deviceInfoList.set(n2, temp);
-        saveStorage();
+        DeviceInfo dev1 = deviceInfoList.get(n1);
+        DeviceInfo dev2 = deviceInfoList.get(n2);
+        deviceInfoList.set(n1, dev2);
+        deviceInfoList.set(n2, dev1);
+        deviceIdsMap.put(dev1.getMacAddress(), n2);
+        deviceIdsMap.put(dev2.getMacAddress(), n1);
+
+        final SharedPreferences.Editor editor = storage.edit();
+        dev1.saveToStorage(editor, n2);
+        dev2.saveToStorage(editor, n1);
+        editor.apply();
     }
 
     @Override
@@ -137,7 +139,8 @@ public class DevicesList implements DeviceInfo.Listener {
 
     @Override
     public void onDeviceStoredInfoChanged(DeviceInfo device) {
-        saveStorage();  // TODO: save only device, which has changed
-        Log.d(LOG_TAG, "Saved storage, because stored info changed for device " + device.getMacAddress());
+        if (saveDeviceToStorage(device)) {
+            Log.d(LOG_TAG, "Saved storage, because stored info changed for device " + device.getMacAddress());
+        }
     }
 }

@@ -1,5 +1,6 @@
 package ru.tsar_ioann.smarthome;
 
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.io.IOException;
@@ -65,6 +66,13 @@ public class DeviceInfo {
 
     private static final String LOG_TAG = "DeviceInfo";
 
+    private static final String KEY_MAC_PREFIX = "mac-";
+    private static final String KEY_NAME_PREFIX = "name-";
+    private static final String KEY_IP_PREFIX = "ip-";
+    private static final String KEY_PORT_PREFIX = "port-";
+    private static final String KEY_PERMANENT_IP_PREFIX = "permanent-ip-";
+    private static final String KEY_PASSWORD_PREFIX = "pwd-";
+
     private String macAddress = null;
     private String name = null;
     private String ipAddress = null;
@@ -98,14 +106,35 @@ public class DeviceInfo {
         }
     }
 
-    public DeviceInfo(String macAddress, String name, String ipAddress, int port, boolean permanentIp, String httpPassword, Listener listener) {
+    public DeviceInfo(String macAddress, String name, String ipAddress) {
         this.macAddress = macAddress;
         this.name = name;
         this.ipAddress = ipAddress;
-        this.port = port;
-        this.permanentIp = permanentIp;
-        this.httpPassword = httpPassword;
+    }
+
+    public DeviceInfo(SharedPreferences storage, int idInStorage, Listener listener) {
         this.listener = listener;
+
+        macAddress = storage.getString(KEY_MAC_PREFIX + idInStorage, null);
+        name = storage.getString(KEY_NAME_PREFIX + idInStorage, null);
+        ipAddress = storage.getString(KEY_IP_PREFIX + idInStorage, null);
+        if (macAddress == null || name == null || ipAddress == null) {
+            // TODO: more reasonable reaction
+            throw new RuntimeException("Devices local storage is broken!");
+        }
+
+        port = storage.getInt(KEY_PORT_PREFIX + idInStorage, Http.DEFAULT_PORT);
+        permanentIp = storage.getBoolean(KEY_PERMANENT_IP_PREFIX + idInStorage, false);
+        httpPassword = storage.getString(KEY_PASSWORD_PREFIX + idInStorage, DeviceInfo.DEFAULT_HTTP_PASSWORD);
+    }
+
+    public void saveToStorage(SharedPreferences.Editor editor, int idInStorage) {
+        editor.putString(KEY_MAC_PREFIX + idInStorage, macAddress);
+        editor.putString(KEY_NAME_PREFIX + idInStorage, name);
+        editor.putString(KEY_IP_PREFIX + idInStorage, ipAddress);
+        editor.putInt(KEY_PORT_PREFIX + idInStorage, port);
+        editor.putBoolean(KEY_PERMANENT_IP_PREFIX + idInStorage, permanentIp);
+        editor.putString(KEY_PASSWORD_PREFIX + idInStorage, httpPassword);
     }
 
     public DeviceInfo(byte[] binaryInfo) throws BinaryInfoParseException {
