@@ -105,7 +105,9 @@ public class DevicesList implements DeviceInfo.Listener {
 
             final SharedPreferences.Editor editor = storage.edit();
             for (int i = deviceId; i < deviceInfoList.size(); ++i) {
-                deviceInfoList.get(i).saveToStorage(editor, i);
+                DeviceInfo device = deviceInfoList.get(i);
+                device.saveToStorage(editor, i);
+                deviceIdsMap.put(device.getMacAddress(), i);
             }
             editor.putInt(KEY_COUNT, deviceInfoList.size());
             editor.apply();
