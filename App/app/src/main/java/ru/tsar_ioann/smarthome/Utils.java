@@ -1,5 +1,9 @@
 package ru.tsar_ioann.smarthome;
 
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.res.Resources;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.util.Log;
@@ -68,6 +72,36 @@ public class Utils {
 
     public static boolean isValidPort(String portStr) {
         return isValidIntInRange(portStr, PORT_MIN_VALUE, PORT_MAX_VALUE);
+    }
+
+    public static String tr(Resources resources, int resId) {
+        return resources.getString(resId);
+    }
+
+    public static String tr(Resources resources, int resId, Object... formatArgs) {
+        return resources.getString(resId, formatArgs);
+    }
+
+    public static void showOkDialog(Context context, String title, String message) {
+        showOkDialog(context, title, message, (dialogInterface, i) -> {});
+    }
+
+    public static void showOkDialog(Context context, String title, String message, DialogInterface.OnClickListener listener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setPositiveButton(tr(context.getResources(), R.string.ok), listener);
+        builder.show();
+    }
+
+    public static void showYesNoDialog(Context context, String title, String message, DialogInterface.OnClickListener yesListener, DialogInterface.OnClickListener noListener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        Resources resources = context.getResources();
+        builder.setPositiveButton(tr(resources, R.string.yes), yesListener);
+        builder.setNegativeButton(tr(resources, R.string.no), noListener);
+        builder.show();
     }
 
     public static class IpAddressInputFilter implements InputFilter {

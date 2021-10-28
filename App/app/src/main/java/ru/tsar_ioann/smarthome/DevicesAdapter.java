@@ -2,6 +2,7 @@ package ru.tsar_ioann.smarthome;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.res.Resources;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -12,7 +13,6 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -138,7 +138,16 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                     screen.setDevice(device);
                 });
 
-                holder.btnDelete.setOnClickListener(v -> Toast.makeText(activity, "Not implemented yet", Toast.LENGTH_SHORT).show());
+                holder.btnDelete.setOnClickListener(v -> {
+                    final Resources resources = activity.getResources();
+                    Utils.showYesNoDialog(
+                            activity,
+                            Utils.tr(resources, R.string.question),
+                            Utils.tr(resources, R.string.confirm_delete, device.getName()),
+                            (dialog, which) -> notifyItemRemoved(devicesList.removeDevice(device.getMacAddress())),
+                            (dialog, which) -> {}
+                    );
+                });
             } else {
                 holder.layoutSettingsButtons.setVisibility(View.GONE);
                 holder.layoutMoveHandles.setVisibility(View.GONE);

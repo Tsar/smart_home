@@ -75,4 +75,5 @@
     <string name="others_devices_mac_address">Other device (with different MAC address) answers by specified connection settings!</string>
     <string name="function_unavailable">Sorry, but this feature is not available for Android lower than 10!</string>
     <string name="active">Active</string>
+    <string name="confirm_delete">Are you sure you want to remove device \"%1$s\" from the list?</string>
 </resources>

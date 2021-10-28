@@ -75,4 +75,5 @@
     <string name="others_devices_mac_address">По указанным настройкам подключения отвечает другое устройство (с другим MAC-адресом)!</string>
     <string name="function_unavailable">К сожалению, этот функционал недоступен для Android меньше 10!</string>
     <string name="active">Активен</string>
+    <string name="confirm_delete">Вы уверены, что хотите удалить устройство \"%1$s\" из списка?</string>
 </resources>

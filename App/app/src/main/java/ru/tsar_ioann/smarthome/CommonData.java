@@ -6,7 +6,6 @@ import android.net.Network;
 
 public class CommonData {
     private final Activity activity;
-    private final Resources resources;
     private final Wifi wifi;
     private final DevicesList devices;
     private ScreenLauncher screenLauncher;
@@ -18,7 +17,6 @@ public class CommonData {
 
     public CommonData(Activity activity, Wifi wifi, DevicesList devices) {
         this.activity = activity;
-        resources = activity.getResources();
         this.wifi = wifi;
         this.devices = devices;
     }
@@ -41,10 +39,6 @@ public class CommonData {
 
     public Activity getActivity() {
         return activity;
-    }
-
-    public Resources getResources() {
-        return resources;
     }
 
     public Wifi getWifi() {

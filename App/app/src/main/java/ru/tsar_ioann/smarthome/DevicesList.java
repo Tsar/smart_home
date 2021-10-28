@@ -64,36 +64,55 @@ public class DevicesList implements DeviceInfo.Listener {
         }
     }
 
-    public AddOrUpdateResult addOrUpdateDevice(DeviceInfo deviceInfo) {
-        String macAddress = deviceInfo.getMacAddress();
+    public AddOrUpdateResult addOrUpdateDevice(DeviceInfo device) {
+        String macAddress = device.getMacAddress();
 
         if (deviceMap.containsKey(macAddress)) {
             DeviceInfo existingDeviceInfo = deviceMap.get(macAddress);
             if (existingDeviceInfo != null) {
                 existingDeviceInfo.setParams(
-                        deviceInfo.getName(),
-                        deviceInfo.getIpAddress(),
-                        deviceInfo.getPort(),
-                        deviceInfo.isPermanentIp(),
-                        deviceInfo.getHttpPassword()
+                        device.getName(),
+                        device.getIpAddress(),
+                        device.getPort(),
+                        device.isPermanentIp(),
+                        device.getHttpPassword()
                 );
                 saveDeviceToStorage(existingDeviceInfo);
                 return AddOrUpdateResult.UPDATE;
             }
         }
 
-        deviceInfo.setListener(this);
-        deviceInfoList.add(deviceInfo);
-        deviceMap.put(macAddress, deviceInfo);
+        device.setListener(this);
+        deviceInfoList.add(device);
+        deviceMap.put(macAddress, device);
         final int deviceId = deviceInfoList.size() - 1;
         deviceIdsMap.put(macAddress, deviceId);
 
         final SharedPreferences.Editor editor = storage.edit();
-        deviceInfo.saveToStorage(editor, deviceId);
+        device.saveToStorage(editor, deviceId);
         editor.putInt(KEY_COUNT, deviceInfoList.size());
         editor.apply();
 
         return AddOrUpdateResult.ADD;
+    }
+
+    public int removeDevice(String macAddress) {
+        final Integer deviceId = deviceIdsMap.get(macAddress);
+        if (deviceId != null) {
+            deviceMap.remove(macAddress);
+            deviceIdsMap.remove(macAddress);
+            deviceInfoList.remove(deviceId.intValue());
+
+            final SharedPreferences.Editor editor = storage.edit();
+            for (int i = deviceId; i < deviceInfoList.size(); ++i) {
+                deviceInfoList.get(i).saveToStorage(editor, i);
+            }
+            editor.putInt(KEY_COUNT, deviceInfoList.size());
+            editor.apply();
+
+            return deviceId;
+        }
+        throw new RuntimeException("Tried to remove device which is not on the list");
     }
 
     public List<DeviceInfo> getList() {

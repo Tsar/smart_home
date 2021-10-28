@@ -281,8 +281,9 @@ public class DeviceSettings extends BaseScreen {
     }
 
     private void setButtonsPressedAndUnpressed(Button mustBePressed, Button mustBeUnpressed) {
-        final Resources resources = getCommonData().getResources();
-        final Resources.Theme theme = getCommonData().getActivity().getTheme();
+        final Activity activity = getCommonData().getActivity();
+        final Resources resources = activity.getResources();
+        final Resources.Theme theme = activity.getTheme();
         mustBePressed.setTextColor(resources.getColorStateList(R.color.button_text_for_pressed_tab, theme));
         mustBeUnpressed.setTextColor(resources.getColorStateList(R.color.button_text, theme));
     }
