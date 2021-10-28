@@ -1,59 +1,93 @@
 package ru.tsar_ioann.smarthome;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
 import ru.tsar_ioann.smarthome.screens.DeviceSettings;
 
-public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
+public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHolder>
+        implements ReorderItemTouchHelper.OrderChangedListener {
     private final Activity activity;
     private final DevicesList devicesList;
     private final ScreenLauncher screenLauncher;
+    private final ItemTouchHelper itemTouchHelper;
 
     private boolean settingsButtonsVisible = false;
+    private LayoutInflater inflater;
 
-    public DevicesAdapter(Activity activity, DevicesList devicesList, ScreenLauncher screenLauncher) {
-        super(activity, 0, devicesList.getList());
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        private final TextView txtDeviceName;
+        private final TextView txtDeviceMac;
+        private final TextView txtDeviceIp;
+        private final LinearLayout layoutDimmers;
+        private final LinearLayout layoutSwitchers;
+        private final LinearLayout layoutSettingsButtons;
+        private final ImageButton btnSettings;
+        private final ImageButton btnDelete;
+        private final LinearLayout layoutMoveHandles;
+
+        public ViewHolder(View view) {
+            super(view);
+            txtDeviceName = view.findViewById(R.id.txtDeviceName);
+            txtDeviceMac = view.findViewById(R.id.txtDeviceMac);
+            txtDeviceIp = view.findViewById(R.id.txtDeviceIp);
+            layoutDimmers = view.findViewById(R.id.layoutDimmers);
+            layoutSwitchers = view.findViewById(R.id.layoutSwitchers);
+            layoutSettingsButtons = view.findViewById(R.id.layoutSettingsButtons);
+            btnSettings = view.findViewById(R.id.btnSettings);
+            btnDelete = view.findViewById(R.id.btnDelete);
+            layoutMoveHandles = view.findViewById(R.id.layoutMoveHandles);
+        }
+    }
+
+    public DevicesAdapter(Activity activity, DevicesList devicesList, ScreenLauncher screenLauncher, ItemTouchHelper itemTouchHelper) {
         this.activity = activity;
         this.devicesList = devicesList;
         this.screenLauncher = screenLauncher;
+        this.itemTouchHelper = itemTouchHelper;
+    }
+
+    public void notifyAllUpdated() {
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     public void setSettingsButtonsVisible(boolean visible) {
         settingsButtonsVisible = visible;
-        notifyDataSetChanged();
+        notifyAllUpdated();
     }
 
+    @NonNull
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        // Get the data item for this position
-        DeviceInfo device = getItem(position);
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        inflater = LayoutInflater.from(parent.getContext());
+        return new ViewHolder(inflater.inflate(R.layout.item_device, parent, false));
+    }
 
-        // Check if an existing view is being reused, otherwise inflate the view
-        LayoutInflater inflater = LayoutInflater.from(getContext());
-        if (convertView == null) {
-            convertView = inflater.inflate(R.layout.item_device, parent, false);
-        }
+    @SuppressLint("ClickableViewAccessibility")
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        final DeviceInfo device = devicesList.getList().get(position);
 
-        // Lookup view for data population
-        final TextView txtDeviceName = convertView.findViewById(R.id.txtDeviceName);
-        final TextView txtDeviceMac = convertView.findViewById(R.id.txtDeviceMac);
-        final TextView txtDeviceIp = convertView.findViewById(R.id.txtDeviceIp);
-        final LinearLayout layoutDimmers = convertView.findViewById(R.id.layoutDimmers);
-        final LinearLayout layoutSwitchers = convertView.findViewById(R.id.layoutSwitchers);
-        final LinearLayout layoutSettingsButtons = convertView.findViewById(R.id.layoutSettingsButtons);
+        final LinearLayout layoutDimmers = holder.layoutDimmers;
+        final LinearLayout layoutSwitchers = holder.layoutSwitchers;
 
         synchronized (device) {
             final int dimmersCount = device.getActiveDimmersCount();
@@ -89,34 +123,31 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
             }
 
             if (settingsButtonsVisible) {
-                layoutSettingsButtons.setVisibility(View.VISIBLE);
-                final ImageButton btnMoveUp = convertView.findViewById(R.id.btnMoveUp);
-                final ImageButton btnSettings = convertView.findViewById(R.id.btnSettings);
-                final ImageButton btnMoveDown = convertView.findViewById(R.id.btnMoveDown);
+                holder.layoutSettingsButtons.setVisibility(View.VISIBLE);
+                holder.layoutMoveHandles.setVisibility(View.VISIBLE);
 
-                btnMoveUp.setEnabled(position > 0);
-                btnMoveDown.setEnabled(position < getCount() - 1);
+                holder.layoutMoveHandles.setOnTouchListener((v, event) -> {
+                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                        itemTouchHelper.startDrag(holder);
+                    }
+                    return false;
+                });
 
-                btnMoveUp.setOnClickListener(v -> {
-                    devicesList.swap(position, position - 1);
-                    notifyDataSetChanged();
-                });
-                btnMoveDown.setOnClickListener(v -> {
-                    devicesList.swap(position, position + 1);
-                    notifyDataSetChanged();
-                });
-                btnSettings.setOnClickListener(v -> {
+                holder.btnSettings.setOnClickListener(v -> {
                     DeviceSettings screen = (DeviceSettings) screenLauncher.launchScreen(ScreenId.DEVICE_SETTINGS);
                     screen.setDevice(device);
                 });
+
+                holder.btnDelete.setOnClickListener(v -> Toast.makeText(activity, "Not implemented yet", Toast.LENGTH_SHORT).show());
             } else {
-                layoutSettingsButtons.setVisibility(View.GONE);
+                holder.layoutSettingsButtons.setVisibility(View.GONE);
+                holder.layoutMoveHandles.setVisibility(View.GONE);
             }
 
             // Populate the data into the template view using the data object
-            txtDeviceName.setText(device.getName());
-            txtDeviceMac.setText(device.getMacAddress());
-            txtDeviceIp.setText(device.getHttpAddressWithoutPrefix());
+            holder.txtDeviceName.setText(device.getName());
+            holder.txtDeviceMac.setText(device.getMacAddress());
+            holder.txtDeviceIp.setText(device.getHttpAddressWithoutPrefix());
 
             final String httpPassword = device.getHttpPassword();
             final boolean discovered = device.isDiscovered();
@@ -233,8 +264,23 @@ public class DevicesAdapter extends ArrayAdapter<DeviceInfo> {
                 ++i;
             }
         }
+    }
 
-        // Return the completed view to render on screen
-        return convertView;
+    @Override
+    public int getItemCount() {
+        return devicesList.getList().size();
+    }
+
+    @Override
+    public void onOrderChanged(int fromPos, int toPos) {
+        if (fromPos < toPos) {
+            for (int i = fromPos; i < toPos; ++i) {
+                devicesList.swap(i, i + 1);
+            }
+        } else {
+            for (int i = fromPos; i > toPos; --i) {
+                devicesList.swap(i, i - 1);
+            }
+        }
     }
 }

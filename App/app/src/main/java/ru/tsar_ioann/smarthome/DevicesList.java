@@ -25,7 +25,7 @@ public class DevicesList implements DeviceInfo.Listener {
     }
 
     public interface Listener {
-        void onAnyDeviceInfoUpdated();
+        void onDeviceUpdated(int position);
     }
 
     public DevicesList(SharedPreferences devicesLocalStorage) {
@@ -57,13 +57,11 @@ public class DevicesList implements DeviceInfo.Listener {
         editor.apply();
     }
 
-    private boolean saveDeviceToStorage(DeviceInfo device) {
+    private void saveDeviceToStorage(DeviceInfo device) {
         final Integer deviceId = deviceIdsMap.get(device.getMacAddress());
         if (deviceId != null) {
             saveDeviceToStorage(device, deviceId);
-            return true;
         }
-        return false;
     }
 
     public AddOrUpdateResult addOrUpdateDevice(DeviceInfo deviceInfo) {
@@ -132,10 +130,12 @@ public class DevicesList implements DeviceInfo.Listener {
 
     @Override
     public void onDeviceUpdated(DeviceInfo device) {
-        if (listener != null) {
-            listener.onAnyDeviceInfoUpdated();
-        }
-        if (saveDeviceToStorage(device)) {
+        final Integer deviceId = deviceIdsMap.get(device.getMacAddress());
+        if (deviceId != null) {
+            if (listener != null) {
+                listener.onDeviceUpdated(deviceId);
+            }
+            saveDeviceToStorage(device, deviceId);
             Log.d(LOG_TAG, "Saved device " + device.getMacAddress() + " to storage");
         }
     }

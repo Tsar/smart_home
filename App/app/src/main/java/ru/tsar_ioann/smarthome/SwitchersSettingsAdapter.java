@@ -51,7 +51,7 @@ public class SwitchersSettingsAdapter extends RecyclerView.Adapter<SwitchersSett
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new SwitchersSettingsAdapter.ViewHolder(LayoutInflater.from(parent.getContext())
+        return new ViewHolder(LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_switcher_settings, parent, false)
         );
     }

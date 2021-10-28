@@ -3,7 +3,10 @@ package ru.tsar_ioann.smarthome.screens;
 import android.app.Activity;
 import android.os.SystemClock;
 import android.util.Log;
-import android.widget.ListView;
+
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import ru.tsar_ioann.smarthome.*;
 
@@ -26,10 +29,17 @@ public class Main extends BaseScreen implements DevicesList.Listener {
         devices = commonData.getDevices();
         devices.setListener(this);
 
-        ListView lstDevices = activity.findViewById(R.id.lstDevices);
+        RecyclerView rcvDevices = activity.findViewById(R.id.rcvDevices);
+        rcvDevices.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false));
+        rcvDevices.addItemDecoration(new DividerItemDecoration(rcvDevices.getContext(), LinearLayoutManager.VERTICAL));
 
-        devicesAdapter = new DevicesAdapter(activity, commonData.getDevices(), commonData.getScreenLauncher());
-        lstDevices.setAdapter(devicesAdapter);
+        devicesAdapter = new DevicesAdapter(
+                activity,
+                commonData.getDevices(),
+                commonData.getScreenLauncher(),
+                new ReorderItemTouchHelper(rcvDevices)
+        );
+        rcvDevices.setAdapter(devicesAdapter);
 
         menuVisibilityChanger.setMenuVisibility(true, !devices.getList().isEmpty(), true);
 
@@ -49,7 +59,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
         }
 
         devices.rediscoverAll();
-        devicesAdapter.notifyDataSetChanged();
+        devicesAdapter.notifyAllUpdated();
 
         Udp.asyncMulticastNoThrow(
                 UdpSettings.UDP_MULTICAST_IP,
@@ -94,7 +104,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
     }
 
     @Override
-    public void onAnyDeviceInfoUpdated() {
-        activity.runOnUiThread(devicesAdapter::notifyDataSetChanged);
+    public void onDeviceUpdated(int position) {
+        activity.runOnUiThread(() -> devicesAdapter.notifyItemChanged(position));
     }
 }

@@ -4,12 +4,13 @@
     android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:gravity="center"
     android:baselineAligned="false">
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="5"
+        android:layout_weight="6"
         android:orientation="vertical">
 
         <LinearLayout
@@ -75,31 +76,55 @@
     <LinearLayout
         android:id="@+id/layoutSettingsButtons"
         android:layout_width="0dp"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical">
-
-        <ImageButton
-            android:id="@+id/btnMoveUp"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:src="@drawable/arrow_up"
-            tools:ignore="ContentDescription" />
+        android:orientation="vertical"
+        android:gravity="center">
 
         <ImageButton
             android:id="@+id/btnSettings"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:minHeight="55dp"
             android:src="@drawable/settings_icon"
             tools:ignore="ContentDescription" />
 
         <ImageButton
-            android:id="@+id/btnMoveDown"
+            android:id="@+id/btnDelete"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:minHeight="55dp"
+            android:src="@drawable/delete_icon"
+            tools:ignore="ContentDescription" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutMoveHandles"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="center"
+            android:src="@drawable/arrow_up"
+            tools:ignore="ContentDescription" />
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="center"
+            android:src="@drawable/reorder_handle"
+            tools:ignore="ContentDescription" />
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="center"
             android:src="@drawable/arrow_down"
             tools:ignore="ContentDescription" />
 
