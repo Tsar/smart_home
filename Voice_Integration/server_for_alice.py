@@ -150,8 +150,36 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         body = self.rfile.read(contentLength)
 
         if self.path == '/v1.0/user/devices/query':
-            # TODO
-            pass
+            devicesResp = []
+            for device in json.loads(body)['devices']:
+                if device['id'] == 'C4-5B-BE-4B-48-07':
+                    devicesResp.append({
+                        'id': device['id'],
+                        'capabilities': [
+                            {
+                                'type': 'devices.capabilities.on_off',
+                                'state': {
+                                    'instance': 'on',
+                                    'value': True
+                                }
+                            },
+                            {
+                                'type': 'devices.capabilities.range',
+                                'state': {
+                                    'instance': 'brightness',
+                                    'value': 80
+                                }
+                            }
+                        ]
+                    })
+
+            response = {
+                'request_id': requestId,
+                'payload': {
+                    'devices': devicesResp
+                }
+            }
+            self.send_response_advanced(200, 'application/json', json.dumps(response))
         elif self.path == '/v1.0/user/devices/action':
             # TODO
             pass
