@@ -5,7 +5,6 @@ import json
 import threading
 import http.server
 import socketserver
-import urllib.request
 import urllib.parse
 from datetime import datetime
 
@@ -107,6 +106,24 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         info('Received POST request %s' % self.path)
 
+        if self.path == '/oauth/get_token':
+            # TODO: refactor copypaste
+            contentLength = int(self.headers.get('Content-Length', 0))
+            if contentLength <= 0:
+                info('No header Content-Length in POST request')
+                self.send_response_advanced(400, 'text/plain', 'Bad Request')
+                return
+            body = self.rfile.read(contentLength)
+
+            params = urllib.parse.parse_qs(body.decode('UTF-8'))
+            print(params)
+            self.send_response_advanced(200, 'application/json', json.dumps({
+                'access_token': params['code'][0],
+                'token_type': 'Bearer',
+                'expires_in': 3600
+            }))
+            return
+
         # TODO: refactor copypaste
         auth = self.headers.get('Authorization', None)
         if auth is None:
@@ -124,6 +141,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_response_advanced(200, 'application/json', json.dumps({'request_id': requestId}))
             return
 
+        # TODO: refactor copypaste
         contentLength = int(self.headers.get('Content-Length', 0))
         if contentLength <= 0:
             info('No header Content-Length in POST request')
