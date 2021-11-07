@@ -2,26 +2,60 @@
 
 import sys
 import json
+import struct
 import threading
 import http.server
 import socketserver
+import urllib.request
 import urllib.parse
 from datetime import datetime
+from multiprocessing.pool import ThreadPool
 
 HTTP_PORT = 23478
 
+homes = {}
+users = {}
+
 def info(msg):
     print('[%s, %d, %s] %s' % (
-        datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+        datetime.now().strftime('%d.%m.%Y %H:%M:%S.%f'),
         threading.active_count(),
         threading.current_thread().name,
         msg
     ))
     sys.stdout.flush()
 
+def loadConfiguration():
+    global homes, users
+    with open('configuration.json', 'r') as cfgFile:
+        cfg = json.loads(cfgFile.read())
+    homes = cfg['homes']
+    users = cfg['users']
+    for userId, user in users.items():
+        if user['home'] not in homes:
+            info('WARN: Invalid home %s specified for user %s, ignoring user' % (user['home'], user['id']))
+            del users[userId]
+
+def fetchDimmerValue(deviceAddress, devicePassword, dimmerNumber):
+    try:
+        request = urllib.request.Request('http://%s/get_info?binary&v=2' % deviceAddress, headers={'Password': devicePassword})
+        response = urllib.request.urlopen(request, timeout=1.5).read()
+    except Exception as err:
+        info('WARNING: Failed to get info from device %s [%s]' % (deviceAddress, err))
+        return 0
+    offset = 6  # skip MAC
+    nameLen = struct.unpack('<H', response[offset:offset + 2])[0]
+    offset += 2 + nameLen + 1  # skip nameLen, name and input pin
+    dimmersCount = struct.unpack('<B', response[offset:offset + 1])[0]
+    if dimmerNumber >= dimmersCount:
+        info('ERROR: No dimmer %d exists on device %s' % deviceAddress)
+        return 0
+    offset += 1 + dimmerNumber * 9 + 1  # skip dimmers count, unneeded dimmers and dimmer pin
+    return struct.unpack('<H', response[offset:offset + 2])[0]
+
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
-#    def log_message(self, format, *args):
-#        return
+    def log_message(self, format, *args):
+        return
 
     def send_response_advanced(self, code, contentType, data):
         dataB = bytes(data, 'UTF-8') if isinstance(data, str) else data
@@ -32,9 +66,28 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(dataB)
         self.wfile.flush()
+        info('Answered with code %d, content-type %s, response:\n%s' % (code, contentType, data))
+
+    def getUserAndRequestId(self):
+        auth = self.headers.get('Authorization', None)
+        if auth is None:
+            self.send_response_advanced(401, 'text/plain', 'Unauthorized')
+            raise RuntimeError('No Authorization header')
+        if auth not in users:
+            self.send_response_advanced(401, 'text/plain', 'Unauthorized')
+            raise RuntimeError('Auth [%s] not found' % auth)
+        user = users[auth]
+
+        requestId = self.headers.get('X-Request-Id', None)
+        if requestId is None:
+            self.send_response_advanced(400, 'text/plain', 'Bad Request')
+            raise RuntimeError('No X-Request-Id header')
+
+        info('Auth [%s], user id [%s], request id [%s]' % (auth, user['id'], requestId))
+        return user, requestId
 
     def do_HEAD(self):
-        info('Received HEAD request %s' % self.path)
+        info('Handling HEAD request %s' % self.path)
 
         if self.path == '/v1.0':
             self.send_response_advanced(200, 'text/plain', 'OK')
@@ -42,61 +95,56 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_response_advanced(404, 'text/plain', 'Not Found')
 
     def do_GET(self):
-        info('Received GET request %s' % self.path)
+        info('Handling GET request %s' % self.path)
 
         for oauthPage in ['suggest', 'token']:
             if self.path.startswith('/oauth/%s' % oauthPage):
-                with open('oauth/%s.html' % oauthPage) as oauthPageFile:
+                with open('oauth/%s.html' % oauthPage, 'r') as oauthPageFile:
                     oauthPageHTML = oauthPageFile.read()
                 self.send_response_advanced(200, 'text/html', oauthPageHTML)
                 return
 
-        # TODO: refactor copypaste
-        auth = self.headers.get('Authorization', None)
-        if auth is None:
-            info('No Authorization header')
-            self.send_response_advanced(400, 'text/plain', 'Bad Request')
-            return
-
-        requestId = self.headers.get('X-Request-Id', None)
-        if requestId is None:
-            info('No X-Request-Id header')
-            self.send_response_advanced(400, 'text/plain', 'Bad Request')
+        try:
+            user, requestId = self.getUserAndRequestId()
+        except RuntimeError as err:
+            info('ERROR: %s' % err)
             return
 
         if self.path == '/v1.0/user/devices':
+            devicesResp = []
+            for deviceId, device in homes[user['home']].items():
+                devicesResp.append({
+                    'id': deviceId,
+                    'name': device['name'],
+                    'room': device['room'],
+                    'type': 'devices.types.light',
+                    'capabilities': [
+                        {
+                            'type': 'devices.capabilities.on_off',
+                            'retrievable': True
+                        },
+                        {
+                            'type': 'devices.capabilities.range',
+                            'retrievable': True,
+                            'parameters': {
+                                'instance': 'brightness',
+                                'unit': 'unit.percent',
+                                'random_access': True,
+                                'range': {
+                                    'min': 0,
+                                    'max': 100,
+                                    'precision': 0.1
+                                }
+                            }
+                        }
+                    ]
+                })
+
             response = {
                 'request_id': requestId,
                 'payload': {
-                    'user_id': 'Medved',  # TODO
-                    'devices': [
-                        {
-                            'id': 'C4-5B-BE-4B-48-07',
-                            'name': 'Свет в большой комнате',
-                            'room': 'Большая комната',
-                            'type': 'devices.types.light',
-                            'capabilities': [
-                                {
-                                    'type': 'devices.capabilities.on_off',
-                                    'retrievable': True
-                                },
-                                {
-                                    'type': 'devices.capabilities.range',
-                                    'retrievable': True,
-                                    'parameters': {
-                                        'instance': 'brightness',
-                                        'unit': 'unit.percent',
-                                        'random_access': True,
-                                        'range': {
-                                            'min': 0,
-                                            'max': 100,
-                                            'precision': 0.1
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    ]
+                    'user_id': user['id'],
+                    'devices': devicesResp
                 }
             }
             self.send_response_advanced(200, 'application/json', json.dumps(response))
@@ -104,74 +152,63 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_response_advanced(404, 'text/plain', 'Not Found')
 
     def do_POST(self):
-        info('Received POST request %s' % self.path)
+        contentLength = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(contentLength).decode('UTF-8') if contentLength > 0 else None
+
+        info('Handling POST request %s with %s' % (self.path, 'no body' if body is None else 'body %s' % body))
 
         if self.path == '/oauth/get_token':
-            # TODO: refactor copypaste
-            contentLength = int(self.headers.get('Content-Length', 0))
-            if contentLength <= 0:
-                info('No header Content-Length in POST request')
-                self.send_response_advanced(400, 'text/plain', 'Bad Request')
-                return
-            body = self.rfile.read(contentLength)
-
-            params = urllib.parse.parse_qs(body.decode('UTF-8'))
+            params = urllib.parse.parse_qs(body)
             print(params)
             self.send_response_advanced(200, 'application/json', json.dumps({
                 'access_token': params['code'][0],
                 'token_type': 'Bearer',
-                'expires_in': 3600
+                'expires_in': 86400
             }))
             return
 
-        # TODO: refactor copypaste
-        auth = self.headers.get('Authorization', None)
-        if auth is None:
-            info('No Authorization header')
-            self.send_response_advanced(400, 'text/plain', 'Bad Request')
-            return
-
-        requestId = self.headers.get('X-Request-Id', None)
-        if requestId is None:
-            info('No X-Request-Id header')
-            self.send_response_advanced(400, 'text/plain', 'Bad Request')
+        try:
+            user, requestId = self.getUserAndRequestId()
+        except RuntimeError as err:
+            info('ERROR: %s' % err)
             return
 
         if self.path == '/v1.0/user/unlink':
             self.send_response_advanced(200, 'application/json', json.dumps({'request_id': requestId}))
             return
 
-        # TODO: refactor copypaste
-        contentLength = int(self.headers.get('Content-Length', 0))
-        if contentLength <= 0:
-            info('No header Content-Length in POST request')
-            self.send_response_advanced(400, 'text/plain', 'Bad Request')
-            return
-        body = self.rfile.read(contentLength)
-
         if self.path == '/v1.0/user/devices/query':
+            devicesReq = json.loads(body)['devices']
             devicesResp = []
-            for device in json.loads(body)['devices']:
-                if device['id'] == 'C4-5B-BE-4B-48-07':
-                    devicesResp.append({
-                        'id': device['id'],
-                        'capabilities': [
-                            {
-                                'type': 'devices.capabilities.on_off',
-                                'state': {
-                                    'instance': 'on',
-                                    'value': True
-                                }
-                            },
-                            {
-                                'type': 'devices.capabilities.range',
-                                'state': {
-                                    'instance': 'brightness',
-                                    'value': 80
-                                }
+            pool = ThreadPool(processes=len(devicesReq))
+            asyncResults = {}
+            for deviceReq in devicesReq:
+                deviceId = deviceReq['id']
+                device = homes[user['home']][deviceId]
+                asyncResults[deviceId] = pool.apply_async(fetchDimmerValue, (device['address'], device['password'], device['dimmer_number']))
+
+            for deviceReq in devicesReq:
+                deviceId = deviceReq['id']
+                dimmerValue = asyncResults[deviceId].get()
+                devicesResp.append({
+                    'id': deviceId,
+                    'capabilities': [
+                        {
+                            'type': 'devices.capabilities.on_off',
+                            'state': {
+                                'instance': 'on',
+                                'value': dimmerValue > 0
                             }
-                        ]
-                    })
+                        },
+                        {
+                            'type': 'devices.capabilities.range',
+                            'state': {
+                                'instance': 'brightness',
+                                'value': dimmerValue / 10
+                            }
+                        }
+                    ]
+                })
 
             response = {
                 'request_id': requestId,
@@ -190,6 +227,7 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
 
 if __name__ == '__main__':
+    loadConfiguration()
     server = ThreadedHTTPServer(('', HTTP_PORT), HTTPRequestHandler)
     info('Smart Home Yandex Dialogs HTTP server created, serving forever on port %d...' % HTTP_PORT)
     try:

@@ -1,0 +1,26 @@
+{
+    "homes": {
+        "<HOME_1_NAME>": {
+            "<DEVICE_1_IDENTIFIER>": {
+                "name": "Свет",
+                "room": "Большая комната",
+                "address": "<IP_ADDRESS>:<PORT>",
+                "password": "<DEVICE_PASSWORD>",
+                "dimmer_number": 0
+            },
+            "<DEVICE_2_IDENTIFIER>": {
+                "name": "Свет",
+                "room": "Спальня",
+                "address": "<IP_ADDRESS>:<PORT>",
+                "password": "<DEVICE_PASSWORD>",
+                "dimmer_number": 2
+            }
+        }
+    },
+    "users": {
+        "<AUTH_TOKEN>": {
+            "id": "<USERNAME>",
+            "home": "<HOME_1_NAME>"
+        }
+    }
+}
