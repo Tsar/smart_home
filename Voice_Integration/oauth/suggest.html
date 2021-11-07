@@ -13,7 +13,39 @@
             'https://smarthome.tsar-ioann.ru'
         )
         .then(({handler}) => handler())
-        .then(data => window.location.replace('/api/oauth/handle_token' + window.location.search + '&access_token=' + data['access_token']))
+        .then(data => {
+            //window.location.replace('/api/oauth/handle_token' + window.location.search + '&access_token=' + data['access_token'])
+
+            const urlParams = new URLSearchParams(window.location.search);
+
+            /*
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", urlParams.get('redirect_uri'));
+
+            xhr.setRequestHeader("Accept", "application/json");
+            xhr.setRequestHeader("Content-Type", "application/json");
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    console.log(xhr.status);
+                    console.log(xhr.responseText);
+                }
+            };
+
+            var data = {
+                'code': data['access_token'],
+                'state': urlParams.get('state'),
+                'client_id': urlParams.get('client_id')
+            };
+            if (urlParams.has('scope')) {
+                data['scope'] = urlParams.get('scope')
+            }
+
+            xhr.send(JSON.stringify(data));
+            */
+
+            window.location.replace(urlParams.get('redirect_uri') + window.location.search + '&code=' + data['access_token'])
+        })
         .catch(error => console.log('Error happened', error));
     </script>
 </body>

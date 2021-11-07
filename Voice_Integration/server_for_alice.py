@@ -52,31 +52,6 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 self.send_response_advanced(200, 'text/html', oauthPageHTML)
                 return
 
-        if self.path.startswith('/oauth/handle_token'):
-            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-
-            redirectUri = params['redirect_uri'][0]
-            assert redirectUri == 'https://social.yandex.net/broker/redirect'
-
-            postData = {
-                'code': params['access_token'][0],
-                'state': params['state'][0],
-                'client_id': params['client_id'][0]
-            }
-            if 'scope' in params:
-                postData['scope'] = params['scope'][0]
-            else:
-                postData['scope'] = 'home:lights'
-            print(postData)
-
-            internalResponse = urllib.request.urlopen(urllib.request.Request(
-                redirectUri,
-                data=json.dumps(postData).encode('UTF-8'),
-                headers={'Content-Type': 'application/json'}
-            ))
-
-            self.send_response_advanced(200, 'text/plain', 'OK, you may close this page (redirect_uri answered: %s)' % internalResponse)
-
         # TODO: refactor copypaste
         auth = self.headers.get('Authorization', None)
         if auth is None:
