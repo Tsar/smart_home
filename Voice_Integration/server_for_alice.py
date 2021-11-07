@@ -53,6 +53,23 @@ def fetchDimmerValue(deviceAddress, devicePassword, dimmerNumber):
     offset += 1 + dimmerNumber * 9 + 1  # skip dimmers count, unneeded dimmers and dimmer pin
     return struct.unpack('<H', response[offset:offset + 2])[0]
 
+def applyDimmerValue(deviceAddress, devicePassword, dimmerNumber, dimmerValue):
+    dimmerValue = int(dimmerValue)
+    if dimmerValue < 0 or dimmerValue > 1000:
+        info('WARNING: Tried to apply bad dimmer value %d for device %s' % (dimmerValue, deviceAddress))
+        return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Недопустимое значение %d' % dimmerValue}
+    try:
+        request = urllib.request.Request('http://%s/set_values?dim%d=%d' % (deviceAddress, dimmerNumber, dimmerValue), headers={'Password': devicePassword})
+        response = urllib.request.urlopen(request, timeout=1.5).read()
+    except Exception as err:
+        info('WARNING: Failed to apply dimmer value for device %s [%s]' % (deviceAddress, err))
+        return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось отправить команду на устройство'}
+    respStr = response.decode('UTF-8').strip()
+    if respStr not in ['ACCEPTED', 'NOTHING_CHANGED']:
+        info('WARNING: Unexpected response after applying dimmer value for device %s [%s]' % (deviceAddress, respStr))
+        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Устройство ответило непонятным ответом %s' % respStr}
+    return {'ok': True}
+
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
@@ -180,6 +197,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if self.path == '/v1.0/user/devices/query':
             devicesReq = json.loads(body)['devices']
             devicesResp = []
+
             pool = ThreadPool(processes=len(devicesReq))
             asyncResults = {}
             for deviceReq in devicesReq:
@@ -217,9 +235,68 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 }
             }
             self.send_response_advanced(200, 'application/json', json.dumps(response))
+
         elif self.path == '/v1.0/user/devices/action':
-            # TODO
-            pass
+            devicesReq = json.loads(body)['payload']['devices']
+            devicesResp = []
+
+            pool = ThreadPool(processes=len(devicesReq))
+            asyncResults = {}
+            for deviceReq in devicesReq:
+                deviceId = deviceReq['id']
+                device = homes[user['home']][deviceId]
+
+                enabledTarget = None
+                brightnessTarget = None
+                for cap in deviceReq['capabilities']:
+                    if cap['type'] == 'devices.capabilities.on_off' and cap['state']['instance'] == 'on':
+                        enabledTarget = cap['state']['value']
+                        assert isinstance(enabledTarget, bool)
+                    elif cap['type'] == 'devices.capabilities.range' and cap['state']['instance'] == 'brightness':
+                        brightnessTarget = cap['state']['value']
+                        assert isinstance(brightnessTarget, float) or isinstance(brightnessTarget, int)
+                    else:
+                        info('WARN: Unsupported capability passed: %s' % cap)
+
+                dimmerValue = None
+                if enabledTarget is None and brightnessTarget is None:
+                    info('WARN: No changes will be performed for device %s, INVALID_VALUE error will be returned' % deviceId)
+                elif enabledTarget is None:
+                    dimmerValue = brightnessTarget * 10
+                elif brightnessTarget is None:
+                    dimmerValue = 1000 if enabledTarget else 0
+                else:
+                    dimmerValue = brightnessTarget * 10 if enabledTarget else 0
+
+                if dimmerValue is not None:
+                    asyncResults[deviceId] = pool.apply_async(applyDimmerValue, (device['address'], device['password'], device['dimmer_number'], dimmerValue))
+
+            for deviceReq in devicesReq:
+                deviceId = deviceReq['id']
+                applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Непонятно, что хотели изменить. Запрос к устройству не производился'}
+                if applyResult['ok']:
+                    actionResult = {
+                        'status': 'DONE'
+                    }
+                else:
+                    actionResult = {
+                        'status': 'ERROR',
+                        'error_code': applyResult['error'],
+                        'error_message': applyResult['error_msg']
+                    }
+                devicesResp.append({
+                    'id': deviceId,
+                    'action_result': actionResult
+                })
+
+            response = {
+                'request_id': requestId,
+                'payload': {
+                    'devices': devicesResp
+                }
+            }
+            self.send_response_advanced(200, 'application/json', json.dumps(response))
+
         else:
             self.send_response_advanced(404, 'text/plain', 'Not Found')
 
