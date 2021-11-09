@@ -180,7 +180,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_response_advanced(200, 'application/json', json.dumps({
                 'access_token': params['code'][0],
                 'token_type': 'Bearer',
-                'expires_in': 86400
+                'expires_in': 2147483647
             }))
             return
 
