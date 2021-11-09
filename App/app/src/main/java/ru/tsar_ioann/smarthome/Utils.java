@@ -90,6 +90,7 @@ public class Utils {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(title);
         builder.setMessage(message);
+        builder.setCancelable(false);
         builder.setPositiveButton(tr(context.getResources(), R.string.ok), listener);
         builder.show();
     }
@@ -98,6 +99,7 @@ public class Utils {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(title);
         builder.setMessage(message);
+        builder.setCancelable(false);
         Resources resources = context.getResources();
         builder.setPositiveButton(tr(resources, R.string.yes), yesListener);
         builder.setNegativeButton(tr(resources, R.string.no), noListener);
