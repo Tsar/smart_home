@@ -7,6 +7,7 @@
 #include "configuration.hpp"
 
 #define SIGN(val) (val > 0 ? 1 : (val < 0 ? -1 : 0))
+#define MIN(val1, val2) ((val1) < (val2) ? (val1) : (val2))
 
 #define HTTP_SERVER_PORT 80
 
@@ -189,9 +190,27 @@ ICACHE_RAM_ATTR void onTimerISR() {
   }
 }
 
+void initCfgDimmerValuesAfterBoot() {
+  const uint16_t dimmerValueAfterBoot = homeCfg.getDimmerValueAfterBoot();
+  if (dimmerValueAfterBoot != 0xFFFF) {
+    for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
+      homeCfg.setDimmerValue(i, MIN(dimmerValueAfterBoot, DIMMER_MAX_VALUE));
+    }
+  }
+}
+
 void fillDimmerValues() {
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     targetDimmerValues[i] = homeCfg.getDimmerValue(i);
+  }
+}
+
+void initCfgSwitcherValuesAfterBoot() {
+  const uint8_t switcherValueAfterBoot = homeCfg.getSwitcherValueAfterBoot();
+  if (switcherValueAfterBoot != 0xFF) {
+    for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
+      homeCfg.setSwitcherValue(i, switcherValueAfterBoot > 0);
+    }
   }
 }
 
@@ -310,7 +329,7 @@ String generateInfoJson(bool minimal) {
     }
     result += "\n  },\n  \"micros\": {\n    \"";
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-      int32_t value = homeCfg.getDimmerValue(i);
+      const uint16_t value = homeCfg.getDimmerValue(i);
       result += DIMMER_PREFIX + String(i) + "\": " + String(value > 0 ? dimmerValueToMicros(value, i) : -1) + (i + 1 == DIMMERS_COUNT ? "" : ",\n    \"");
     }
     result += "\n  },\n  \"dimmers_settings\": {\n    \"";
@@ -320,12 +339,12 @@ String generateInfoJson(bool minimal) {
                                               + ",\n      \"max_lightness_micros\": " + String(dimmersSettings[i].maxLightnessMicros)
                                               + "\n    }" + (i + 1 == DIMMERS_COUNT ? "" : ",\n    \"");
     }
-    result += "\n  },\n  \"switchers_inverted\": {\n    \"";
+    result += "\n  },\n  \"dimmer_value_after_boot\": " + String(homeCfg.getDimmerValueAfterBoot()) + ",\n  \"switchers_inverted\": {\n    \"";
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
       result += SWITCHER_PREFIX + String(i) + "\": " + (homeCfg.isSwitcherInverted(i) ? "1" : "0") + (i + 1 == SWITCHERS_COUNT ? "" : ",\n    \"");
     }
+    result += "\n  },\n  \"switcher_value_after_boot\": " + String(homeCfg.getSwitcherValueAfterBoot()) + ",\n  \"additional_blob\": \"";
     const String& additionalBlob = homeCfg.getAdditionalBlob();
-    result += "\n  },\n  \"additional_blob\": \"";
     for (unsigned int i = 0; i < additionalBlob.length(); ++i) {
       result += String(additionalBlob[i], 16) + (i + 1 == additionalBlob.length() ? "" : " ");
     }
@@ -371,48 +390,56 @@ private:
   size_t pos_;
 };
 
+#define GET_INFO_RESPONSE_FORMAT_VERSION 0x0003
+
 // Fill binInfoStorage
 void generateInfoBinary(uint8_t version) {
-  const bool v2 = version >= 2;
+  const bool v3 = version >= 3;
 
   const String name = homeCfg.getName();
   const String additionalBlob = homeCfg.getAdditionalBlob();
 
-  const size_t sz = WL_MAC_ADDR_LENGTH                       // MAC size
-                  + 2 + name.length()                        // name length and name size
-                  + (v2 ? 1 : 0)                             // input pin
-                  + 1 + DIMMERS_COUNT * (v2 ? 9 : 8)         // dimmers info size
-                  + 1 + SWITCHERS_COUNT * (v2 ? 3 : 2)       // switchers info size
-                  + (v2 ? 2 + additionalBlob.length() : 0);  // some App's GUI display settings
+  //                                                      Sizes of:
+  const size_t sz = (v3 ? 2 : 0)                            // response format version (appeared from 3+)
+                  + WL_MAC_ADDR_LENGTH                      // MAC
+                  + 2 + name.length()                       // name length and name
+                  + 1                                       // input pin number
+                  + 1 + DIMMERS_COUNT * 9 + (v3 ? 2 : 0)    // dimmers info
+                  + 1 + SWITCHERS_COUNT * 3 + (v3 ? 1 : 0)  // switchers info
+                  + 2 + additionalBlob.length();            // some App's GUI display settings
   binInfoStorage.resize(sz);
 
   UnalignedBinarySerializer serializer(binInfoStorage.data());
+  if (v3) {
+    serializer.writeUInt16(GET_INFO_RESPONSE_FORMAT_VERSION);
+  }
   serializer.writeWiFiMacAddress();
   serializer.writeString(name);
-  if (v2) {
-    serializer.writeUInt8(INPUT_PIN);
-  }
+  serializer.writeUInt8(INPUT_PIN);
+
   serializer.writeUInt8(DIMMERS_COUNT);
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-    if (v2) {
-      serializer.writeUInt8(DIMMER_PINS[i]);
-    }
+    serializer.writeUInt8(DIMMER_PINS[i]);
     serializer.writeUInt16(homeCfg.getDimmerValue(i));
     serializer.writeUInt16(dimmersSettings[i].valueChangeStep);
     serializer.writeUInt16(dimmersSettings[i].minLightnessMicros);
     serializer.writeUInt16(dimmersSettings[i].maxLightnessMicros);
   }
+  if (v3) {
+    serializer.writeUInt16(homeCfg.getDimmerValueAfterBoot());
+  }
+
   serializer.writeUInt8(SWITCHERS_COUNT);
   for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
-    if (v2) {
-      serializer.writeUInt8(SWITCHER_PINS[i]);
-    }
+    serializer.writeUInt8(SWITCHER_PINS[i]);
     serializer.writeUInt8(homeCfg.getSwitcherValue(i));
     serializer.writeUInt8(homeCfg.isSwitcherInverted(i));
   }
-  if (v2) {
-    serializer.writeString(additionalBlob);
+  if (v3) {
+    serializer.writeUInt8(homeCfg.getSwitcherValueAfterBoot());
   }
+
+  serializer.writeString(additionalBlob);
 
   if (serializer.getWrittenSize() != sz) {
     Serial.printf("WARNING: Serialized: %d, expected: %d\n", serializer.getWrittenSize(), sz);
@@ -539,7 +566,13 @@ void handleSetValues() {
       applySwitcherValues();
     }
     server.send(200, "text/plain", "ACCEPTED\n");
-    homeCfg.asyncSave();
+
+    // saving only if saved values will be needed after boot
+    if ((dimmersChanged && homeCfg.getDimmerValueAfterBoot() == 0xFFFF) ||
+        (switchersChanged && homeCfg.getSwitcherValueAfterBoot() == 0xFF)) {
+      homeCfg.asyncSave();
+    }
+
     accepted = true;
   } else {
     server.send(200, "text/plain", "NOTHING_CHANGED\n");
@@ -600,6 +633,13 @@ void handleSetSettings() {
         homeCfg.setSwitcherValue(i, !homeCfg.getSwitcherValue(i));
       }
     }
+  }
+
+  if (server.hasArg("dvab")) {
+    homeCfg.setDimmerValueAfterBoot(server.arg("dvab").toInt());
+  }
+  if (server.hasArg("svab")) {
+    homeCfg.setSwitcherValueAfterBoot(server.arg("svab").toInt());
   }
 
   if (server.hasArg("blob")) {
@@ -705,6 +745,9 @@ void setup() {
 
   bool resetCfgHappened;
   homeCfg.loadOrReset(resetCfgHappened);
+
+  initCfgDimmerValuesAfterBoot();
+  initCfgSwitcherValuesAfterBoot();
 
   dimmersSettings = homeCfg.getDimmersSettings();
   fillDimmerValues();

@@ -5,7 +5,7 @@
 #include <HardwareSerial.h>
 
 #define CONFIGURATION_MAGIC 0x37B9AFBE
-#define CONFIGURATION_FORMAT_VERSION 4  // увеличивать при изменении формата конфигурации
+#define CONFIGURATION_FORMAT_VERSION 5  // увеличивать при изменении формата конфигурации
 
 #define PROCESS_ASYNC_EVENTS_INTERVAL_MS 2200
 
@@ -109,16 +109,21 @@ void Configuration::loadOrReset(bool& resetHappened) {
 
     name_ = readString(pos);
     password_ = readString(pos);
+
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         switchers_[i] = readBool(pos);
         switchersInverted_[i] = readBool(pos);
     }
+    switcherValueAfterBoot_ = readUInt8(pos);
+
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-        dimmers_[i] = readInt32(pos);
-        dimmersSettings_[i].valueChangeStep = readInt32(pos);
-        dimmersSettings_[i].minLightnessMicros = readInt32(pos);
-        dimmersSettings_[i].maxLightnessMicros = readInt32(pos);
+        dimmers_[i] = readUInt16(pos);
+        dimmersSettings_[i].valueChangeStep = readUInt16(pos);
+        dimmersSettings_[i].minLightnessMicros = readUInt16(pos);
+        dimmersSettings_[i].maxLightnessMicros = readUInt16(pos);
     }
+    dimmerValueAfterBoot_ = readUInt16(pos);
+
     additionalBlob_ = readString(pos);
     wifiResetSequenceLength = readUInt8(pos);
 }
@@ -132,16 +137,21 @@ void Configuration::save() {
     writeInt32(pos, CONFIGURATION_FORMAT_VERSION);
     writeString(pos, name_);
     writeString(pos, password_);
+
     for (uint8_t i = 0; i < SWITCHERS_COUNT; ++i) {
         writeBool(pos, switchers_[i]);
         writeBool(pos, switchersInverted_[i]);
     }
+    writeUInt8(pos, switcherValueAfterBoot_);
+
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-        writeInt32(pos, dimmers_[i]);
-        writeInt32(pos, dimmersSettings_[i].valueChangeStep);
-        writeInt32(pos, dimmersSettings_[i].minLightnessMicros);
-        writeInt32(pos, dimmersSettings_[i].maxLightnessMicros);
+        writeUInt16(pos, dimmers_[i]);
+        writeUInt16(pos, dimmersSettings_[i].valueChangeStep);
+        writeUInt16(pos, dimmersSettings_[i].minLightnessMicros);
+        writeUInt16(pos, dimmersSettings_[i].maxLightnessMicros);
     }
+    writeUInt16(pos, dimmerValueAfterBoot_);
+
     writeString(pos, additionalBlob_);
     writeUInt8(pos, wifiResetSequenceLength);
     EEPROM.commit();
@@ -167,10 +177,12 @@ void Configuration::resetAndSave() {
         setSwitcherValue(i, false);
         setSwitcherInverted(i, false);
     }
+    setSwitcherValueAfterBoot(0xFF);
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
         setDimmerValue(i, 0);
         setDimmerSettings(i, DimmerSettings());
     }
+    setDimmerValueAfterBoot(0xFFFF);
     setAdditionalBlob("");
     wifiResetSequenceLength = 0;
 
@@ -209,11 +221,19 @@ void Configuration::setSwitcherInverted(uint8_t index, bool inverted) {
     switchersInverted_[index] = inverted;
 }
 
-int32_t Configuration::getDimmerValue(uint8_t index) const {
+uint8_t Configuration::getSwitcherValueAfterBoot() const {
+    return switcherValueAfterBoot_;
+}
+
+void Configuration::setSwitcherValueAfterBoot(uint8_t value) {
+    switcherValueAfterBoot_ = value;
+}
+
+uint16_t Configuration::getDimmerValue(uint8_t index) const {
     return dimmers_[index];
 }
 
-void Configuration::setDimmerValue(uint8_t index, int32_t value) {
+void Configuration::setDimmerValue(uint8_t index, uint16_t value) {
     dimmers_[index] = value;
 }
 
@@ -225,6 +245,14 @@ void Configuration::setDimmerSettings(uint8_t index, const DimmerSettings& setti
     dimmersSettings_[index].valueChangeStep = settings.valueChangeStep;
     dimmersSettings_[index].minLightnessMicros = settings.minLightnessMicros;
     dimmersSettings_[index].maxLightnessMicros = settings.maxLightnessMicros;
+}
+
+uint16_t Configuration::getDimmerValueAfterBoot() const {
+    return dimmerValueAfterBoot_;
+}
+
+void Configuration::setDimmerValueAfterBoot(uint16_t value) {
+    dimmerValueAfterBoot_ = value;
 }
 
 const String& Configuration::getAdditionalBlob() const {
