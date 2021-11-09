@@ -81,7 +81,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
         return new ViewHolder(inflater.inflate(R.layout.item_device, parent, false));
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint({"ClickableViewAccessibility", "SetTextI18n"})
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         final DeviceInfo device = devicesList.getList().get(position);
@@ -155,7 +155,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
 
             // Populate the data into the template view using the data object
             holder.txtDeviceName.setText(device.getName());
-            holder.txtDeviceMac.setText(device.getMacAddress());
+            holder.txtDeviceMac.setText(device.getMacAddress() + " (v" + device.getProtoVersion() + ")");
             holder.txtDeviceIp.setText(device.getHttpAddressWithoutPrefix());
 
             final String httpPassword = device.getHttpPassword();

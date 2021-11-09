@@ -20,7 +20,7 @@ public class DeviceInfo {
     public static final String DEFAULT_HTTP_PASSWORD = "12345";
 
     public static final class Handlers {
-        public static final String GET_INFO             = "/get_info?binary&v=2";
+        public static final String GET_INFO             = "/get_info?binary&v=3";
         public static final String SETUP_WIFI           = "/setup_wifi";
         public static final String GET_SETUP_WIFI_STATE = "/get_setup_wifi_state";
         public static final String TURN_OFF_AP          = "/turn_off_ap";
@@ -82,6 +82,7 @@ public class DeviceInfo {
 
     private static final String LOG_TAG = "DeviceInfo";
 
+    private static final String KEY_PROTO_PREFIX = "proto-";
     private static final String KEY_MAC_PREFIX = "mac-";
     private static final String KEY_NAME_PREFIX = "name-";
     private static final String KEY_IP_PREFIX = "ip-";
@@ -90,6 +91,7 @@ public class DeviceInfo {
     private static final String KEY_PASSWORD_PREFIX = "pwd-";
     private static final String KEY_STATE_CACHE_PREFIX = "state-cache-";
 
+    private short protoVersion = 2;
     private String macAddress = null;
     private String name = null;
     private String ipAddress = null;
@@ -105,11 +107,13 @@ public class DeviceInfo {
     private int dimmersCount = 0;
     private int[] dimmerValues;
     private DimmerSettings[] dimmersSettings;
+    private short dimmerValueAfterBoot;
     private OrderingKeeper dimmersOrder;
 
     private int switchersCount = 0;
     private boolean[] switcherValues;
     private SwitcherSettings[] switchersSettings;
+    private byte switcherValueAfterBoot;
     private OrderingKeeper switchersOrder;
 
     public interface Listener {
@@ -131,6 +135,7 @@ public class DeviceInfo {
     public DeviceInfo(SharedPreferences storage, int idInStorage, Listener listener) {
         this.listener = listener;
 
+        protoVersion = (short)storage.getInt(KEY_PROTO_PREFIX + idInStorage, 2);
         macAddress = storage.getString(KEY_MAC_PREFIX + idInStorage, null);
         name = storage.getString(KEY_NAME_PREFIX + idInStorage, null);
         ipAddress = storage.getString(KEY_IP_PREFIX + idInStorage, null);
@@ -151,6 +156,7 @@ public class DeviceInfo {
     }
 
     public void saveToStorage(SharedPreferences.Editor editor, int idInStorage) {
+        editor.putInt(KEY_PROTO_PREFIX + idInStorage, protoVersion);
         editor.putString(KEY_MAC_PREFIX + idInStorage, macAddress);
         editor.putString(KEY_NAME_PREFIX + idInStorage, name);
         editor.putString(KEY_IP_PREFIX + idInStorage, ipAddress);
@@ -178,6 +184,15 @@ public class DeviceInfo {
         buffer.position(0);
 
         try {
+            protoVersion = buffer.getShort();  // response format version
+            final boolean v3 = (protoVersion == 3);
+
+            if (!v3) {
+                // older firmwares put MAC at the beginning
+                protoVersion = 2;
+                buffer.position(0);
+            }
+
             byte[] macAddressBytes = new byte[6];
             buffer.get(macAddressBytes);
             final String macAddressParsed = Utils.macAddressBytesToString(macAddressBytes);
@@ -209,6 +224,7 @@ public class DeviceInfo {
                 int maxLightnessMicros = buffer.getShort();
                 dimmersSettings[i] = new DimmerSettings(pin, valueChangeStep, minLightnessMicros, maxLightnessMicros);
             }
+            dimmerValueAfterBoot = v3 ? buffer.getShort() : (short)0xFFFF;
 
             switchersCount = buffer.get();
             if (switcherValues == null || switcherValues.length != switchersCount) {
@@ -223,6 +239,7 @@ public class DeviceInfo {
                 boolean inverted = buffer.get() != 0;
                 switchersSettings[i] = new SwitcherSettings(pin, inverted);
             }
+            switcherValueAfterBoot = v3 ? buffer.get() : (byte)0xFF;
 
             parseAdditionalBlob(buffer);
 
@@ -343,6 +360,10 @@ public class DeviceInfo {
         result.put("switchers", switchersArr);
 
         return result.toString();
+    }
+
+    public short getProtoVersion() {
+        return protoVersion;
     }
 
     public String getMacAddress() {
