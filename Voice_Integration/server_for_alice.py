@@ -198,35 +198,35 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             devicesReq = json.loads(body)['devices']
             devicesResp = []
 
-            pool = ThreadPool(processes=len(devicesReq))
-            asyncResults = {}
-            for deviceReq in devicesReq:
-                deviceId = deviceReq['id']
-                device = homes[user['home']][deviceId]
-                asyncResults[deviceId] = pool.apply_async(fetchDimmerValue, (device['address'], device['password'], device['dimmer_number']))
+            with ThreadPool(processes=len(devicesReq)) as pool:
+                asyncResults = {}
+                for deviceReq in devicesReq:
+                    deviceId = deviceReq['id']
+                    device = homes[user['home']][deviceId]
+                    asyncResults[deviceId] = pool.apply_async(fetchDimmerValue, (device['address'], device['password'], device['dimmer_number']))
 
-            for deviceReq in devicesReq:
-                deviceId = deviceReq['id']
-                dimmerValue = asyncResults[deviceId].get()
-                devicesResp.append({
-                    'id': deviceId,
-                    'capabilities': [
-                        {
-                            'type': 'devices.capabilities.on_off',
-                            'state': {
-                                'instance': 'on',
-                                'value': dimmerValue > 0
+                for deviceReq in devicesReq:
+                    deviceId = deviceReq['id']
+                    dimmerValue = asyncResults[deviceId].get()
+                    devicesResp.append({
+                        'id': deviceId,
+                        'capabilities': [
+                            {
+                                'type': 'devices.capabilities.on_off',
+                                'state': {
+                                    'instance': 'on',
+                                    'value': dimmerValue > 0
+                                }
+                            },
+                            {
+                                'type': 'devices.capabilities.range',
+                                'state': {
+                                    'instance': 'brightness',
+                                    'value': dimmerValue / 10
+                                }
                             }
-                        },
-                        {
-                            'type': 'devices.capabilities.range',
-                            'state': {
-                                'instance': 'brightness',
-                                'value': dimmerValue / 10
-                            }
-                        }
-                    ]
-                })
+                        ]
+                    })
 
             response = {
                 'request_id': requestId,
@@ -240,54 +240,54 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             devicesReq = json.loads(body)['payload']['devices']
             devicesResp = []
 
-            pool = ThreadPool(processes=len(devicesReq))
-            asyncResults = {}
-            for deviceReq in devicesReq:
-                deviceId = deviceReq['id']
-                device = homes[user['home']][deviceId]
+            with ThreadPool(processes=len(devicesReq)) as pool:
+                asyncResults = {}
+                for deviceReq in devicesReq:
+                    deviceId = deviceReq['id']
+                    device = homes[user['home']][deviceId]
 
-                enabledTarget = None
-                brightnessTarget = None
-                for cap in deviceReq['capabilities']:
-                    if cap['type'] == 'devices.capabilities.on_off' and cap['state']['instance'] == 'on':
-                        enabledTarget = cap['state']['value']
-                        assert isinstance(enabledTarget, bool)
-                    elif cap['type'] == 'devices.capabilities.range' and cap['state']['instance'] == 'brightness':
-                        brightnessTarget = cap['state']['value']
-                        assert isinstance(brightnessTarget, float) or isinstance(brightnessTarget, int)
+                    enabledTarget = None
+                    brightnessTarget = None
+                    for cap in deviceReq['capabilities']:
+                        if cap['type'] == 'devices.capabilities.on_off' and cap['state']['instance'] == 'on':
+                            enabledTarget = cap['state']['value']
+                            assert isinstance(enabledTarget, bool)
+                        elif cap['type'] == 'devices.capabilities.range' and cap['state']['instance'] == 'brightness':
+                            brightnessTarget = cap['state']['value']
+                            assert isinstance(brightnessTarget, float) or isinstance(brightnessTarget, int)
+                        else:
+                            info('WARN: Unsupported capability passed: %s' % cap)
+
+                    dimmerValue = None
+                    if enabledTarget is None and brightnessTarget is None:
+                        info('WARN: No changes will be performed for device %s, INVALID_VALUE error will be returned' % deviceId)
+                    elif enabledTarget is None:
+                        dimmerValue = brightnessTarget * 10
+                    elif brightnessTarget is None:
+                        dimmerValue = 1000 if enabledTarget else 0
                     else:
-                        info('WARN: Unsupported capability passed: %s' % cap)
+                        dimmerValue = brightnessTarget * 10 if enabledTarget else 0
 
-                dimmerValue = None
-                if enabledTarget is None and brightnessTarget is None:
-                    info('WARN: No changes will be performed for device %s, INVALID_VALUE error will be returned' % deviceId)
-                elif enabledTarget is None:
-                    dimmerValue = brightnessTarget * 10
-                elif brightnessTarget is None:
-                    dimmerValue = 1000 if enabledTarget else 0
-                else:
-                    dimmerValue = brightnessTarget * 10 if enabledTarget else 0
+                    if dimmerValue is not None:
+                        asyncResults[deviceId] = pool.apply_async(applyDimmerValue, (device['address'], device['password'], device['dimmer_number'], dimmerValue))
 
-                if dimmerValue is not None:
-                    asyncResults[deviceId] = pool.apply_async(applyDimmerValue, (device['address'], device['password'], device['dimmer_number'], dimmerValue))
-
-            for deviceReq in devicesReq:
-                deviceId = deviceReq['id']
-                applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Непонятно, что хотели изменить. Запрос к устройству не производился'}
-                if applyResult['ok']:
-                    actionResult = {
-                        'status': 'DONE'
-                    }
-                else:
-                    actionResult = {
-                        'status': 'ERROR',
-                        'error_code': applyResult['error'],
-                        'error_message': applyResult['error_msg']
-                    }
-                devicesResp.append({
-                    'id': deviceId,
-                    'action_result': actionResult
-                })
+                for deviceReq in devicesReq:
+                    deviceId = deviceReq['id']
+                    applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Непонятно, что хотели изменить. Запрос к устройству не производился'}
+                    if applyResult['ok']:
+                        actionResult = {
+                            'status': 'DONE'
+                        }
+                    else:
+                        actionResult = {
+                            'status': 'ERROR',
+                            'error_code': applyResult['error'],
+                            'error_message': applyResult['error_msg']
+                        }
+                    devicesResp.append({
+                        'id': deviceId,
+                        'action_result': actionResult
+                    })
 
             response = {
                 'request_id': requestId,
