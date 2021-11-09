@@ -8,6 +8,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
@@ -40,6 +43,14 @@ public class DeviceSettings extends BaseScreen {
     private final ItemTouchHelper ithDimmersSettings;
     private final ItemTouchHelper ithSwitchersSettings;
 
+    private final RadioButton rbUseSavedDimmerValues;
+    private final RadioButton rbUseSpecifiedDimmerValue;
+    private final SeekBar sbDimmerValueAfterBoot;
+
+    private final RadioButton rbUseSavedSwitcherValues;
+    private final RadioButton rbUseSpecifiedSwitcherValue;
+    private final Switch swSwitcherValueAfterBoot;
+
     private final EditText edtIpAddress;
     private final EditText edtPort;
     private final CheckBox cbIpIsStatic;
@@ -66,6 +77,19 @@ public class DeviceSettings extends BaseScreen {
         rcvSwitchersSettings = activity.findViewById(R.id.rcvSwitchersSettings);
         rcvSwitchersSettings.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false));
         ithSwitchersSettings = new ReorderItemTouchHelper(rcvSwitchersSettings);
+
+        rbUseSavedDimmerValues = activity.findViewById(R.id.rbUseSavedDimmerValues);
+        rbUseSpecifiedDimmerValue = activity.findViewById(R.id.rbUseSpecifiedDimmerValue);
+        sbDimmerValueAfterBoot = activity.findViewById(R.id.sbDimmerValueAfterBoot);
+        sbDimmerValueAfterBoot.setEnabled(false);
+
+        rbUseSavedSwitcherValues = activity.findViewById(R.id.rbUseSavedSwitcherValues);
+        rbUseSpecifiedSwitcherValue = activity.findViewById(R.id.rbUseSpecifiedSwitcherValue);
+        swSwitcherValueAfterBoot = activity.findViewById(R.id.swSwitcherValueAfterBoot);
+        swSwitcherValueAfterBoot.setEnabled(false);
+
+        rbUseSpecifiedDimmerValue.setOnCheckedChangeListener((buttonView, isChecked) -> sbDimmerValueAfterBoot.setEnabled(isChecked));
+        rbUseSpecifiedSwitcherValue.setOnCheckedChangeListener((buttonView, isChecked) -> swSwitcherValueAfterBoot.setEnabled(isChecked));
 
         Button btnSaveDeviceSettings = activity.findViewById(R.id.btnSaveDeviceSettings);
 
@@ -141,6 +165,16 @@ public class DeviceSettings extends BaseScreen {
                             .append(DeviceInfo.SWITCHER_PREFIX).append(i).append("=")
                             .append(swHolder.isInverted() ? "1" : "0");
                 }
+            }
+
+            if (device.supportsValueAfterBoot()) {
+                int dimmerValueAfterBoot = rbUseSavedDimmerValues.isChecked()
+                        ? DeviceInfo.DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES
+                        : sbDimmerValueAfterBoot.getProgress();
+                int switcherValueAfterBoot = rbUseSavedSwitcherValues.isChecked()
+                        ? DeviceInfo.SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES
+                        : (swSwitcherValueAfterBoot.isChecked() ? 1 : 0);
+                argsStr.append("&dvab=").append(dimmerValueAfterBoot).append("&svab=").append(switcherValueAfterBoot);
             }
 
             argsStr.append("&blob=").append(Utils.urlEncode(new String(device.generateAdditionalBlob(), StandardCharsets.UTF_8)));
@@ -303,16 +337,60 @@ public class DeviceSettings extends BaseScreen {
         if (deviceIsDiscovered) {
             edtName.setText(device.getName());
             txtInputPin.setText(tr(R.string.input_pin, device.getInputPin()));
+
             rcvDimmersSettings.setAdapter(new DimmersSettingsAdapter(
                     ithDimmersSettings,
                     device.getDimmersSettings(),
                     device.getDimmersOrder()
             ));
+
+            final short dimmerValueAfterBoot = device.getDimmerValueAfterBoot();
+            final boolean useSavedDimmerValues = dimmerValueAfterBoot == (short) DeviceInfo.DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
+            rbUseSavedDimmerValues.setChecked(useSavedDimmerValues);
+            rbUseSpecifiedDimmerValue.setChecked(!useSavedDimmerValues);
+            sbDimmerValueAfterBoot.setEnabled(!useSavedDimmerValues);
+            sbDimmerValueAfterBoot.setProgress(useSavedDimmerValues ? 500 : dimmerValueAfterBoot);
+
+            rbUseSavedDimmerValues.jumpDrawablesToCurrentState();
+            rbUseSpecifiedDimmerValue.jumpDrawablesToCurrentState();
+            sbDimmerValueAfterBoot.jumpDrawablesToCurrentState();
+
+            rbUseSpecifiedDimmerValue.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                sbDimmerValueAfterBoot.setEnabled(isChecked);
+                if (isChecked && !device.supportsValueAfterBoot()) {
+                    showOkDialog(tr(R.string.error), tr(R.string.device_does_not_support_feature), (dialog, which) -> {
+                        rbUseSavedDimmerValues.setChecked(true);
+                        rbUseSpecifiedDimmerValue.setChecked(false);
+                    });
+                }
+            });
+
             rcvSwitchersSettings.setAdapter(new SwitchersSettingsAdapter(
                     ithSwitchersSettings,
                     device.getSwitchersSettings(),
                     device.getSwitchersOrder()
             ));
+
+            final byte switcherValueAfterBoot = device.getSwitcherValueAfterBoot();
+            final boolean useSavedSwitcherValues = switcherValueAfterBoot == (byte) DeviceInfo.SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
+            rbUseSavedSwitcherValues.setChecked(useSavedSwitcherValues);
+            rbUseSpecifiedSwitcherValue.setChecked(!useSavedSwitcherValues);
+            swSwitcherValueAfterBoot.setEnabled(!useSavedSwitcherValues);
+            swSwitcherValueAfterBoot.setChecked(!useSavedSwitcherValues && switcherValueAfterBoot > 0);
+
+            rbUseSavedSwitcherValues.jumpDrawablesToCurrentState();
+            rbUseSpecifiedSwitcherValue.jumpDrawablesToCurrentState();
+            swSwitcherValueAfterBoot.jumpDrawablesToCurrentState();
+
+            rbUseSpecifiedSwitcherValue.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                swSwitcherValueAfterBoot.setEnabled(isChecked);
+                if (isChecked && !device.supportsValueAfterBoot()) {
+                    showOkDialog(tr(R.string.error), tr(R.string.device_does_not_support_feature), (dialog, which) -> {
+                        rbUseSavedSwitcherValues.setChecked(true);
+                        rbUseSpecifiedSwitcherValue.setChecked(false);
+                    });
+                }
+            });
         }
 
         edtIpAddress.setText(device.getIpAddress());

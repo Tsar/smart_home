@@ -96,6 +96,38 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/dimmers_should"
+            android:textSize="16sp" />
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <RadioButton
+                android:id="@+id/rbUseSavedDimmerValues"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/use_last_positions"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rbUseSpecifiedDimmerValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/set_to_position"
+                android:checked="false" />
+
+        </RadioGroup>
+
+        <SeekBar
+            android:id="@+id/sbDimmerValueAfterBoot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="@string/switchers_settings" />
 
         <LinearLayout
@@ -142,6 +174,46 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:nestedScrollingEnabled="false" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/switchers_should"
+            android:textSize="16sp" />
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <RadioButton
+                android:id="@+id/rbUseSavedSwitcherValues"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/use_last_positions"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rbUseSpecifiedSwitcherValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/set_to_position"
+                android:checked="false" />
+
+        </RadioGroup>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <Switch
+                android:id="@+id/swSwitcherValueAfterBoot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:enabled="false" />
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnSaveDeviceSettings"

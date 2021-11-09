@@ -76,4 +76,9 @@
     <string name="function_unavailable">К сожалению, этот функционал недоступен для Android меньше 10!</string>
     <string name="active">Активен</string>
     <string name="confirm_delete">Вы уверены, что хотите удалить устройство \"%1$s\" из списка?</string>
+    <string name="dimmers_should">Диммеры при включении устройства должны</string>
+    <string name="switchers_should">Переключатели при включении устройства должны</string>
+    <string name="use_last_positions">использовать последние положения</string>
+    <string name="set_to_position">устанавливать заданное положение</string>
+    <string name="device_does_not_support_feature">Это устройство не поддерживает такую возможность!\nОбновите его прошивку, пожалуйста.</string>
 </resources>

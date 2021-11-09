@@ -36,6 +36,9 @@ public class DeviceInfo {
     public static final String DIMMER_PREFIX = "dim";
     public static final String SWITCHER_PREFIX = "sw";
 
+    public static final int DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES = 0xFFFF;
+    public static final int SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES = 0xFF;
+
     public static class BaseSettings {
         public final byte pin;
         public boolean active;
@@ -224,7 +227,7 @@ public class DeviceInfo {
                 int maxLightnessMicros = buffer.getShort();
                 dimmersSettings[i] = new DimmerSettings(pin, valueChangeStep, minLightnessMicros, maxLightnessMicros);
             }
-            dimmerValueAfterBoot = v3 ? buffer.getShort() : (short)0xFFFF;
+            dimmerValueAfterBoot = v3 ? buffer.getShort() : (short) DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
 
             switchersCount = buffer.get();
             if (switcherValues == null || switcherValues.length != switchersCount) {
@@ -239,7 +242,7 @@ public class DeviceInfo {
                 boolean inverted = buffer.get() != 0;
                 switchersSettings[i] = new SwitcherSettings(pin, inverted);
             }
-            switcherValueAfterBoot = v3 ? buffer.get() : (byte)0xFF;
+            switcherValueAfterBoot = v3 ? buffer.get() : (byte) SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
 
             parseAdditionalBlob(buffer);
 
@@ -366,6 +369,10 @@ public class DeviceInfo {
         return protoVersion;
     }
 
+    public boolean supportsValueAfterBoot() {
+        return protoVersion >= 3;
+    }
+
     public String getMacAddress() {
         return macAddress;
     }
@@ -431,6 +438,10 @@ public class DeviceInfo {
         return 500;
     }
 
+    public short getDimmerValueAfterBoot() {
+        return dimmerValueAfterBoot;
+    }
+
     public int getSwitchersCount() {
         if (switcherValues == null) {
             return 4;
@@ -450,6 +461,10 @@ public class DeviceInfo {
             return switcherValues[n];
         }
         return false;
+    }
+
+    public byte getSwitcherValueAfterBoot() {
+        return switcherValueAfterBoot;
     }
 
     public byte getInputPin() {

@@ -76,4 +76,9 @@
     <string name="function_unavailable">Sorry, but this feature is not available for Android lower than 10!</string>
     <string name="active">Active</string>
     <string name="confirm_delete">Are you sure you want to remove device \"%1$s\" from the list?</string>
+    <string name="dimmers_should">On device boot dimmers should</string>
+    <string name="switchers_should">On device boot switchers should</string>
+    <string name="use_last_positions">use last positions</string>
+    <string name="set_to_position">set to following position</string>
+    <string name="device_does_not_support_feature">The device does not support this feature!\nPlease update it\'s firmware.</string>
 </resources>
