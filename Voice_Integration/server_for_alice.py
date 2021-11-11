@@ -42,16 +42,17 @@ def fetchDimmerValue(deviceAddress, devicePassword, dimmerNumber):
         response = urllib.request.urlopen(request, timeout=1.5).read()
     except Exception as err:
         info('WARNING: Failed to get info from device %s [%s]' % (deviceAddress, err))
-        return 0
+        return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось получить информацию с устройства'}
     offset = 6  # skip MAC
     nameLen = struct.unpack('<H', response[offset:offset + 2])[0]
     offset += 2 + nameLen + 1  # skip nameLen, name and input pin
     dimmersCount = struct.unpack('<B', response[offset:offset + 1])[0]
     if dimmerNumber >= dimmersCount:
         info('ERROR: No dimmer %d exists on device %s' % deviceAddress)
-        return 0
+        return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'У устройства нет диммера с номером %d' % dimmerNumber}
     offset += 1 + dimmerNumber * 9 + 1  # skip dimmers count, unneeded dimmers and dimmer pin
-    return struct.unpack('<H', response[offset:offset + 2])[0]
+    dimmerValue = struct.unpack('<H', response[offset:offset + 2])[0]
+    return {'ok': True, 'dimmer_value': dimmerValue}
 
 def applyDimmerValue(deviceAddress, devicePassword, dimmerNumber, dimmerValue):
     dimmerValue = int(dimmerValue)
@@ -207,26 +208,34 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    dimmerValue = asyncResults[deviceId].get()
-                    devicesResp.append({
-                        'id': deviceId,
-                        'capabilities': [
-                            {
-                                'type': 'devices.capabilities.on_off',
-                                'state': {
-                                    'instance': 'on',
-                                    'value': dimmerValue > 0
+                    fetchResult = asyncResults[deviceId].get()
+                    if fetchResult['ok']:
+                        dimmerValue = fetchResult['dimmer_value']
+                        devicesResp.append({
+                            'id': deviceId,
+                            'capabilities': [
+                                {
+                                    'type': 'devices.capabilities.on_off',
+                                    'state': {
+                                        'instance': 'on',
+                                        'value': dimmerValue > 0
+                                    }
+                                },
+                                {
+                                    'type': 'devices.capabilities.range',
+                                    'state': {
+                                        'instance': 'brightness',
+                                        'value': dimmerValue / 10
+                                    }
                                 }
-                            },
-                            {
-                                'type': 'devices.capabilities.range',
-                                'state': {
-                                    'instance': 'brightness',
-                                    'value': dimmerValue / 10
-                                }
-                            }
-                        ]
-                    })
+                            ]
+                        })
+                    else:
+                        devicesResp.append({
+                            'id': deviceId,
+                            'error_code': fetchResult['error'],
+                            'error_message': fetchResult['error_msg']
+                        })
 
             response = {
                 'request_id': requestId,
