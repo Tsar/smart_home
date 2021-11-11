@@ -48,7 +48,7 @@ def fetchDimmerValue(deviceAddress, devicePassword, dimmerNumber):
     offset += 2 + nameLen + 1  # skip nameLen, name and input pin
     dimmersCount = struct.unpack('<B', response[offset:offset + 1])[0]
     if dimmerNumber >= dimmersCount:
-        info('ERROR: No dimmer %d exists on device %s' % deviceAddress)
+        info('ERROR: No dimmer %d exists on device %s' % (dimmerNumber, deviceAddress))
         return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'У устройства нет диммера с номером %d' % dimmerNumber}
     offset += 1 + dimmerNumber * 9 + 1  # skip dimmers count, unneeded dimmers and dimmer pin
     dimmerValue = struct.unpack('<H', response[offset:offset + 2])[0]
