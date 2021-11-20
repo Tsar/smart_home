@@ -12,6 +12,8 @@
 
 #define HTTP_SERVER_PORT 80
 
+#define FIRMWARE_VERSION 1  // used as uint16_t, increase when making new firmware version
+
 #define UPDATER_USERNAME "admin"
 
 #define DIMMER_PREFIX   "dim"
@@ -394,11 +396,10 @@ private:
   size_t pos_;
 };
 
-#define GET_INFO_RESPONSE_FORMAT_VERSION 0x0003
-
 // Fill binInfoStorage
 void generateInfoBinary(uint8_t version) {
-  const bool v3 = version >= 3;
+  const bool v3 = version >= 3;  // request is for v3 or more
+  const bool v4 = version >= 4;  // request is for v4 or more
 
   const String name = homeCfg.getName();
   const String additionalBlob = homeCfg.getAdditionalBlob();
@@ -414,8 +415,11 @@ void generateInfoBinary(uint8_t version) {
   binInfoStorage.resize(sz);
 
   UnalignedBinarySerializer serializer(binInfoStorage.data());
-  if (v3) {
-    serializer.writeUInt16(GET_INFO_RESPONSE_FORMAT_VERSION);
+  if (v4) {
+    serializer.writeUInt16(0x0004);
+    serializer.writeUInt16(FIRMWARE_VERSION);
+  } else if (v3) {
+    serializer.writeUInt16(0x0003);
   }
   serializer.writeWiFiMacAddress();
   serializer.writeString(name);
@@ -770,9 +774,9 @@ void setup() {
   digitalWrite(LED_BUILTIN, LOW);
 
   Serial.begin(115200);
-  Serial.printf("\n%s\nDevice name: %s, HTTP password: '%s'\n",
+  Serial.printf("\n%s\nDevice name: %s, firmware version: %d, HTTP password: '%s'\n",
                 resetCfgHappened ? "CONFIGURATION RESET HAPPENED!" : "Configuration loaded successfully",
-                homeCfg.getName().c_str(), homeCfg.getPassword().c_str()
+                homeCfg.getName().c_str(), FIRMWARE_VERSION, homeCfg.getPassword().c_str()
   );
 
   checkWiFiResetSequence();
