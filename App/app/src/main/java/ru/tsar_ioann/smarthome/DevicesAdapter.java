@@ -155,7 +155,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
 
             // Populate the data into the template view using the data object
             holder.txtDeviceName.setText(device.getName());
-            holder.txtDeviceMac.setText(device.getMacAddress() + " (v" + device.getProtoVersion() + ")");
+            holder.txtDeviceMac.setText(device.getMacAddress() + " (v" + device.getFirmwareVersion() + ")");
             holder.txtDeviceIp.setText(device.getHttpAddressWithoutPrefix());
 
             final String httpPassword = device.getHttpPassword();

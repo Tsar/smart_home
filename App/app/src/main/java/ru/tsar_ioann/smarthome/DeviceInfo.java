@@ -20,7 +20,7 @@ public class DeviceInfo {
     public static final String DEFAULT_HTTP_PASSWORD = "12345";
 
     public static final class Handlers {
-        public static final String GET_INFO             = "/get_info?binary&v=3";
+        public static final String GET_INFO             = "/get_info?binary&v=4";
         public static final String SETUP_WIFI           = "/setup_wifi";
         public static final String GET_SETUP_WIFI_STATE = "/get_setup_wifi_state";
         public static final String TURN_OFF_AP          = "/turn_off_ap";
@@ -95,6 +95,7 @@ public class DeviceInfo {
     private static final String KEY_STATE_CACHE_PREFIX = "state-cache-";
 
     private short protoVersion = 2;
+    private short firmwareVersion = 0;
     private String macAddress = null;
     private String name = null;
     private String ipAddress = null;
@@ -188,13 +189,12 @@ public class DeviceInfo {
 
         try {
             protoVersion = buffer.getShort();  // response format version
-            final boolean v3 = (protoVersion == 3);
-
-            if (!v3) {
+            if (protoVersion != 3 && protoVersion != 4) {
                 // older firmwares put MAC at the beginning
                 protoVersion = 2;
                 buffer.position(0);
             }
+            firmwareVersion = (protoVersion >= 4) ? buffer.getShort() : 0;
 
             byte[] macAddressBytes = new byte[6];
             buffer.get(macAddressBytes);
@@ -227,7 +227,7 @@ public class DeviceInfo {
                 int maxLightnessMicros = buffer.getShort();
                 dimmersSettings[i] = new DimmerSettings(pin, valueChangeStep, minLightnessMicros, maxLightnessMicros);
             }
-            dimmerValueAfterBoot = v3 ? buffer.getShort() : (short) DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
+            dimmerValueAfterBoot = (protoVersion >= 3) ? buffer.getShort() : (short) DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
 
             switchersCount = buffer.get();
             if (switcherValues == null || switcherValues.length != switchersCount) {
@@ -242,7 +242,7 @@ public class DeviceInfo {
                 boolean inverted = buffer.get() != 0;
                 switchersSettings[i] = new SwitcherSettings(pin, inverted);
             }
-            switcherValueAfterBoot = v3 ? buffer.get() : (byte) SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
+            switcherValueAfterBoot = (protoVersion >= 3) ? buffer.get() : (byte) SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
 
             parseAdditionalBlob(buffer);
 
@@ -365,8 +365,8 @@ public class DeviceInfo {
         return result.toString();
     }
 
-    public short getProtoVersion() {
-        return protoVersion;
+    public short getFirmwareVersion() {
+        return firmwareVersion > 0 ? firmwareVersion : protoVersion;
     }
 
     public boolean supportsValueAfterBoot() {
