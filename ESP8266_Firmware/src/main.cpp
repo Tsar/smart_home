@@ -12,7 +12,7 @@
 
 #define HTTP_SERVER_PORT 80
 
-#define FIRMWARE_VERSION 1  // used as uint16_t, increase when making new firmware version
+#define FIRMWARE_VERSION 2  // used as uint16_t, increase when making new firmware version
 
 #define UPDATER_USERNAME "admin"
 
@@ -324,7 +324,9 @@ void sendBadRequest() {
 
 // Create JSON (inefficient function, only for manual debugging)
 String generateInfoJson(bool minimal) {
-  String result = "{\n  \"mac\": \"" + WiFi.macAddress() + "\",\n  \"name\": \"" + homeCfg.getName() + "\"";
+  String result = "{\n  \"mac\": \"" + WiFi.macAddress()
+              + "\",\n  \"name\": \"" + homeCfg.getName()
+              + "\",\n  \"firmware_version\": " + String(FIRMWARE_VERSION);
   if (!minimal) {
     result += ",\n  \"values\": {\n    \"";
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
