@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiGratuitous.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266HTTPUpdateServer.h>
 #include <WiFiUdp.h>
 #include <lwip/igmp.h>
 
@@ -10,6 +11,8 @@
 #define MIN(val1, val2) ((val1) < (val2) ? (val1) : (val2))
 
 #define HTTP_SERVER_PORT 80
+
+#define UPDATER_USERNAME "admin"
 
 #define DIMMER_PREFIX   "dim"
 #define SWITCHER_PREFIX "sw"
@@ -48,6 +51,7 @@ volatile uint8_t eventsQueueSize = 0;
 volatile uint8_t nextEventId = 0;
 
 ESP8266WebServer server(HTTP_SERVER_PORT);
+ESP8266HTTPUpdateServer updateServer;  // for updating firmware over wi-fi
 smart_home::Configuration homeCfg;
 
 std::vector<char> binInfoStorage;
@@ -661,6 +665,8 @@ void handleSetPassword() {
 
   homeCfg.setPassword(server.arg("password"));
   homeCfg.save();
+  updateServer.updateCredentials(UPDATER_USERNAME, homeCfg.getPassword());
+
   server.send(200, "text/plain", "ACCEPTED\n");
   Serial.printf("Handled %s\n", server.uri().c_str());
 }
@@ -810,6 +816,8 @@ void setup() {
 
   const char* headerKeys[] = {"Password"};
   server.collectHeaders(headerKeys, 1);
+
+  updateServer.setup(&server, "/fw_update", UPDATER_USERNAME, homeCfg.getPassword());
 
   server.begin();
   Serial.printf("Started HTTP server on port %d\n", HTTP_SERVER_PORT);
