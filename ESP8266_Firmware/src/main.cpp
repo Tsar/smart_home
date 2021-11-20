@@ -12,7 +12,7 @@
 
 #define HTTP_SERVER_PORT 80
 
-#define FIRMWARE_VERSION 2  // used as uint16_t, increase when making new firmware version
+#define FIRMWARE_VERSION 4  // used as uint16_t, increase when making new firmware version
 
 #define UPDATER_USERNAME "admin"
 
@@ -408,6 +408,7 @@ void generateInfoBinary(uint8_t version) {
 
   //                                                      Sizes of:
   const size_t sz = (v3 ? 2 : 0)                            // response format version (appeared from 3+)
+                  + (v4 ? 2 : 0)                            // firmware version (appeared from 4+)
                   + WL_MAC_ADDR_LENGTH                      // MAC
                   + 2 + name.length()                       // name length and name
                   + 1                                       // input pin number
