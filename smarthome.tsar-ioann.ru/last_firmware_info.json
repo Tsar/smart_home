@@ -1,4 +1,8 @@
 {
-    "version": 4,
-    "file": "firmware/v4.bin"
+  "version": 4,
+  "file": "firmware/v4.bin",
+  "description": {
+    "en": "• support for firmware updates over network.",
+    "ru": "• поддержка обновления прошивки по сети."
+  }
 }

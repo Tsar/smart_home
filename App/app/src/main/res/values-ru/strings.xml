@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Умный Дом</string>
+    <string name="lang_key">ru</string>
 
     <string name="add_new_device">Добавить устройство</string>
     <string name="settings">Настройки</string>
@@ -76,6 +77,7 @@
     <string name="function_unavailable">К сожалению, этот функционал недоступен для Android меньше 10!</string>
     <string name="active">Активен</string>
     <string name="confirm_delete">Вы уверены, что хотите удалить устройство \"%1$s\" из списка?</string>
+    <string name="confirm_firmware_update">Доступно обновление прошивки для устройства \"%2$s\" до версии %1$d.\n\nЧто нового в этой версии:\n%3$s\n\nПроизвести обновление?</string>
     <string name="dimmers_should">Диммеры при включении устройства должны</string>
     <string name="switchers_should">Переключатели при включении устройства должны</string>
     <string name="use_last_positions">использовать последние положения</string>

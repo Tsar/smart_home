@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Smart Home</string>
+    <string name="lang_key">en</string>
 
     <string name="add_new_device">Add new device</string>
     <string name="settings">Settings</string>
@@ -76,6 +77,7 @@
     <string name="function_unavailable">Sorry, but this feature is not available for Android lower than 10!</string>
     <string name="active">Active</string>
     <string name="confirm_delete">Are you sure you want to remove device \"%1$s\" from the list?</string>
+    <string name="confirm_firmware_update">Firmware update to version %1$d is available for device \"%2$s\".\n\nWhat\'s new in this version:\n%3$s\n\nProceed with update?</string>
     <string name="dimmers_should">On device boot dimmers should</string>
     <string name="switchers_should">On device boot switchers should</string>
     <string name="use_last_positions">use last positions</string>

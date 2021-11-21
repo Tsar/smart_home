@@ -128,8 +128,11 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
 
             if (settingsButtonsVisible) {
                 holder.btnUpdateFirmware.setVisibility(
-                        device.supportsFirmwareUpdateOverNetwork() && device.getFirmwareVersion() < firmwareUpdater.getLastFirmwareVersion()
-                            ? View.VISIBLE : View.GONE
+                        device.isDiscovered()
+                                && device.supportsFirmwareUpdateOverNetwork()
+                                && device.getFirmwareVersion() < firmwareUpdater.getLastFirmwareVersion()
+                            ? View.VISIBLE
+                            : View.GONE
                 );
 
                 holder.layoutSettingsButtons.setVisibility(View.VISIBLE);
@@ -154,6 +157,23 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                             Utils.tr(resources, R.string.question),
                             Utils.tr(resources, R.string.confirm_delete, device.getName()),
                             (dialog, which) -> notifyItemRemoved(devicesList.removeDevice(device.getMacAddress())),
+                            (dialog, which) -> {}
+                    );
+                });
+
+                holder.btnUpdateFirmware.setOnClickListener(v -> {
+                    final Resources resources = activity.getResources();
+                    Utils.showYesNoDialog(
+                            activity,
+                            Utils.tr(resources, R.string.question),
+                            Utils.tr(
+                                    resources,
+                                    R.string.confirm_firmware_update,
+                                    firmwareUpdater.getLastFirmwareVersion(),
+                                    device.getName(),
+                                    firmwareUpdater.getLastFirmwareInfo(Utils.tr(resources, R.string.lang_key))
+                            ),
+                            (dialog, which) -> { /* TODO */ },
                             (dialog, which) -> {}
                     );
                 });
