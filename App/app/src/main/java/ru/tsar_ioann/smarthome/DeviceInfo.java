@@ -376,6 +376,10 @@ public class DeviceInfo {
         return protoVersion >= 3;
     }
 
+    public boolean supportsFirmwareUpdateOverNetwork() {
+        return firmwareVersion >= 4;
+    }
+
     public String getMacAddress() {
         return macAddress;
     }

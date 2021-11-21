@@ -61,7 +61,7 @@
         <LinearLayout
             android:id="@+id/layoutSwitchers"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <View
@@ -95,6 +95,15 @@
             android:layout_height="wrap_content"
             android:minHeight="55dp"
             android:src="@drawable/delete_icon"
+            tools:ignore="ContentDescription" />
+
+        <ImageButton
+            android:id="@+id/btnUpdateFirmware"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/highlighted_button_bg"
+            android:minHeight="55dp"
+            android:src="@drawable/update_firmware"
             tools:ignore="ContentDescription" />
 
     </LinearLayout>

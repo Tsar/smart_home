@@ -12,7 +12,7 @@ import ru.tsar_ioann.smarthome.*;
 
 public class Main extends BaseScreen implements DevicesList.Listener {
     private static final String LOG_TAG = "Main";
-    private static final long ASYNC_REFRESH_INTERVAL_MS = 1000;
+    private static final long ASYNC_REFRESH_MIN_INTERVAL_MS = 1000;
 
     private final Activity activity;
     private final DevicesList devices;
@@ -37,6 +37,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
                 activity,
                 commonData.getDevices(),
                 commonData.getScreenLauncher(),
+                commonData.getFirmwareUpdater(),
                 new ReorderItemTouchHelper(rcvDevices)
         );
         rcvDevices.setAdapter(devicesAdapter);
@@ -50,7 +51,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
         synchronized (this) {
             long nowET = SystemClock.elapsedRealtime();
             if (checkTimePassed) {
-                if (nowET - lastAsyncRefreshET < ASYNC_REFRESH_INTERVAL_MS) {
+                if (nowET - lastAsyncRefreshET < ASYNC_REFRESH_MIN_INTERVAL_MS) {
                     Log.d(LOG_TAG, "Skipping refresh because previous was done recently");
                     return;
                 }
@@ -66,6 +67,8 @@ public class Main extends BaseScreen implements DevicesList.Listener {
                 UdpSettings.UDP_MULTICAST_PORT,
                 UdpSettings.UDP_SCAN_REQUEST
         );
+
+        getCommonData().getFirmwareUpdater().asyncCheckForFirmwareUpdates();
     }
 
     public void toggleSetupMode() {

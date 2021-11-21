@@ -28,6 +28,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
     private final Activity activity;
     private final DevicesList devicesList;
     private final ScreenLauncher screenLauncher;
+    private final FirmwareUpdater firmwareUpdater;
     private final ItemTouchHelper itemTouchHelper;
 
     private boolean settingsButtonsVisible = false;
@@ -42,6 +43,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
         private final LinearLayout layoutSettingsButtons;
         private final ImageButton btnSettings;
         private final ImageButton btnDelete;
+        private final ImageButton btnUpdateFirmware;
         private final LinearLayout layoutMoveHandles;
 
         public ViewHolder(View view) {
@@ -54,14 +56,16 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
             layoutSettingsButtons = view.findViewById(R.id.layoutSettingsButtons);
             btnSettings = view.findViewById(R.id.btnSettings);
             btnDelete = view.findViewById(R.id.btnDelete);
+            btnUpdateFirmware = view.findViewById(R.id.btnUpdateFirmware);
             layoutMoveHandles = view.findViewById(R.id.layoutMoveHandles);
         }
     }
 
-    public DevicesAdapter(Activity activity, DevicesList devicesList, ScreenLauncher screenLauncher, ItemTouchHelper itemTouchHelper) {
+    public DevicesAdapter(Activity activity, DevicesList devicesList, ScreenLauncher screenLauncher, FirmwareUpdater firmwareUpdater, ItemTouchHelper itemTouchHelper) {
         this.activity = activity;
         this.devicesList = devicesList;
         this.screenLauncher = screenLauncher;
+        this.firmwareUpdater = firmwareUpdater;
         this.itemTouchHelper = itemTouchHelper;
     }
 
@@ -123,6 +127,11 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
             }
 
             if (settingsButtonsVisible) {
+                holder.btnUpdateFirmware.setVisibility(
+                        device.supportsFirmwareUpdateOverNetwork() && device.getFirmwareVersion() < firmwareUpdater.getLastFirmwareVersion()
+                            ? View.VISIBLE : View.GONE
+                );
+
                 holder.layoutSettingsButtons.setVisibility(View.VISIBLE);
                 holder.layoutMoveHandles.setVisibility(View.VISIBLE);
 

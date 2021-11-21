@@ -8,6 +8,7 @@ public class CommonData {
     private final Activity activity;
     private final Wifi wifi;
     private final DevicesList devices;
+    private final FirmwareUpdater firmwareUpdater;
     private ScreenLauncher screenLauncher;
 
     // Used when adding new device
@@ -19,6 +20,7 @@ public class CommonData {
         this.activity = activity;
         this.wifi = wifi;
         this.devices = devices;
+        firmwareUpdater = new FirmwareUpdater();
     }
 
     public void setScreenLauncher(ScreenLauncher screenLauncher) {
@@ -47,6 +49,10 @@ public class CommonData {
 
     public DevicesList getDevices() {
         return devices;
+    }
+
+    public FirmwareUpdater getFirmwareUpdater() {
+        return firmwareUpdater;
     }
 
     public ScreenLauncher getScreenLauncher() {
