@@ -29,7 +29,7 @@ public class DeviceInfo {
     }
 
     public static final int MIN_VALUE_CHANGE_STEP = 1;
-    public static final int MAX_VALUE_CHANGE_STEP = 50;
+    public static final int MAX_VALUE_CHANGE_STEP = 99;
     public static final int MIN_LIGHTNESS_MICROS = 50;
     public static final int MAX_LIGHTNESS_MICROS = 9950;
 
