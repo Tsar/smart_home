@@ -86,6 +86,7 @@ public class DeviceInfo {
     private static final String LOG_TAG = "DeviceInfo";
 
     private static final String KEY_PROTO_PREFIX = "proto-";
+    private static final String KEY_FIRMWARE_PREFIX = "fw-";
     private static final String KEY_MAC_PREFIX = "mac-";
     private static final String KEY_NAME_PREFIX = "name-";
     private static final String KEY_IP_PREFIX = "ip-";
@@ -140,6 +141,7 @@ public class DeviceInfo {
         this.listener = listener;
 
         protoVersion = (short)storage.getInt(KEY_PROTO_PREFIX + idInStorage, 2);
+        firmwareVersion = (short)storage.getInt(KEY_FIRMWARE_PREFIX + idInStorage, 0);
         macAddress = storage.getString(KEY_MAC_PREFIX + idInStorage, null);
         name = storage.getString(KEY_NAME_PREFIX + idInStorage, null);
         ipAddress = storage.getString(KEY_IP_PREFIX + idInStorage, null);
@@ -161,6 +163,7 @@ public class DeviceInfo {
 
     public void saveToStorage(SharedPreferences.Editor editor, int idInStorage) {
         editor.putInt(KEY_PROTO_PREFIX + idInStorage, protoVersion);
+        editor.putInt(KEY_FIRMWARE_PREFIX + idInStorage, firmwareVersion);
         editor.putString(KEY_MAC_PREFIX + idInStorage, macAddress);
         editor.putString(KEY_NAME_PREFIX + idInStorage, name);
         editor.putString(KEY_IP_PREFIX + idInStorage, ipAddress);
@@ -227,7 +230,7 @@ public class DeviceInfo {
                 int maxLightnessMicros = buffer.getShort();
                 dimmersSettings[i] = new DimmerSettings(pin, valueChangeStep, minLightnessMicros, maxLightnessMicros);
             }
-            dimmerValueAfterBoot = (protoVersion >= 3) ? buffer.getShort() : (short) DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
+            dimmerValueAfterBoot = supportsValueAfterBoot() ? buffer.getShort() : (short) DIMMER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
 
             switchersCount = buffer.get();
             if (switcherValues == null || switcherValues.length != switchersCount) {
@@ -242,7 +245,7 @@ public class DeviceInfo {
                 boolean inverted = buffer.get() != 0;
                 switchersSettings[i] = new SwitcherSettings(pin, inverted);
             }
-            switcherValueAfterBoot = (protoVersion >= 3) ? buffer.get() : (byte) SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
+            switcherValueAfterBoot = supportsValueAfterBoot() ? buffer.get() : (byte) SWITCHER_VALUE_AFTER_BOOT_MEANS_LOAD_SAVED_VALUES;
 
             parseAdditionalBlob(buffer);
 
