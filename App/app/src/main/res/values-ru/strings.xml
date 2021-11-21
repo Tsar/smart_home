@@ -78,6 +78,7 @@
     <string name="active">Активен</string>
     <string name="confirm_delete">Вы уверены, что хотите удалить устройство \"%1$s\" из списка?</string>
     <string name="confirm_firmware_update">Доступно обновление прошивки для устройства \"%2$s\" до версии %1$d.\n\nЧто нового в этой версии:\n%3$s\n\nПроизвести обновление?</string>
+    <string name="confirm_firmware_update_2">Обновление прошивки займёт примерно 30 секунд. Вы будете проинформированы о результатах.\n\nНЕ ВЫКЛЮЧАЙТЕ ПРИЛОЖЕНИЕ ИЛИ УСТРОЙСТВО \"%1$s\" ВО ВРЕМЯ ОБНОВЛЕНИЯ!\n\nПроизвести обновление?</string>
     <string name="dimmers_should">Диммеры при включении устройства должны</string>
     <string name="switchers_should">Переключатели при включении устройства должны</string>
     <string name="use_last_positions">использовать последние положения</string>

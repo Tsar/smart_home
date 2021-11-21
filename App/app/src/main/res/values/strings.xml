@@ -78,6 +78,7 @@
     <string name="active">Active</string>
     <string name="confirm_delete">Are you sure you want to remove device \"%1$s\" from the list?</string>
     <string name="confirm_firmware_update">Firmware update to version %1$d is available for device \"%2$s\".\n\nWhat\'s new in this version:\n%3$s\n\nProceed with update?</string>
+    <string name="confirm_firmware_update_2">Firmware update will take about 30 seconds. You will be informed about the results.\n\nPLEASE DO NOT CLOSE THE APP OR TURN OFF DEVICE \"%1$s\" DURING THE UPDATE!\n\nProceed with update?</string>
     <string name="dimmers_should">On device boot dimmers should</string>
     <string name="switchers_should">On device boot switchers should</string>
     <string name="use_last_positions">use last positions</string>

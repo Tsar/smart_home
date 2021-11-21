@@ -173,7 +173,13 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                                     device.getName(),
                                     firmwareUpdater.getLastFirmwareInfo(Utils.tr(resources, R.string.lang_key))
                             ),
-                            (dialog, which) -> { /* TODO */ },
+                            (dialog, which) -> Utils.showYesNoDialog(
+                                    activity,
+                                    Utils.tr(resources, R.string.warning),
+                                    Utils.tr(resources, R.string.confirm_firmware_update_2, device.getName()),
+                                    (dialog2, which2) -> {/* TODO */},
+                                    (dialog2, which2) -> {}
+                            ),
                             (dialog, which) -> {}
                     );
                 });
