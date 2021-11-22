@@ -1,0 +1,9 @@
+{
+  "version": 4,
+  "file": "firmware/v4.bin",
+  "sha256": "0d07cd356437377b009c8772f069ba0e74bed0f88fac5644bea667c01289fd3e",
+  "description": {
+    "en": "• support for firmware updates over network.",
+    "ru": "• поддержка обновления прошивки по сети."
+  }
+}

@@ -26,6 +26,7 @@ public class DeviceInfo {
         public static final String TURN_OFF_AP          = "/turn_off_ap";
         public static final String SET_VALUES           = "/set_values";
         public static final String SET_SETTINGS         = "/set_settings";
+        public static final String UPDATE_FIRMWARE      = "/fw_update";
     }
 
     public static final int MIN_VALUE_CHANGE_STEP = 1;

@@ -11,6 +11,8 @@ import android.util.Log;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Utils {
     private static final String MAC_ADDRESS_REGEX = "([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})";
@@ -40,6 +42,15 @@ public class Utils {
             }
         }
         return new String(hexChars);
+    }
+
+    public static String sha256(byte[] data) {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            return new String(sha256.digest(data), StandardCharsets.UTF_8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("No support for sha256!");
+        }
     }
 
     public static String macAddressBytesToString(byte[] macAddressBytes) {

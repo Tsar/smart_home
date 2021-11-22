@@ -13,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -171,13 +172,20 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                                     R.string.confirm_firmware_update,
                                     firmwareUpdater.getLastFirmwareVersion(),
                                     device.getName(),
-                                    firmwareUpdater.getLastFirmwareInfo(Utils.tr(resources, R.string.lang_key))
+                                    firmwareUpdater.getLastFirmwareDescription(Utils.tr(resources, R.string.lang_key))
                             ),
                             (dialog, which) -> Utils.showYesNoDialog(
                                     activity,
                                     Utils.tr(resources, R.string.warning),
                                     Utils.tr(resources, R.string.confirm_firmware_update_2, device.getName()),
-                                    (dialog2, which2) -> {/* TODO */},
+                                    (dialog2, which2) -> {
+                                        Toast.makeText(
+                                                activity,
+                                                Utils.tr(resources, R.string.update_started, device.getName()),
+                                                Toast.LENGTH_LONG
+                                        ).show();
+                                        firmwareUpdater.asyncUpdateFirmware(device);
+                                    },
                                     (dialog2, which2) -> {}
                             ),
                             (dialog, which) -> {}

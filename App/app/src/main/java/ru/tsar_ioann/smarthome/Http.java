@@ -17,8 +17,8 @@ public class Http {
 
     private static final String LOG_TAG = "Http";
 
-    private static final int CONNECT_TIMEOUT_MS = 2500;
-    private static final int READ_TIMEOUT_MS = 2500;
+    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 2500;
+    private static final int DEFAULT_READ_TIMEOUT_MS = 2500;
     private static final int PAUSE_BETWEEN_RETRIES_MS = 50;  // helps when connect exception happens immediately
 
     public static class Response {
@@ -62,11 +62,15 @@ public class Http {
     }
 
     public static void asyncRequest(String url, byte[] data, String password, Network network, int attempts, Listener listener) {
+        asyncRequest(url, data, password, network, attempts, listener, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS);
+    }
+
+    public static void asyncRequest(String url, byte[] data, String password, Network network, int attempts, Listener listener, int connectTimeoutMs, int readTimeoutMs) {
         new Thread() {
             @Override
             public void run() {
                 try {
-                    Response response = request(url, data, password, network, attempts);
+                    Response response = request(url, data, password, network, attempts, connectTimeoutMs, readTimeoutMs);
                     if (listener != null) {
                         listener.onResponse(response);
                     }
@@ -80,11 +84,15 @@ public class Http {
     }
 
     public static Response request(String url, byte[] data, String password, Network network, int attempts) throws IOException {
+        return request(url, data, password, network, attempts, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS);
+    }
+
+    public static Response request(String url, byte[] data, String password, Network network, int attempts, int connectTimeoutMs, int readTimeoutMs) throws IOException {
         Http.Response response = new Http.Response(0);
         int spentAttempts = 0;
         while (response.getHttpCode() != HttpURLConnection.HTTP_OK && spentAttempts++ < attempts) {
             try {
-                response = request(url, data, password, network);
+                response = request(url, data, password, network, connectTimeoutMs, readTimeoutMs);
             } catch (IOException e) {
                 if (spentAttempts == attempts) {
                     Log.d(LOG_TAG, "Failed with exception '" + e.getMessage() + "', all " + attempts + " attempts spent");
@@ -100,7 +108,7 @@ public class Http {
         return response;
     }
 
-    public static Response request(String url, byte[] data, String password, Network network) throws IOException {
+    public static Response request(String url, byte[] data, String password, Network network, int connectTimeoutMs, int readTimeoutMs) throws IOException {
         Log.d(LOG_TAG, "Making request to '" + url + "'");
         URL req = new URL(url);
         HttpURLConnection connection;
@@ -110,8 +118,8 @@ public class Http {
             connection = (HttpURLConnection)req.openConnection();
         }
 
-        connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        connection.setReadTimeout(READ_TIMEOUT_MS);
+        connection.setConnectTimeout(connectTimeoutMs);
+        connection.setReadTimeout(readTimeoutMs);
         connection.setUseCaches(false);
 
         if (password != null) {
