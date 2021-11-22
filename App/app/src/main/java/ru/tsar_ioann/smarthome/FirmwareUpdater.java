@@ -100,14 +100,20 @@ public class FirmwareUpdater {
         );
     }
 
-    public void asyncUpdateFirmware(DeviceInfo device) {
+    public interface Listener {
+        void onSuccess();
+        void onError(String message);
+    }
+
+    public void asyncUpdateFirmware(DeviceInfo device, Listener listener) {
         if (lastFirmwareInfo == null) {
             throw new RuntimeException("Firmware update was started without info about it");
         }
 
-        if (lastFirmwareBinary == null || !Utils.sha256(lastFirmwareBinary).equalsIgnoreCase(lastFirmwareInfo.sha256)) {
-            lastFirmwareBinary = null;
-
+        if (lastFirmwareBinary != null && Utils.sha256(lastFirmwareBinary).equalsIgnoreCase(lastFirmwareInfo.sha256)) {
+            Log.d(LOG_TAG, "Using cached firmware binary");
+            uploadFirmwareToDevice(device, lastFirmwareBinary, listener);
+        } else {
             Log.d(LOG_TAG, "Downloading latest firmware binary");
             Http.asyncRequest(
                     FIRMWARE_UPDATES_ADDRESS + lastFirmwareInfo.fileUrl,
@@ -121,26 +127,25 @@ public class FirmwareUpdater {
                             final byte[] firmwareBinary = response.getData();
                             if (Utils.sha256(firmwareBinary).equalsIgnoreCase(lastFirmwareInfo.sha256)) {
                                 lastFirmwareBinary = firmwareBinary;
+                                uploadFirmwareToDevice(device, lastFirmwareBinary, listener);
                             } else {
-                                // TODO
+                                listener.onError("sha256 does not match!");  // TODO: translated string
                             }
                         }
 
                         @Override
                         public void onError(IOException exception) {
-                            // TODO
+                            listener.onError("Failed to download firmware binary!");  // TODO: translated string
                         }
                     },
                     3000,
                     15000
             );
         }
+    }
 
-        if (lastFirmwareBinary == null) {
-            return;
-        }
-
-        Log.d(LOG_TAG, "Uploading firmware to device; size: " + lastFirmwareBinary.length + " bytes");
+    private static void uploadFirmwareToDevice(DeviceInfo device, byte[] firmwareBinary, Listener listener) {
+        Log.d(LOG_TAG, "Uploading firmware to device (size: " + firmwareBinary.length + " bytes)");
         Http.asyncRequest(
                 device.getHttpAddress() + DeviceInfo.Handlers.UPDATE_FIRMWARE,
                 null /* TODO: multipart form-data */,

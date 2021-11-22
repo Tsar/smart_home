@@ -46,8 +46,14 @@ public class Utils {
 
     public static String sha256(byte[] data) {
         try {
-            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-            return new String(sha256.digest(data), StandardCharsets.UTF_8);
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(data);
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("No support for sha256!");
         }

@@ -184,7 +184,23 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                                                 Utils.tr(resources, R.string.update_started, device.getName()),
                                                 Toast.LENGTH_LONG
                                         ).show();
-                                        firmwareUpdater.asyncUpdateFirmware(device);
+                                        firmwareUpdater.asyncUpdateFirmware(device, new FirmwareUpdater.Listener() {
+                                            @Override
+                                            public void onSuccess() {
+                                                activity.runOnUiThread(() -> {
+                                                    // TODO
+                                                });
+                                            }
+
+                                            @Override
+                                            public void onError(String message) {
+                                                activity.runOnUiThread(() -> Utils.showOkDialog(
+                                                        activity,
+                                                        Utils.tr(resources, R.string.error),
+                                                        message
+                                                ));
+                                            }
+                                        });
                                     },
                                     (dialog2, which2) -> {}
                             ),
