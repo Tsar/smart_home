@@ -124,7 +124,7 @@ public class DevicesList implements DeviceInfo.Listener {
     public void rediscoverAll() {
         for (DeviceInfo device : deviceInfoList) {
             device.setDiscovered(false);
-            device.asyncTryToDiscover();
+            device.asyncDiscover();
         }
     }
 

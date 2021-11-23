@@ -558,7 +558,7 @@ public class DeviceInfo {
         this.listener = listener;
     }
 
-    public void asyncTryToDiscover() {
+    public void asyncDiscover() {
         if (ipAddress == null) {
             Log.d(LOG_TAG, "Discover failed: IP address is not set");
             return;
@@ -594,6 +594,12 @@ public class DeviceInfo {
                     }
                 }
         );
+    }
+
+    public void asyncRediscover() {
+        setDiscovered(false);
+        onDeviceUpdated();
+        asyncDiscover();
     }
 
     private void onDeviceUpdated() {

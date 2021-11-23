@@ -79,10 +79,19 @@
     <string name="confirm_delete">Вы уверены, что хотите удалить устройство \"%1$s\" из списка?</string>
     <string name="confirm_firmware_update">Доступно обновление прошивки для устройства \"%2$s\" до версии %1$d.\n\nЧто нового в этой версии:\n%3$s\n\nПроизвести обновление?</string>
     <string name="confirm_firmware_update_2">Обновление прошивки займёт примерно 30 секунд. Вы будете проинформированы о результатах.\n\nНЕ ВЫКЛЮЧАЙТЕ ПРИЛОЖЕНИЕ ИЛИ УСТРОЙСТВО \"%1$s\" ВО ВРЕМЯ ОБНОВЛЕНИЯ!\n\nПроизвести обновление?</string>
-    <string name="update_started">Обновление прошивки устройства \"%1$s\" началось</string>
+    <string name="update_started">Обновление прошивки устройства \"%1$s\" началось…</string>
     <string name="dimmers_should">Диммеры при включении устройства должны</string>
     <string name="switchers_should">Переключатели при включении устройства должны</string>
     <string name="use_last_positions">использовать последние положения</string>
     <string name="set_to_position">устанавливать заданное положение</string>
     <string name="device_does_not_support_feature">Это устройство не поддерживает такую возможность!\nОбновите его прошивку, пожалуйста.</string>
+    <string name="update_uploaded">Обновление загружено</string>
+    <string name="update_uploaded_message">Новая прошивка успешно загружена на устройство \"%1$s\"!\n\nТеперь оно перезагрузится и переподключится к сети.</string>
+    <string name="firmware_hash_mismatch">Не удалось скачать новую прошивку с сервера: хеш не совпадает!</string>
+    <string name="firmware_download_failed">Не удалось скачать новую прошивку с сервера!</string>
+    <string name="firmware_download_bad_response">Не удалось скачать новую прошивку: сервер ответил кодом ошибки!</string>
+    <string name="firmware_upload_failed_to_prepare_buffer">Не удалось загрузить новую прошивку на устройство: ошибка при подготовки буфера отправки!</string>
+    <string name="firmware_upload_failed">Не удалось загрузить новую прошивку на устройство!</string>
+    <string name="firmware_update_failed_with_error">Новая прошивка была загружена на устройство, но оно ответило ошибкой!</string>
+    <string name="firmware_update_unexpected_response">Новая прошивка была загружена на устройство, но оно ответило непонятным сообщением!</string>
 </resources>

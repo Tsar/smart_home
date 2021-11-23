@@ -113,7 +113,7 @@ public class FirmwareUpdater {
 
     public interface Listener {
         void onSuccess();
-        void onError(String message);
+        void onError(int messageResId);
     }
 
     public void asyncUpdateFirmware(DeviceInfo device, Listener listener) {
@@ -141,20 +141,20 @@ public class FirmwareUpdater {
                                     lastFirmwareBinary = firmwareBinary;
                                     uploadFirmwareToDevice(device, lastFirmwareBinary, listener);
                                 } else {
-                                    listener.onError("sha256 does not match!");  // TODO: translated string
+                                    listener.onError(R.string.firmware_hash_mismatch);
                                 }
                             } else {
-                                listener.onError("Bad response code from server!");  // TODO: translated string
+                                listener.onError(R.string.firmware_download_bad_response);
                             }
                         }
 
                         @Override
                         public void onError(IOException exception) {
-                            listener.onError("Failed to download firmware binary!");  // TODO: translated string
+                            listener.onError(R.string.firmware_download_failed);
                         }
                     },
-                    3000,
-                    15000
+                    3500,
+                    20000
             );
         }
     }
@@ -183,7 +183,7 @@ public class FirmwareUpdater {
             outputStream.writeBytes("--" + boundary + "--\r\n");
             outputStream.flush();
         } catch (IOException exception) {
-            listener.onError("Could not prepare data buffer!");  // TODO: translated string
+            listener.onError(R.string.firmware_upload_failed_to_prepare_buffer);
             return;
         }
 
@@ -202,20 +202,20 @@ public class FirmwareUpdater {
                                 listener.onSuccess();
                             } else if (responseStr.startsWith(UPDATE_ERROR_PREFIX)) {
                                 Log.d(LOG_TAG, "Firmware update failed, full response: [" + responseStr + "]");
-                                listener.onError("Firmware update failed");  // TODO: translated string
+                                listener.onError(R.string.firmware_update_failed_with_error);
                             } else {
-                                Log.d(LOG_TAG, "Unrecognized answer from device, full response: [" + responseStr + "]");
-                                listener.onError("Unrecognized answer from device");  // TODO: translated string
+                                Log.d(LOG_TAG, "Unexpected answer from device, full response: [" + responseStr + "]");
+                                listener.onError(R.string.firmware_update_unexpected_response);
                             }
                         } else {
                             Log.d(LOG_TAG, "Firmware update failed, error code: " + response.getHttpCode());
-                            listener.onError("Bad response code from device!");  // TODO: translated string
+                            listener.onError(R.string.firmware_update_failed_with_error);
                         }
                     }
 
                     @Override
                     public void onError(IOException exception) {
-                        listener.onError("Failed to upload firmware binary to device!");  // TODO: translated string
+                        listener.onError(R.string.firmware_upload_failed);
                     }
                 },
                 3500,

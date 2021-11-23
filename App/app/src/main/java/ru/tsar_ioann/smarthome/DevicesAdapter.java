@@ -187,21 +187,24 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                                         firmwareUpdater.asyncUpdateFirmware(device, new FirmwareUpdater.Listener() {
                                             @Override
                                             public void onSuccess() {
+                                                device.asyncRediscover();
                                                 activity.runOnUiThread(() -> {
                                                     Utils.showOkDialog(
                                                             activity,
-                                                            "Update success!",  // TODO: translated string
-                                                            "Update was uploaded successfully! Now device will reboot"  // TODO: translated string
+                                                            Utils.tr(resources, R.string.update_uploaded),
+                                                            Utils.tr(resources, R.string.update_uploaded_message, device.getName()),
+                                                            (dialog1, which1) -> device.asyncDiscover()
                                                     );
                                                 });
                                             }
 
                                             @Override
-                                            public void onError(String message) {
+                                            public void onError(int messageResId) {
+                                                device.asyncRediscover();
                                                 activity.runOnUiThread(() -> Utils.showOkDialog(
                                                         activity,
                                                         Utils.tr(resources, R.string.error),
-                                                        message
+                                                        Utils.tr(resources, messageResId)
                                                 ));
                                             }
                                         });
