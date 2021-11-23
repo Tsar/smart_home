@@ -183,7 +183,7 @@ public class DeviceSettings extends BaseScreen {
             Http.asyncRequest(
                     device.getHttpAddress() + DeviceInfo.Handlers.SET_SETTINGS,
                     argsStr.toString().getBytes(),
-                    device.getHttpPassword(),
+                    Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, device.getHttpPassword()),
                     null,
                     3,
                     new Http.Listener() {
@@ -242,7 +242,7 @@ public class DeviceSettings extends BaseScreen {
             Http.asyncRequest(
                     DeviceInfo.getHttpAddress(ipAddress, port) + DeviceInfo.Handlers.GET_INFO,
                     null,
-                    httpPassword,
+                    Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, httpPassword),
                     null,
                     5,
                     new Http.Listener() {

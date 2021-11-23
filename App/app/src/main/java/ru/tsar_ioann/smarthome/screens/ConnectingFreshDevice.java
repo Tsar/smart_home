@@ -64,7 +64,7 @@ public class ConnectingFreshDevice extends BaseScreen {
                     Http.Response response = Http.request(
                             DeviceInfo.ACCESS_POINT_ADDRESS + DeviceInfo.Handlers.GET_INFO,
                             null,
-                            DeviceInfo.DEFAULT_HTTP_PASSWORD,
+                            Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, DeviceInfo.DEFAULT_HTTP_PASSWORD),
                             network,
                             3
                     );

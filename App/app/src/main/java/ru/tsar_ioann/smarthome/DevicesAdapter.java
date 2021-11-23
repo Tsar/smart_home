@@ -246,7 +246,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                         Http.asyncRequest(
                                 device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?dim" + dimId + "=" + seekBar.getProgress(),
                                 null,
-                                httpPassword,
+                                Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, httpPassword),
                                 null,
                                 3,
                                 new Http.Listener() {
@@ -297,7 +297,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                         Http.asyncRequest(
                                 device.getHttpAddress() + DeviceInfo.Handlers.SET_VALUES + "?sw" + swId + "=" + (isChecked ? 1 : 0),
                                 null,
-                                httpPassword,
+                                Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, httpPassword),
                                 null,
                                 3,
                                 new Http.Listener() {

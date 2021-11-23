@@ -19,6 +19,8 @@ public class DeviceInfo {
     public static final String ACCESS_POINT_PASSPHRASE = "setup12345";
     public static final String DEFAULT_HTTP_PASSWORD = "12345";
 
+    public static final String HEADER_PASSWORD = "Password";
+
     public static final class Handlers {
         public static final String GET_INFO             = "/get_info?binary&v=4";
         public static final String SETUP_WIFI           = "/setup_wifi";
@@ -564,7 +566,7 @@ public class DeviceInfo {
         Http.asyncRequest(
                 getHttpAddress() + Handlers.GET_INFO,
                 null,
-                httpPassword,
+                Utils.createMapWithOneElement(HEADER_PASSWORD, httpPassword),
                 null,
                 5,
                 new Http.Listener() {

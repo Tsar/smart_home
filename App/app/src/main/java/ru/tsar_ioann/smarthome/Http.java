@@ -11,6 +11,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Http {
     public static final int DEFAULT_PORT = 80;
@@ -62,16 +63,16 @@ public class Http {
         void onError(IOException exception);
     }
 
-    public static void asyncRequest(String url, byte[] data, String password, Network network, int attempts, Listener listener) {
-        asyncRequest(url, data, password, network, attempts, listener, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS);
+    public static void asyncRequest(String url, byte[] data, Map<String, String> headers, Network network, int attempts, Listener listener) {
+        asyncRequest(url, data, headers, network, attempts, listener, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS);
     }
 
-    public static void asyncRequest(String url, byte[] data, String password, Network network, int attempts, Listener listener, int connectTimeoutMs, int readTimeoutMs) {
+    public static void asyncRequest(String url, byte[] data, Map<String, String> headers, Network network, int attempts, Listener listener, int connectTimeoutMs, int readTimeoutMs) {
         new Thread() {
             @Override
             public void run() {
                 try {
-                    Response response = request(url, data, password, network, attempts, connectTimeoutMs, readTimeoutMs);
+                    Response response = request(url, data, headers, network, attempts, connectTimeoutMs, readTimeoutMs);
                     if (listener != null) {
                         listener.onResponse(response);
                     }
@@ -84,16 +85,16 @@ public class Http {
         }.start();
     }
 
-    public static Response request(String url, byte[] data, String password, Network network, int attempts) throws IOException {
-        return request(url, data, password, network, attempts, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS);
+    public static Response request(String url, byte[] data, Map<String, String> headers, Network network, int attempts) throws IOException {
+        return request(url, data, headers, network, attempts, DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS);
     }
 
-    public static Response request(String url, byte[] data, String password, Network network, int attempts, int connectTimeoutMs, int readTimeoutMs) throws IOException {
+    public static Response request(String url, byte[] data, Map<String, String> headers, Network network, int attempts, int connectTimeoutMs, int readTimeoutMs) throws IOException {
         Http.Response response = new Http.Response(0);
         int spentAttempts = 0;
         while (response.getHttpCode() != HttpURLConnection.HTTP_OK && spentAttempts++ < attempts) {
             try {
-                response = request(url, data, password, network, connectTimeoutMs, readTimeoutMs);
+                response = request(url, data, headers, network, connectTimeoutMs, readTimeoutMs);
             } catch (IOException e) {
                 if (spentAttempts == attempts) {
                     Log.d(LOG_TAG, "Failed with exception '" + e.getMessage() + "', all " + attempts + " attempts spent");
@@ -109,7 +110,7 @@ public class Http {
         return response;
     }
 
-    public static Response request(String url, byte[] data, String password, Network network, int connectTimeoutMs, int readTimeoutMs) throws IOException {
+    public static Response request(String url, byte[] data, Map<String, String> headers, Network network, int connectTimeoutMs, int readTimeoutMs) throws IOException {
         Log.d(LOG_TAG, "Making request to '" + url + "'");
         URL req = new URL(url);
         HttpURLConnection connection;
@@ -123,8 +124,10 @@ public class Http {
         connection.setReadTimeout(readTimeoutMs);
         connection.setUseCaches(false);
 
-        if (password != null) {
-            connection.setRequestProperty("Password", password);
+        if (headers != null) {
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                connection.setRequestProperty(header.getKey(), header.getValue());
+            }
         }
 
         if (data != null) {

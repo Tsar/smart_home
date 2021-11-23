@@ -45,7 +45,7 @@ public class HomeNetworkSettings extends BaseScreen {
             Http.asyncRequest(
                     DeviceInfo.ACCESS_POINT_ADDRESS + DeviceInfo.Handlers.SETUP_WIFI,
                     data.getBytes(),
-                    DeviceInfo.DEFAULT_HTTP_PASSWORD,
+                    Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, DeviceInfo.DEFAULT_HTTP_PASSWORD),
                     deviceNetwork,
                     3,
                     new Http.Listener() {
@@ -70,7 +70,7 @@ public class HomeNetworkSettings extends BaseScreen {
                                                     Http.Response respState = Http.request(
                                                             DeviceInfo.ACCESS_POINT_ADDRESS + DeviceInfo.Handlers.GET_SETUP_WIFI_STATE,
                                                             null,
-                                                            DeviceInfo.DEFAULT_HTTP_PASSWORD,
+                                                            Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, DeviceInfo.DEFAULT_HTTP_PASSWORD),
                                                             deviceNetwork,
                                                             30
                                                     );

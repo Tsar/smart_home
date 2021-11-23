@@ -52,7 +52,7 @@ public class ConfiguredDeviceParams extends BaseScreen {
             Http.asyncRequest(
                     DeviceInfo.getHttpAddress(ipAddress, port) + DeviceInfo.Handlers.GET_INFO,
                     null,
-                    httpPassword,
+                    Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, httpPassword),
                     null,
                     5,
                     new Http.Listener() {

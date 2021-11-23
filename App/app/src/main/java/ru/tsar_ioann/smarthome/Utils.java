@@ -13,6 +13,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Utils {
     private static final String MAC_ADDRESS_REGEX = "([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})";
@@ -57,6 +59,12 @@ public class Utils {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("No support for sha256!");
         }
+    }
+
+    public static Map<String, String> createMapWithOneElement(String key, String value) {
+        Map<String, String> result = new HashMap<>();
+        result.put(key, value);
+        return result;
     }
 
     public static String macAddressBytesToString(byte[] macAddressBytes) {

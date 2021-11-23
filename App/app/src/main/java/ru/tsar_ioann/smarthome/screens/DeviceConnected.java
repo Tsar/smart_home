@@ -27,7 +27,7 @@ public class DeviceConnected extends BaseScreen {
         Http.asyncRequest(
                 deviceInfo.getHttpAddress() + DeviceInfo.Handlers.GET_INFO,
                 null,
-                DeviceInfo.DEFAULT_HTTP_PASSWORD,
+                Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, DeviceInfo.DEFAULT_HTTP_PASSWORD),
                 null,
                 1000,
                 new Http.Listener() {
@@ -41,7 +41,7 @@ public class DeviceConnected extends BaseScreen {
                                     Http.asyncRequest(
                                             deviceInfo.getHttpAddress() + DeviceInfo.Handlers.TURN_OFF_AP,
                                             null,
-                                            DeviceInfo.DEFAULT_HTTP_PASSWORD,
+                                            Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, DeviceInfo.DEFAULT_HTTP_PASSWORD),
                                             null,
                                             3,
                                             null
