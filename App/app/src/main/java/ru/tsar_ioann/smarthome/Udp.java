@@ -69,7 +69,7 @@ public class Udp {
 
     public static void multicast(String ip, int port, String message) throws IOException {
         DatagramSocket socket = new DatagramSocket();
-        byte[] buffer = message.getBytes();
+        byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(ip), port);
         socket.send(packet);
         socket.close();

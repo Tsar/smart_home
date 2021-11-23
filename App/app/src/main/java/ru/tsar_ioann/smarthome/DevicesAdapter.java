@@ -188,7 +188,11 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                                             @Override
                                             public void onSuccess() {
                                                 activity.runOnUiThread(() -> {
-                                                    // TODO
+                                                    Utils.showOkDialog(
+                                                            activity,
+                                                            "Update success!",  // TODO: translated string
+                                                            "Update was uploaded successfully! Now device will reboot"  // TODO: translated string
+                                                    );
                                                 });
                                             }
 

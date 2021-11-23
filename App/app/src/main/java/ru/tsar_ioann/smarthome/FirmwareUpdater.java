@@ -1,14 +1,20 @@
 package ru.tsar_ioann.smarthome;
 
+import android.util.Base64;
 import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class FirmwareUpdater {
@@ -29,6 +35,11 @@ public class FirmwareUpdater {
             INFO_KEY_SHA256,
             INFO_KEY_DESCRIPTION
     ));
+
+    private static final String UPDATER_USERNAME = "admin";
+
+    private static final String UPDATE_SUCCESS_RESPONSE = "<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting...";
+    private static final String UPDATE_ERROR_PREFIX = "Update error: ";
 
     private static class FirmwareInfo {
         public final int version;
@@ -124,12 +135,16 @@ public class FirmwareUpdater {
                     new Http.Listener() {
                         @Override
                         public void onResponse(Http.Response response) {
-                            final byte[] firmwareBinary = response.getData();
-                            if (Utils.sha256(firmwareBinary).equalsIgnoreCase(lastFirmwareInfo.sha256)) {
-                                lastFirmwareBinary = firmwareBinary;
-                                uploadFirmwareToDevice(device, lastFirmwareBinary, listener);
+                            if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
+                                final byte[] firmwareBinary = response.getData();
+                                if (Utils.sha256(firmwareBinary).equalsIgnoreCase(lastFirmwareInfo.sha256)) {
+                                    lastFirmwareBinary = firmwareBinary;
+                                    uploadFirmwareToDevice(device, lastFirmwareBinary, listener);
+                                } else {
+                                    listener.onError("sha256 does not match!");  // TODO: translated string
+                                }
                             } else {
-                                listener.onError("sha256 does not match!");  // TODO: translated string
+                                listener.onError("Bad response code from server!");  // TODO: translated string
                             }
                         }
 
@@ -146,21 +161,61 @@ public class FirmwareUpdater {
 
     private static void uploadFirmwareToDevice(DeviceInfo device, byte[] firmwareBinary, Listener listener) {
         Log.d(LOG_TAG, "Uploading firmware to device (size: " + firmwareBinary.length + " bytes)");
+
+        String loginAndPassword = UPDATER_USERNAME + ":" + device.getHttpPassword();
+        String boundary =  "*****" + System.currentTimeMillis() + "*****";
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Basic " + Base64.encodeToString(loginAndPassword.getBytes(StandardCharsets.UTF_8), Base64.DEFAULT));
+        headers.put("Connection", "Keep-Alive");
+        headers.put("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+        ByteArrayOutputStream multipartData = new ByteArrayOutputStream();
+        DataOutputStream outputStream = new DataOutputStream(multipartData);
+        try {
+            outputStream.writeBytes("--" + boundary + "\r\n");
+            outputStream.writeBytes("Content-Disposition: form-data; name=\"firmware\"; filename=\"firmware.bin\"\r\n");
+            outputStream.writeBytes("Content-Type: application/octet-stream\r\n");
+            //outputStream.writeBytes("Content-Transfer-Encoding: binary\r\n");  // ESP fails to parse with this line
+            outputStream.writeBytes("\r\n");
+            outputStream.write(firmwareBinary, 0, firmwareBinary.length);
+            outputStream.writeBytes("\r\n");
+            outputStream.writeBytes("--" + boundary + "--\r\n");
+            outputStream.flush();
+        } catch (IOException exception) {
+            listener.onError("Could not prepare data buffer!");  // TODO: translated string
+            return;
+        }
+
         Http.asyncRequest(
                 device.getHttpAddress() + DeviceInfo.Handlers.UPDATE_FIRMWARE,
-                null /* TODO: multipart form-data */,
-                null,
+                multipartData.toByteArray(),
+                headers,
                 null,
                 1,
                 new Http.Listener() {
                     @Override
                     public void onResponse(Http.Response response) {
-
+                        if (response.getHttpCode() == HttpURLConnection.HTTP_OK) {
+                            final String responseStr = response.getDataAsStr();
+                            if (responseStr.equals(UPDATE_SUCCESS_RESPONSE)) {
+                                listener.onSuccess();
+                            } else if (responseStr.startsWith(UPDATE_ERROR_PREFIX)) {
+                                Log.d(LOG_TAG, "Firmware update failed, full response: [" + responseStr + "]");
+                                listener.onError("Firmware update failed");  // TODO: translated string
+                            } else {
+                                Log.d(LOG_TAG, "Unrecognized answer from device, full response: [" + responseStr + "]");
+                                listener.onError("Unrecognized answer from device");  // TODO: translated string
+                            }
+                        } else {
+                            Log.d(LOG_TAG, "Firmware update failed, error code: " + response.getHttpCode());
+                            listener.onError("Bad response code from device!");  // TODO: translated string
+                        }
                     }
 
                     @Override
                     public void onError(IOException exception) {
-
+                        listener.onError("Failed to upload firmware binary to device!");  // TODO: translated string
                     }
                 },
                 3500,

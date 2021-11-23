@@ -8,6 +8,7 @@ import android.widget.EditText;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -44,7 +45,7 @@ public class HomeNetworkSettings extends BaseScreen {
                     + "&passphrase=" + Utils.urlEncode(edtPassphrase.getText().toString());
             Http.asyncRequest(
                     DeviceInfo.ACCESS_POINT_ADDRESS + DeviceInfo.Handlers.SETUP_WIFI,
-                    data.getBytes(),
+                    data.getBytes(StandardCharsets.UTF_8),
                     Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, DeviceInfo.DEFAULT_HTTP_PASSWORD),
                     deviceNetwork,
                     3,

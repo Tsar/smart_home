@@ -17,7 +17,8 @@ public class Http {
     public static final int DEFAULT_PORT = 80;
 
     private static final String LOG_TAG = "Http";
-    private static final int MAX_RESPONSE_SIZE_FOR_LOGGING = 128;
+    private static final int MAX_REQUEST_SIZE_FOR_LOGGING = 256;
+    private static final int MAX_RESPONSE_SIZE_FOR_LOGGING = 256;
 
     private static final int DEFAULT_CONNECT_TIMEOUT_MS = 2500;
     private static final int DEFAULT_READ_TIMEOUT_MS = 2500;
@@ -136,7 +137,11 @@ public class Http {
             OutputStream os = connection.getOutputStream();
             os.write(data, 0, data.length);
             os.close();
-            Log.d(LOG_TAG, "Request data:  " + new String(data, StandardCharsets.UTF_8));
+            if (data.length > MAX_REQUEST_SIZE_FOR_LOGGING) {
+                Log.d(LOG_TAG, "Request data too big for logging: " + data.length + " bytes");
+            } else {
+                Log.d(LOG_TAG, "Request data:  " + new String(data, StandardCharsets.UTF_8));
+            }
         } else {
             connection.setRequestMethod("GET");
         }
@@ -154,7 +159,7 @@ public class Http {
 
             final byte[] responseData = response.getData();
             if (responseData.length > MAX_RESPONSE_SIZE_FOR_LOGGING) {
-                Log.d(LOG_TAG, "Response data too big for logging (" + responseData.length + " bytes)");
+                Log.d(LOG_TAG, "Response data too big for logging: " + responseData.length + " bytes");
             } else {
                 String contentType = connection.getHeaderField("Content-Type");
                 if (contentType != null && contentType.equals("application/octet-stream")) {

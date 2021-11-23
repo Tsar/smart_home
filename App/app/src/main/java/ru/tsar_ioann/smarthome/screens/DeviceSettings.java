@@ -182,7 +182,7 @@ public class DeviceSettings extends BaseScreen {
             btnSaveDeviceSettings.setEnabled(false);
             Http.asyncRequest(
                     device.getHttpAddress() + DeviceInfo.Handlers.SET_SETTINGS,
-                    argsStr.toString().getBytes(),
+                    argsStr.toString().getBytes(StandardCharsets.UTF_8),
                     Utils.createMapWithOneElement(DeviceInfo.HEADER_PASSWORD, device.getHttpPassword()),
                     null,
                     3,
