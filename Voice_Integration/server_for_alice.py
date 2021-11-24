@@ -241,6 +241,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 asyncResults = {}
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
+                    if deviceId not in homes[user['home']]:
+                        continue
                     device = homes[user['home']][deviceId]
                     asyncResults[deviceId] = pool.apply_async(fetchValue, (
                         device['address'],
@@ -251,6 +253,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
+                    if deviceId not in homes[user['home']]:
+                        continue
+                    device = homes[user['home']][deviceId]
                     fetchResult = asyncResults[deviceId].get()
                     if fetchResult['ok']:
                         value = fetchResult['value']
@@ -312,6 +317,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 asyncResults = {}
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
+                    if deviceId not in homes[user['home']]:
+                        continue
                     device = homes[user['home']][deviceId]
                     isDimmer = 'dimmer_number' in device
 
@@ -356,6 +363,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
+                    if deviceId not in homes[user['home']]:
+                        continue
                     applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Непонятно, что хотели изменить. Запрос к устройству не производился'}
                     if applyResult['ok']:
                         actionResult = {
