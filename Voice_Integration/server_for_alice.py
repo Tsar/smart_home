@@ -30,45 +30,82 @@ def loadConfiguration():
     with open('configuration.json', 'r') as cfgFile:
         cfg = json.loads(cfgFile.read())
     homes = cfg['homes']
+    for devices in homes.values():
+        for device in devices.values():
+            assert 'name' in device
+            assert 'room' in device
+            assert 'address' in device
+            assert 'password' in device
+            assert ('dimmer_number' in device) != ('switcher_number' in device)  # должно быть либо одно либо другое
     users = cfg['users']
-    for userId, user in users.items():
-        if user['home'] not in homes:
-            info('WARN: Invalid home %s specified for user %s, ignoring user' % (user['home'], user['id']))
-            del users[userId]
+    for user in users.values():
+        assert 'id' in user
+        assert 'home' in user
+        assert user['home'] in homes
 
-def fetchDimmerValue(deviceAddress, devicePassword, dimmerNumber):
+def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber):
+    assert (dimmerNumber is None) != (switcherNumber is None)  # один из этих параметров должен быть None
+
     try:
         request = urllib.request.Request('http://%s/get_info?binary&v=2' % deviceAddress, headers={'Password': devicePassword})
         response = urllib.request.urlopen(request, timeout=1.5).read()
     except Exception as err:
         info('WARNING: Failed to get info from device %s [%s]' % (deviceAddress, err))
         return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось получить информацию с устройства'}
+
     offset = 6  # skip MAC
     nameLen = struct.unpack('<H', response[offset:offset + 2])[0]
     offset += 2 + nameLen + 1  # skip nameLen, name and input pin
     dimmersCount = struct.unpack('<B', response[offset:offset + 1])[0]
-    if dimmerNumber >= dimmersCount:
-        info('ERROR: No dimmer %d exists on device %s' % (dimmerNumber, deviceAddress))
-        return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'У устройства нет диммера с номером %d' % dimmerNumber}
-    offset += 1 + dimmerNumber * 9 + 1  # skip dimmers count, unneeded dimmers and dimmer pin
-    dimmerValue = struct.unpack('<H', response[offset:offset + 2])[0]
-    return {'ok': True, 'dimmer_value': dimmerValue}
 
-def applyDimmerValue(deviceAddress, devicePassword, dimmerNumber, dimmerValue):
-    dimmerValue = int(dimmerValue)
-    if dimmerValue < 0 or dimmerValue > 1000:
-        info('WARNING: Tried to apply bad dimmer value %d for device %s' % (dimmerValue, deviceAddress))
-        return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Недопустимое значение %d' % dimmerValue}
+    if dimmerNumber is not None:
+        if dimmerNumber >= dimmersCount:
+            info('ERROR: No dimmer %d exists on device %s' % (dimmerNumber, deviceAddress))
+            return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'У устройства нет диммера с номером %d' % dimmerNumber}
+        offset += 1 + dimmerNumber * 9 + 1  # skip dimmers count, unneeded dimmers and dimmer pin
+        dimmerValue = struct.unpack('<H', response[offset:offset + 2])[0]
+        return {'ok': True, 'value': dimmerValue}
+
+    elif switcherNumber is not None:
+        offset += 1 + dimmersCount * 9  # skip dimmers count and all dimmers
+        switchersCount = struct.unpack('<B', response[offset:offset + 1])[0]
+        if switcherNumber >= switchersCount:
+            info('ERROR: No switcher %d exists on device %s' % (switcherNumber, deviceAddress))
+            return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'У устройства нет переключателя с номером %d' % switcherNumber}
+        offset += 1 + switcherNumber * 3 + 1  # skip switchers count, unneeded switchers and switcher pin
+        switcherValue = struct.unpack('<B', response[offset:offset + 1])[0] != 0
+        return {'ok': True, 'value': switcherValue}
+
+    else:
+        assert False
+
+def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, value):
+    assert (dimmerNumber is None) != (switcherNumber is None)  # один из этих параметров должен быть None
+
+    urlParam = None
+    if dimmerNumber is not None:
+        assert isinstance(value, int)
+        if value < 0 or value > 1000:
+            info('WARNING: Tried to apply bad dimmer value %d for device %s' % (value, deviceAddress))
+            return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Недопустимое значение %d' % value}
+        urlParam = 'dim%d=%d' % (dimmerNumber, value)
+    elif switcherNumber is not None:
+        assert isinstance(value, bool)
+        urlParam = 'sw%d=%d' % (switcherNumber, 1 if value else 0)
+    assert urlParam is not None
+
     try:
-        request = urllib.request.Request('http://%s/set_values?dim%d=%d' % (deviceAddress, dimmerNumber, dimmerValue), headers={'Password': devicePassword})
+        request = urllib.request.Request('http://%s/set_values?%s' % (deviceAddress, urlParam), headers={'Password': devicePassword})
         response = urllib.request.urlopen(request, timeout=1.5).read()
     except Exception as err:
         info('WARNING: Failed to apply dimmer value for device %s [%s]' % (deviceAddress, err))
         return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось отправить команду на устройство'}
+
     respStr = response.decode('UTF-8').strip()
     if respStr not in ['ACCEPTED', 'NOTHING_CHANGED']:
         info('WARNING: Unexpected response after applying dimmer value for device %s [%s]' % (deviceAddress, respStr))
         return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Устройство ответило непонятным ответом %s' % respStr}
+
     return {'ok': True}
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -131,31 +168,32 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if self.path == '/v1.0/user/devices':
             devicesResp = []
             for deviceId, device in homes[user['home']].items():
+                isDimmer = 'dimmer_number' in device
+                deviceCapabilities = [{
+                    'type': 'devices.capabilities.on_off',
+                    'retrievable': True
+                }]
+                if isDimmer:
+                    deviceCapabilities.append({
+                        'type': 'devices.capabilities.range',
+                        'retrievable': True,
+                        'parameters': {
+                            'instance': 'brightness',
+                            'unit': 'unit.percent',
+                            'random_access': True,
+                            'range': {
+                                'min': 0,
+                                'max': 100,
+                                'precision': 0.1
+                            }
+                        }
+                    })
                 devicesResp.append({
                     'id': deviceId,
                     'name': device['name'],
                     'room': device['room'],
-                    'type': 'devices.types.light',
-                    'capabilities': [
-                        {
-                            'type': 'devices.capabilities.on_off',
-                            'retrievable': True
-                        },
-                        {
-                            'type': 'devices.capabilities.range',
-                            'retrievable': True,
-                            'parameters': {
-                                'instance': 'brightness',
-                                'unit': 'unit.percent',
-                                'random_access': True,
-                                'range': {
-                                    'min': 0,
-                                    'max': 100,
-                                    'precision': 0.1
-                                }
-                            }
-                        }
-                    ]
+                    'type': 'devices.types.light' if isDimmer else 'devices.types.switch',
+                    'capabilities': deviceCapabilities
                 })
 
             response = {
@@ -204,32 +242,53 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
                     device = homes[user['home']][deviceId]
-                    asyncResults[deviceId] = pool.apply_async(fetchDimmerValue, (device['address'], device['password'], device['dimmer_number']))
+                    asyncResults[deviceId] = pool.apply_async(fetchValue, (
+                        device['address'],
+                        device['password'],
+                        device.get('dimmer_number'),
+                        device.get('switcher_number')
+                    ))
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
                     fetchResult = asyncResults[deviceId].get()
                     if fetchResult['ok']:
-                        dimmerValue = fetchResult['dimmer_value']
-                        devicesResp.append({
-                            'id': deviceId,
-                            'capabilities': [
-                                {
-                                    'type': 'devices.capabilities.on_off',
-                                    'state': {
-                                        'instance': 'on',
-                                        'value': dimmerValue > 0
+                        value = fetchResult['value']
+                        if 'dimmer_number' in device:
+                            assert isinstance(value, int)
+                            devicesResp.append({
+                                'id': deviceId,
+                                'capabilities': [
+                                    {
+                                        'type': 'devices.capabilities.on_off',
+                                        'state': {
+                                            'instance': 'on',
+                                            'value': value > 0
+                                        }
+                                    },
+                                    {
+                                        'type': 'devices.capabilities.range',
+                                        'state': {
+                                            'instance': 'brightness',
+                                            'value': value / 10
+                                        }
                                     }
-                                },
-                                {
-                                    'type': 'devices.capabilities.range',
-                                    'state': {
-                                        'instance': 'brightness',
-                                        'value': dimmerValue / 10
+                                ]
+                            })
+                        else:
+                            assert isinstance(value, bool)
+                            devicesResp.append({
+                                'id': deviceId,
+                                'capabilities': [
+                                    {
+                                        'type': 'devices.capabilities.on_off',
+                                        'state': {
+                                            'instance': 'on',
+                                            'value': value
+                                        }
                                     }
-                                }
-                            ]
-                        })
+                                ]
+                            })
                     else:
                         devicesResp.append({
                             'id': deviceId,
@@ -254,31 +313,46 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
                     device = homes[user['home']][deviceId]
+                    isDimmer = 'dimmer_number' in device
 
-                    enabledTarget = None
-                    brightnessTarget = None
-                    for cap in deviceReq['capabilities']:
-                        if cap['type'] == 'devices.capabilities.on_off' and cap['state']['instance'] == 'on':
-                            enabledTarget = cap['state']['value']
-                            assert isinstance(enabledTarget, bool)
-                        elif cap['type'] == 'devices.capabilities.range' and cap['state']['instance'] == 'brightness':
-                            brightnessTarget = cap['state']['value']
-                            assert isinstance(brightnessTarget, float) or isinstance(brightnessTarget, int)
+                    value = None
+                    if isDimmer:
+                        enabledTarget = None
+                        brightnessTarget = None
+                        for cap in deviceReq['capabilities']:
+                            if cap['type'] == 'devices.capabilities.on_off' and cap['state']['instance'] == 'on':
+                                enabledTarget = cap['state']['value']
+                                assert isinstance(enabledTarget, bool)
+                            elif cap['type'] == 'devices.capabilities.range' and cap['state']['instance'] == 'brightness':
+                                brightnessTarget = cap['state']['value']
+                                assert isinstance(brightnessTarget, float) or isinstance(brightnessTarget, int)
+                            else:
+                                info('WARN: Unsupported capability passed for device "%s": %s' % (deviceId, cap))
+
+                        if enabledTarget is None and brightnessTarget is None:
+                            info('WARN: No changes will be performed for device %s, INVALID_VALUE error will be returned' % deviceId)
+                        elif enabledTarget is None:
+                            value = int(brightnessTarget * 10)
+                        elif brightnessTarget is None:
+                            value = 1000 if enabledTarget else 0
                         else:
-                            info('WARN: Unsupported capability passed: %s' % cap)
-
-                    dimmerValue = None
-                    if enabledTarget is None and brightnessTarget is None:
-                        info('WARN: No changes will be performed for device %s, INVALID_VALUE error will be returned' % deviceId)
-                    elif enabledTarget is None:
-                        dimmerValue = brightnessTarget * 10
-                    elif brightnessTarget is None:
-                        dimmerValue = 1000 if enabledTarget else 0
+                            value = int(brightnessTarget * 10) if enabledTarget else 0
                     else:
-                        dimmerValue = brightnessTarget * 10 if enabledTarget else 0
+                        for cap in deviceReq['capabilities']:
+                            if cap['type'] == 'devices.capabilities.on_off' and cap['state']['instance'] == 'on':
+                                value = cap['state']['value']
+                                assert isinstance(value, bool)
+                            else:
+                                info('WARN: Unsupported capability passed for device "%s": %s' % (deviceId, cap))
 
-                    if dimmerValue is not None:
-                        asyncResults[deviceId] = pool.apply_async(applyDimmerValue, (device['address'], device['password'], device['dimmer_number'], dimmerValue))
+                    if value is not None:
+                        asyncResults[deviceId] = pool.apply_async(applyValue, (
+                            device['address'],
+                            device['password'],
+                            device.get('dimmer_number'),
+                            device.get('switcher_number'),
+                            value
+                        ))
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']

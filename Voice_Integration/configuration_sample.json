@@ -14,6 +14,13 @@
                 "address": "<IP_ADDRESS>:<PORT>",
                 "password": "<DEVICE_PASSWORD>",
                 "dimmer_number": 2
+            },
+            "<DEVICE_3_IDENTIFIER>": {
+                "name": "Розетка",
+                "room": "Кухня",
+                "address": "<IP_ADDRESS>:<PORT>",
+                "password": "<DEVICE_PASSWORD>",
+                "switcher_number": 1
             }
         }
     },
