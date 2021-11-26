@@ -179,7 +179,7 @@ void Configuration::resetAndSave() {
     }
     setSwitcherValueAfterBoot(0xFF);
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
-        setDimmerValue(i, 0);
+        setDimmerValue(i, 1000);
         setDimmerSettings(i, DimmerSettings());
     }
     setDimmerValueAfterBoot(0xFFFF);

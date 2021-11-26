@@ -1,0 +1,9 @@
+{
+  "version": 5,
+  "file": "firmware/v5.bin",
+  "sha256": "176fc47fc9c3b636f77c07d892605e97da80ec8e6aca1d328ea22c718655f452",
+  "description": {
+    "en": "• set dimmers to maximum after configuration reset.",
+    "ru": "• выставляет диммеры в максимум после сброса конфигурации."
+  }
+}

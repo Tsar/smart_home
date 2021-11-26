@@ -12,7 +12,7 @@
 
 #define HTTP_SERVER_PORT 80
 
-#define FIRMWARE_VERSION 4  // used as uint16_t, increase when making new firmware version
+#define FIRMWARE_VERSION 5  // used as uint16_t, increase when making new firmware version
 
 #define UPDATER_USERNAME "admin"
 
