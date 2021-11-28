@@ -1,0 +1,11 @@
+{
+    "<MOBILE_DEVICE_IDENTIFIER>": {
+        "url": "https://www.google.com/android/find/xhr/dc/ring?xtdc=<SOME_CONTENT>",
+        "headers": {
+            "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "cookie": "<COOKIE_CONTENT>"
+        },
+        "post_data": "<SOME_CONTENT>",
+        "expected_response": ")]}'\n[]"
+    }
+}

@@ -153,18 +153,35 @@ def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, valu
         request = urllib.request.Request('http://%s/set_values?%s' % (deviceAddress, urlParam), headers={'Password': devicePassword})
         response = urllib.request.urlopen(request, timeout=1.5).read()
     except Exception as err:
-        info('WARNING: Failed to apply dimmer value for device %s [%s]' % (deviceAddress, err))
+        info('WARNING: Failed to apply value for device %s [%s]' % (deviceAddress, err))
         return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось отправить команду на устройство'}
 
     respStr = response.decode('UTF-8').strip()
     if respStr not in ['ACCEPTED', 'NOTHING_CHANGED']:
-        info('WARNING: Unexpected response after applying dimmer value for device %s [%s]' % (deviceAddress, respStr))
+        info('WARNING: Unexpected response after applying value for device %s [%s]' % (deviceAddress, respStr))
         return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Устройство ответило непонятным ответом %s' % respStr}
 
     return {'ok': True}
 
 def phoneFind(phoneId, value):
-    info('FIND PHONE %s, %s' % (phoneId, value))
+    with open('phone_find_queries.json', 'r') as phoneFindFile:
+        phoneFindQueries = json.loads(phoneFindFile.read())
+    if phoneId not in phoneFindQueries:
+        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Не заданы параметры для поиска устройства %s' % phoneId}
+
+    phoneFindQuery = phoneFindQueries[phoneId]
+    try:
+        request = urllib.request.Request(phoneFindQuery['url'], headers=phoneFindQuery['headers'], data=phoneFindQuery['post_data'])
+        response = urllib.request.urlopen(request, timeout=1.5).read()
+    except Exception as err:
+        info('WARNING: Failed to start ringing phone %s [%s]' % (phoneId, err))
+        return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось запустить прозвон устройства %s' % phoneId}
+
+    respStr = response.decode('UTF-8')
+    if respStr != phoneFindQuery['expected_response']:
+        info('WARNING: Unexpected response after sending query to start ringing phone %s [%s]' % (phoneId, respStr))
+        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Непонятный ответ на попытку запустить прозвон устройства %s [%s]' % (phoneId, respStr)}
+
     return {'ok': True}
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
