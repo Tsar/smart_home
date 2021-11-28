@@ -178,6 +178,7 @@ def applyRelativeValue(deviceAddress, devicePassword, dimmerNumber, switcherNumb
         info('WARNING: Brightness will not change, current = %d, delta = %d, refusing' % (currentValue, value))
         return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Яркость не изменится'}
 
+    info('Setting brightness to %d (current = %d, delta = %d)' % (targetValue, currentValue, value))
     return applyValue(deviceAddress, devicePassword, dimmerNumber, None, targetValue, httpTimeoutSeconds=0.9)
 
 def phoneFind(phoneId, value):
