@@ -13,6 +13,51 @@ from multiprocessing.pool import ThreadPool
 
 HTTP_PORT = 23478
 
+TYPE_DIMMER = 'dimmer'
+TYPE_SWITCHER = 'switcher'
+TYPE_PHONE_FIND = 'phone_find'
+
+YNDX_TYPE = {
+    TYPE_DIMMER: 'devices.types.light',
+    TYPE_SWITCHER: 'devices.types.switch',
+    TYPE_PHONE_FIND: 'devices.types.switch'
+}
+
+YNDX_CAPABILITIES = {
+    TYPE_DIMMER: [
+        {
+            'type': 'devices.capabilities.on_off',
+            'retrievable': True
+        },
+        {
+            'type': 'devices.capabilities.range',
+            'retrievable': True,
+            'parameters': {
+                'instance': 'brightness',
+                'unit': 'unit.percent',
+                'random_access': True,
+                'range': {
+                    'min': 0,
+                    'max': 100,
+                    'precision': 0.1
+                }
+            }
+        }
+    ],
+    TYPE_SWITCHER: [
+        {
+            'type': 'devices.capabilities.on_off',
+            'retrievable': True
+        }
+    ],
+    TYPE_PHONE_FIND: [
+        {
+            'type': 'devices.capabilities.on_off',
+            'retrievable': False
+        }
+    ]
+}
+
 homes = {}
 users = {}
 
@@ -34,9 +79,19 @@ def loadConfiguration():
         for device in devices.values():
             assert 'name' in device
             assert 'room' in device
-            assert 'address' in device
-            assert 'password' in device
-            assert ('dimmer_number' in device) != ('switcher_number' in device)  # должно быть либо одно либо другое
+            assert 'type' in device
+            if device['type'] == TYPE_DIMMER:
+                assert 'address' in device
+                assert 'password' in device
+                assert 'dimmer_number' in device
+            elif device['type'] == TYPE_SWITCHER:
+                assert 'address' in device
+                assert 'password' in device
+                assert 'switcher_number' in device
+            elif device['type'] == TYPE_PHONE_FIND:
+                pass
+            else:
+                raise RuntimeError('Unknown device type "%s"' % device['type'])
     users = cfg['users']
     for user in users.values():
         assert 'id' in user
@@ -44,7 +99,7 @@ def loadConfiguration():
         assert user['home'] in homes
 
 def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber):
-    assert (dimmerNumber is None) != (switcherNumber is None)  # один из этих параметров должен быть None
+    assert (dimmerNumber is None) != (switcherNumber is None)  # ровно один из этих параметров должен быть None
 
     try:
         request = urllib.request.Request('http://%s/get_info?binary&v=2' % deviceAddress, headers={'Password': devicePassword})
@@ -80,7 +135,7 @@ def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber):
         assert False
 
 def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, value):
-    assert (dimmerNumber is None) != (switcherNumber is None)  # один из этих параметров должен быть None
+    assert (dimmerNumber is None) != (switcherNumber is None)  # ровно один из этих параметров должен быть None
 
     urlParam = None
     if dimmerNumber is not None:
@@ -106,6 +161,10 @@ def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, valu
         info('WARNING: Unexpected response after applying dimmer value for device %s [%s]' % (deviceAddress, respStr))
         return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Устройство ответило непонятным ответом %s' % respStr}
 
+    return {'ok': True}
+
+def phoneFind(value):
+    info('REQUEST_TO_FIND_PHONE %s' % value)
     return {'ok': True}
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -166,41 +225,19 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             return
 
         if self.path == '/v1.0/user/devices':
-            devicesResp = []
-            for deviceId, device in homes[user['home']].items():
-                isDimmer = 'dimmer_number' in device
-                deviceCapabilities = [{
-                    'type': 'devices.capabilities.on_off',
-                    'retrievable': True
-                }]
-                if isDimmer:
-                    deviceCapabilities.append({
-                        'type': 'devices.capabilities.range',
-                        'retrievable': True,
-                        'parameters': {
-                            'instance': 'brightness',
-                            'unit': 'unit.percent',
-                            'random_access': True,
-                            'range': {
-                                'min': 0,
-                                'max': 100,
-                                'precision': 0.1
-                            }
-                        }
-                    })
-                devicesResp.append({
-                    'id': deviceId,
-                    'name': device['name'],
-                    'room': device['room'],
-                    'type': 'devices.types.light' if isDimmer else 'devices.types.switch',
-                    'capabilities': deviceCapabilities
-                })
-
             response = {
                 'request_id': requestId,
                 'payload': {
                     'user_id': user['id'],
-                    'devices': devicesResp
+                    'devices': [
+                        {
+                            'id': deviceId,
+                            'name': device['name'],
+                            'room': device['room'],
+                            'type': YNDX_TYPE[device['type']],
+                            'capabilities': YNDX_CAPABILITIES[device['type']]
+                        } for deviceId, device in homes[user['home']].items()
+                    ]
                 }
             }
             self.send_response_advanced(200, 'application/json', json.dumps(response))
@@ -244,6 +281,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     if deviceId not in homes[user['home']]:
                         continue
                     device = homes[user['home']][deviceId]
+                    if device['type'] == TYPE_PHONE_FIND:
+                        continue
                     asyncResults[deviceId] = pool.apply_async(fetchValue, (
                         device['address'],
                         device['password'],
@@ -256,10 +295,12 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     if deviceId not in homes[user['home']]:
                         continue
                     device = homes[user['home']][deviceId]
+                    if device['type'] == TYPE_PHONE_FIND:
+                        continue
                     fetchResult = asyncResults[deviceId].get()
                     if fetchResult['ok']:
                         value = fetchResult['value']
-                        if 'dimmer_number' in device:
+                        if device['type'] == TYPE_DIMMER:
                             assert isinstance(value, int)
                             devicesResp.append({
                                 'id': deviceId,
@@ -280,7 +321,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                                     }
                                 ]
                             })
-                        else:
+                        elif device['type'] == TYPE_SWITCHER:
                             assert isinstance(value, bool)
                             devicesResp.append({
                                 'id': deviceId,
@@ -294,6 +335,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                                     }
                                 ]
                             })
+                        else:
+                            raise RuntimeError('Unable to query state for device of type "%s"' % device['type'])
                     else:
                         devicesResp.append({
                             'id': deviceId,
@@ -320,10 +363,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     if deviceId not in homes[user['home']]:
                         continue
                     device = homes[user['home']][deviceId]
-                    isDimmer = 'dimmer_number' in device
 
                     value = None
-                    if isDimmer:
+                    if device['type'] == TYPE_DIMMER:
                         enabledTarget = None
                         brightnessTarget = None
                         for cap in deviceReq['capabilities']:
@@ -344,28 +386,42 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                             value = 1000 if enabledTarget else 0
                         else:
                             value = int(brightnessTarget * 10) if enabledTarget else 0
-                    else:
+                    elif device['type'] in [TYPE_SWITCHER, TYPE_PHONE_FIND]:
                         for cap in deviceReq['capabilities']:
                             if cap['type'] == 'devices.capabilities.on_off' and cap['state']['instance'] == 'on':
                                 value = cap['state']['value']
                                 assert isinstance(value, bool)
                             else:
                                 info('WARN: Unsupported capability passed for device "%s": %s' % (deviceId, cap))
+                    else:
+                        raise RuntimeError('Unable to handle action for device of type "%s"' % device['type'])
 
                     if value is not None:
-                        asyncResults[deviceId] = pool.apply_async(applyValue, (
-                            device['address'],
-                            device['password'],
-                            device.get('dimmer_number'),
-                            device.get('switcher_number'),
-                            value
-                        ))
+                        if device['type'] in [TYPE_DIMMER, TYPE_SWITCHER]:
+                            asyncResults[deviceId] = pool.apply_async(applyValue, (
+                                device['address'],
+                                device['password'],
+                                device.get('dimmer_number'),
+                                device.get('switcher_number'),
+                                value
+                            ))
+                        elif device['type'] == TYPE_PHONE_FIND:
+                            asyncResults[deviceId] = pool.apply_async(phoneFind, (
+                                # TODO
+                                value
+                            ))
+                        else:
+                            raise RuntimeError('Unable to use value for device of type "%s"' % device['type'])
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
                     if deviceId not in homes[user['home']]:
                         continue
-                    applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Непонятно, что хотели изменить. Запрос к устройству не производился'}
+                    applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {
+                        'ok': False,
+                        'error': 'INVALID_VALUE',
+                        'error_msg': 'Непонятно, что хотели изменить. Запрос к устройству не производился'
+                    }
                     if applyResult['ok']:
                         actionResult = {
                             'status': 'DONE'

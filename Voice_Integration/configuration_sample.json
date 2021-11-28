@@ -4,6 +4,7 @@
             "<DEVICE_1_IDENTIFIER>": {
                 "name": "Свет",
                 "room": "Большая комната",
+                "type": "dimmer",
                 "address": "<IP_ADDRESS>:<PORT>",
                 "password": "<DEVICE_PASSWORD>",
                 "dimmer_number": 0
@@ -11,6 +12,7 @@
             "<DEVICE_2_IDENTIFIER>": {
                 "name": "Свет",
                 "room": "Спальня",
+                "type": "dimmer",
                 "address": "<IP_ADDRESS>:<PORT>",
                 "password": "<DEVICE_PASSWORD>",
                 "dimmer_number": 2
@@ -18,9 +20,15 @@
             "<DEVICE_3_IDENTIFIER>": {
                 "name": "Розетка",
                 "room": "Кухня",
+                "type": "switcher",
                 "address": "<IP_ADDRESS>:<PORT>",
                 "password": "<DEVICE_PASSWORD>",
                 "switcher_number": 1
+            },
+            "<DEVICE_4_IDENTIFIER>": {
+                "name": "Найди мой телефон",
+                "room": "Виртуальная комната",
+                "type": "phone_find"
             }
         }
     },
