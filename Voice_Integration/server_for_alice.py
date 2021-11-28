@@ -171,7 +171,7 @@ def phoneFind(phoneId, value):
 
     phoneFindQuery = phoneFindQueries[phoneId]
     try:
-        request = urllib.request.Request(phoneFindQuery['url'], headers=phoneFindQuery['headers'], data=phoneFindQuery['post_data'])
+        request = urllib.request.Request(phoneFindQuery['url'], headers=phoneFindQuery['headers'], data=phoneFindQuery['post_data'].encode('UTF-8'))
         response = urllib.request.urlopen(request, timeout=1.5).read()
     except Exception as err:
         info('WARNING: Failed to start ringing phone %s [%s]' % (phoneId, err))
