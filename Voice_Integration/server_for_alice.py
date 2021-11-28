@@ -98,12 +98,12 @@ def loadConfiguration():
         assert 'home' in user
         assert user['home'] in homes
 
-def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber):
+def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, httpTimeoutSeconds=1.5):
     assert (dimmerNumber is None) != (switcherNumber is None)  # ровно один из этих параметров должен быть None
 
     try:
         request = urllib.request.Request('http://%s/get_info?binary&v=2' % deviceAddress, headers={'Password': devicePassword})
-        response = urllib.request.urlopen(request, timeout=1.5).read()
+        response = urllib.request.urlopen(request, timeout=httpTimeoutSeconds).read()
     except Exception as err:
         info('WARNING: Failed to get info from device %s [%s]' % (deviceAddress, err))
         return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось получить информацию с устройства'}
@@ -134,7 +134,7 @@ def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber):
     else:
         assert False
 
-def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, value):
+def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, value, httpTimeoutSeconds=1.5):
     assert (dimmerNumber is None) != (switcherNumber is None)  # ровно один из этих параметров должен быть None
 
     urlParam = None
@@ -151,7 +151,7 @@ def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, valu
 
     try:
         request = urllib.request.Request('http://%s/set_values?%s' % (deviceAddress, urlParam), headers={'Password': devicePassword})
-        response = urllib.request.urlopen(request, timeout=1.5).read()
+        response = urllib.request.urlopen(request, timeout=httpTimeoutSeconds).read()
     except Exception as err:
         info('WARNING: Failed to apply value for device %s [%s]' % (deviceAddress, err))
         return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось отправить команду на устройство'}
@@ -162,6 +162,23 @@ def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, valu
         return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Устройство ответило непонятным ответом %s' % respStr}
 
     return {'ok': True}
+
+def applyRelativeValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, value):
+    assert dimmerNumber is not None and switcherNumber is None  # относительное значение поддерживается только для диммеров
+    assert isinstance(value, int)
+
+    current = fetchValue(deviceAddress, devicePassword, dimmerNumber, None, httpTimeoutSeconds=0.9)
+    if not current['ok']:
+        return current
+    currentValue = current['value']
+    assert isinstance(currentValue, int)
+
+    targetValue = min(max(currentValue + value, 0), 1000)
+    if currentValue == targetValue:
+        info('WARNING: Brightness will not change, current = %d, delta = %d, refusing' % (currentValue, value))
+        return {'ok': False, 'error': 'INVALID_VALUE', 'error_msg': 'Яркость не изменится'}
+
+    return applyValue(deviceAddress, devicePassword, dimmerNumber, None, targetValue, httpTimeoutSeconds=0.9)
 
 def phoneFind(phoneId, value):
     with open('phone_find_queries.json', 'r') as phoneFindFile:
@@ -382,6 +399,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     device = homes[user['home']][deviceId]
 
                     value = None
+                    isRelative = False
                     if device['type'] == TYPE_DIMMER:
                         enabledTarget = None
                         brightnessTarget = None
@@ -391,6 +409,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                                 assert isinstance(enabledTarget, bool)
                             elif cap['type'] == 'devices.capabilities.range' and cap['state']['instance'] == 'brightness':
                                 brightnessTarget = cap['state']['value']
+                                isRelative = cap['state'].get('relative', False)
                                 assert isinstance(brightnessTarget, float) or isinstance(brightnessTarget, int)
                             else:
                                 info('WARN: Unsupported capability passed for device "%s": %s' % (deviceId, cap))
@@ -415,7 +434,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     if value is not None:
                         if device['type'] in [TYPE_DIMMER, TYPE_SWITCHER]:
-                            asyncResults[deviceId] = pool.apply_async(applyValue, (
+                            asyncResults[deviceId] = pool.apply_async(applyRelativeValue if isRelative else applyValue, (
                                 device['address'],
                                 device['password'],
                                 device.get('dimmer_number'),
