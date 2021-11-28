@@ -89,7 +89,7 @@ def loadConfiguration():
                 assert 'password' in device
                 assert 'switcher_number' in device
             elif device['type'] == TYPE_PHONE_FIND:
-                pass
+                assert 'phone' in device
             else:
                 raise RuntimeError('Unknown device type "%s"' % device['type'])
     users = cfg['users']
@@ -163,8 +163,8 @@ def applyValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, valu
 
     return {'ok': True}
 
-def phoneFind(value):
-    info('REQUEST_TO_FIND_PHONE %s' % value)
+def phoneFind(phoneId, value):
+    info('FIND PHONE %s, %s' % (phoneId, value))
     return {'ok': True}
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -407,7 +407,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                             ))
                         elif device['type'] == TYPE_PHONE_FIND:
                             asyncResults[deviceId] = pool.apply_async(phoneFind, (
-                                # TODO
+                                device['phone'],
                                 value
                             ))
                         else:

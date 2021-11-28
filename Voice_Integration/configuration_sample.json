@@ -28,7 +28,8 @@
             "<DEVICE_4_IDENTIFIER>": {
                 "name": "Найди мой телефон",
                 "room": "Виртуальная комната",
-                "type": "phone_find"
+                "type": "phone_find",
+                "phone": "<MOBILE_DEVICE_IDENTIFIER>"
             }
         }
     },
