@@ -1,4 +1,8 @@
 {
+    "oauth_settings": {
+        "client_id": "<CLIENT_IDENTIFIER>",
+        "client_secret": "<CLIENT_PASSWORD>"
+    },
     "homes": {
         "<HOME_1_NAME>": {
             "<DEVICE_1_IDENTIFIER>": {
@@ -34,9 +38,11 @@
         }
     },
     "users": {
-        "<AUTH_TOKEN>": {
-            "id": "<USERNAME>",
-            "home": "<HOME_1_NAME>"
+        "<USERNAME>": {
+            "home": "<HOME_NAME>",
+            "pwd_sha256": "<SHA256_OF_PASSWORD>",
+            "authorization_code": "<CODE_FOR_YANDEX_TO_OBTAIN_ACCESS_TOKEN__MUST_BE_UNIQUE>",
+            "access_token": "<TOKEN_WHICH_ALLOWS_YANDEX_TO_MAKE_ACTIONS_AS_USERNAME__MUST_BE_UNIQUE>"
         }
     }
 }

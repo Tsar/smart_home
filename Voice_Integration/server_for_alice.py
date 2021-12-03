@@ -8,10 +8,17 @@ import http.server
 import socketserver
 import urllib.request
 import urllib.parse
+import hashlib
 from datetime import datetime
 from multiprocessing.pool import ThreadPool
 
 HTTP_PORT = 23478
+
+AUTHORIZATION_ENDPOINT_PREFIX = '/authorize?'
+TOKEN_ENDPOINT = '/get_token'
+
+EXPECTED_REDIRECT_URI = 'https://social.yandex.net/broker/redirect'
+EXPECTED_TOKEN_PREFIX = 'Bearer '
 
 TYPE_DIMMER = 'dimmer'
 TYPE_SWITCHER = 'switcher'
@@ -58,8 +65,12 @@ YNDX_CAPABILITIES = {
     ]
 }
 
+oauthSettings = {}
 homes = {}
 users = {}
+
+authCodeToUsername = {}  # authorization code -> username
+tokenToUsername = {}  # access token -> username
 
 def info(msg):
     print('[%s, %d, %s] %s' % (
@@ -71,9 +82,15 @@ def info(msg):
     sys.stdout.flush()
 
 def loadConfiguration():
-    global homes, users
+    global oauthSettings, homes, users, authCodeToUsername, tokenToUsername
+
     with open('configuration.json', 'r') as cfgFile:
         cfg = json.loads(cfgFile.read())
+
+    oauthSettings = cfg['oauth_settings']
+    assert 'client_id' in oauthSettings
+    assert 'client_secret' in oauthSettings
+
     homes = cfg['homes']
     for devices in homes.values():
         for device in devices.values():
@@ -92,11 +109,16 @@ def loadConfiguration():
                 assert 'phone' in device
             else:
                 raise RuntimeError('Unknown device type "%s"' % device['type'])
+
     users = cfg['users']
-    for user in users.values():
-        assert 'id' in user
+    for username, user in users.items():
         assert 'home' in user
         assert user['home'] in homes
+        assert 'pwd_sha256' in user
+        assert 'authorization_code' in user
+        assert 'access_token' in user
+        authCodeToUsername[user['authorization_code']] = username
+        tokenToUsername[user['access_token']] = username
 
 def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, httpTimeoutSeconds=1.5):
     assert (dimmerNumber is None) != (switcherNumber is None)  # ровно один из этих параметров должен быть None
@@ -207,7 +229,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         return
 
     def send_response_advanced(self, code, contentType, data):
-        dataB = bytes(data, 'UTF-8') if isinstance(data, str) else data
+        dataB = data.encode('UTF-8') if isinstance(data, str) else data
         assert isinstance(dataB, bytes)
         self.send_response(code)
         self.send_header('Content-Type', contentType)
@@ -217,23 +239,111 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.flush()
         info('Answered with code %d, content-type %s, response:\n%s' % (code, contentType, data))
 
-    def getUserAndRequestId(self):
-        auth = self.headers.get('Authorization', None)
-        if auth is None:
+    def handleAuthorization(self, body=None):
+        params = urllib.parse.parse_qs(self.path[len(AUTHORIZATION_ENDPOINT_PREFIX):])
+        for requiredParam in ['state', 'redirect_uri', 'response_type', 'client_id']:
+            if requiredParam not in params:
+                self.send_response_advanced(401, 'text/plain', 'No required GET-parameter %s' % requiredParam)
+                return
+        clientId = params['client_id'][0]
+        if clientId != oauthSettings['client_id']:
+            self.send_response_advanced(403, 'text/plain', 'Bad client_id')
+            return
+        redirectUri = params['redirect_uri'][0]
+        if redirectUri != EXPECTED_REDIRECT_URI:
+            self.send_response_advanced(403, 'text/plain', 'Bad redirect_uri')
+            return
+        if params['response_type'][0] != 'code':
+            self.send_response_advanced(403, 'text/plain', 'Bad response_type')
+            return
+
+        if body is None:
+            with open('auth_page.html', 'rb') as authPage:
+                self.send_response_advanced(200, 'text/html', authPage.read())
+                return
+
+        credentials = urllib.parse.parse_qs(body)
+        if requiredParam in ['uname', 'psw']:
+            if requiredParam not in credentials:
+                self.send_response_advanced(401, 'text/plain', 'No required POST-parameter %s' % requiredParam)
+                return
+        username = credentials['uname'][0]
+        if username not in users:
+            self.send_response_advanced(403, 'text/plain', 'Bad username')
+            return
+        if hashlib.sha256(credentials['psw'][0].encode('UTF-8')).hexdigest().lower() != users[username]['pwd_sha256'].lower():
+            self.send_response_advanced(403, 'text/plain', 'Bad password')
+            return
+
+        redirectLocation = '%s?%s' % (redirectUri, urllib.parse.urlencode({
+            'code': users[username]['authorization_code'],
+            'state': params['state'][0],
+            'client_id': clientId
+        }, quote_via=urllib.parse.quote_plus))
+        self.send_response(302)
+        self.send_header('Location', redirectLocation)
+        self.end_headers()
+        info('Answered with code 302, sent header "Location: %s"' % redirectLocation)
+
+    def handleGetToken(self, body):
+        if body is None:
+            self.send_response_advanced(400, 'text/plain', 'Bad Request')
+            return
+        params = urllib.parse.parse_qs(body)
+        for requiredParam in ['grant_type', 'code', 'redirect_uri', 'client_id', 'client_secret']:
+            if requiredParam not in params:
+                self.send_response_advanced(401, 'text/plain', 'No required POST-parameter %s' % requiredParam)
+                return
+        if params['grant_type'][0] != 'authorization_code':
+            self.send_response_advanced(403, 'text/plain', 'Bad grant_type')
+            return
+        if params['client_id'][0] != oauthSettings['client_id']:
+            self.send_response_advanced(403, 'text/plain', 'Bad client_id')
+            return
+        if params['client_secret'][0] != oauthSettings['client_secret']:
+            self.send_response_advanced(403, 'text/plain', 'Bad client_secret')
+            return
+        if params['redirect_uri'][0] != EXPECTED_REDIRECT_URI:
+            self.send_response_advanced(403, 'text/plain', 'Bad redirect_uri')
+            return
+        authCode = params['code'][0]
+        if authCode not in authCodeToUsername:
+            self.send_response_advanced(403, 'text/plain', 'Bad authorization code')
+            return
+
+        username = authCodeToUsername[authCode]
+        info('OAuth client obtains access token for user [%s]' % username)
+
+        self.send_response_advanced(200, 'application/json', json.dumps({
+            'access_token': users[username]['access_token'],
+            'token_type': 'Bearer',
+            'expires_in': 2147483647
+        }))
+
+    def getUsernameHomeAndRequestId(self):
+        token = self.headers.get('Authorization', None)
+        if token is None:
             self.send_response_advanced(401, 'text/plain', 'Unauthorized')
             raise RuntimeError('No Authorization header')
-        if auth not in users:
+        if not token.startswith(EXPECTED_TOKEN_PREFIX):
+            self.send_response_advanced(401, 'text/plain', 'Bad access token prefix')
+            raise RuntimeError('Bad access token type')
+        token = token[len(EXPECTED_TOKEN_PREFIX):]
+        if token not in tokenToUsername:
             self.send_response_advanced(401, 'text/plain', 'Unauthorized')
-            raise RuntimeError('Auth [%s] not found' % auth)
-        user = users[auth]
+            raise RuntimeError('Token [%s] not found' % token)
+
+        username = tokenToUsername[token]
+        homeId = users[username]['home']
+        home = homes[homeId]
 
         requestId = self.headers.get('X-Request-Id', None)
         if requestId is None:
             self.send_response_advanced(400, 'text/plain', 'Bad Request')
             raise RuntimeError('No X-Request-Id header')
 
-        info('Auth [%s], user id [%s], request id [%s]' % (auth, user['id'], requestId))
-        return user, requestId
+        info('Token [%s], username [%s], home id [%s], request id [%s]' % (token, username, homeId, requestId))
+        return username, home, requestId
 
     def do_HEAD(self):
         info('Handling HEAD request %s' % self.path)
@@ -246,15 +356,12 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         info('Handling GET request %s' % self.path)
 
-        for oauthPage in ['suggest', 'token']:
-            if self.path.startswith('/oauth/%s' % oauthPage):
-                with open('oauth/%s.html' % oauthPage, 'r') as oauthPageFile:
-                    oauthPageHTML = oauthPageFile.read()
-                self.send_response_advanced(200, 'text/html', oauthPageHTML)
-                return
+        if self.path.startswith(AUTHORIZATION_ENDPOINT_PREFIX):
+            self.handleAuthorization()
+            return
 
         try:
-            user, requestId = self.getUserAndRequestId()
+            username, home, requestId = self.getUsernameHomeAndRequestId()
         except RuntimeError as err:
             info('ERROR: %s' % err)
             return
@@ -263,7 +370,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             response = {
                 'request_id': requestId,
                 'payload': {
-                    'user_id': user['id'],
+                    'user_id': username,
                     'devices': [
                         {
                             'id': deviceId,
@@ -271,7 +378,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                             'room': device['room'],
                             'type': YNDX_TYPE[device['type']],
                             'capabilities': YNDX_CAPABILITIES[device['type']]
-                        } for deviceId, device in homes[user['home']].items()
+                        } for deviceId, device in home.items()
                     ]
                 }
             }
@@ -285,18 +392,16 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
         info('Handling POST request %s with %s' % (self.path, 'no body' if body is None else 'body %s' % body))
 
-        if self.path == '/oauth/get_token':
-            params = urllib.parse.parse_qs(body)
-            print(params)
-            self.send_response_advanced(200, 'application/json', json.dumps({
-                'access_token': params['code'][0],
-                'token_type': 'Bearer',
-                'expires_in': 2147483647
-            }))
+        if self.path.startswith(AUTHORIZATION_ENDPOINT_PREFIX):
+            self.handleAuthorization(body=body)
+            return
+
+        if self.path == TOKEN_ENDPOINT:
+            self.handleGetToken(body)
             return
 
         try:
-            user, requestId = self.getUserAndRequestId()
+            username, home, requestId = self.getUsernameHomeAndRequestId()
         except RuntimeError as err:
             info('ERROR: %s' % err)
             return
@@ -313,9 +418,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 asyncResults = {}
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in homes[user['home']]:
+                    if deviceId not in home:
                         continue
-                    device = homes[user['home']][deviceId]
+                    device = home[deviceId]
                     if device['type'] == TYPE_PHONE_FIND:
                         continue
                     asyncResults[deviceId] = pool.apply_async(fetchValue, (
@@ -327,9 +432,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in homes[user['home']]:
+                    if deviceId not in home:
                         continue
-                    device = homes[user['home']][deviceId]
+                    device = home[deviceId]
                     if device['type'] == TYPE_PHONE_FIND:
                         continue
                     fetchResult = asyncResults[deviceId].get()
@@ -395,9 +500,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 asyncResults = {}
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in homes[user['home']]:
+                    if deviceId not in home:
                         continue
-                    device = homes[user['home']][deviceId]
+                    device = home[deviceId]
 
                     value = None
                     isRelative = False
@@ -452,7 +557,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in homes[user['home']]:
+                    if deviceId not in home:
                         continue
                     applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {
                         'ok': False,
