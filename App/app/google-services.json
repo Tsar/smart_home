@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "18674982621",
+    "project_id": "smart-home-by-tsar",
+    "storage_bucket": "smart-home-by-tsar.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:18674982621:android:65e0ea41cfc52b6fd14534",
+        "android_client_info": {
+          "package_name": "ru.tsar_ioann.smarthome"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "18674982621-72pm6iope0rfa1ruv9rje8fghe86ejm9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBQSL1ihqMVDZV6uw45i41dGE0EA2Zp7I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "18674982621-72pm6iope0rfa1ruv9rje8fghe86ejm9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
