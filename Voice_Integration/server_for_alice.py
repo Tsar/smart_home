@@ -120,6 +120,9 @@ def loadConfiguration():
         authCodeToUsername[user['authorization_code']] = username
         tokenToUsername[user['access_token']] = username
 
+def keepOnlyExistingDevices(devices, home):
+    return list(filter(lambda device: device['id'] in home, devices))
+
 def fetchValue(deviceAddress, devicePassword, dimmerNumber, switcherNumber, httpTimeoutSeconds=1.5):
     assert (dimmerNumber is None) != (switcherNumber is None)  # ровно один из этих параметров должен быть None
 
@@ -422,15 +425,13 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             return
 
         if self.path == '/v1.0/user/devices/query':
-            devicesReq = json.loads(body)['devices']
+            devicesReq = keepOnlyExistingDevices(json.loads(body)['devices'], home)
             devicesResp = []
 
             with ThreadPool(processes=len(devicesReq)) as pool:
                 asyncResults = {}
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in home:
-                        continue
                     device = home[deviceId]
                     if device['type'] == TYPE_PHONE_FIND:
                         continue
@@ -443,8 +444,6 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in home:
-                        continue
                     device = home[deviceId]
                     if device['type'] == TYPE_PHONE_FIND:
                         continue
@@ -504,15 +503,24 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.sendResponseJson(200, response)
 
         elif self.path == '/v1.0/user/devices/action':
-            devicesReq = json.loads(body)['payload']['devices']
+            devicesReq = keepOnlyExistingDevices(json.loads(body)['payload']['devices'], home)
             devicesResp = []
+
+            isPhoneFind = lambda deviceReq: home[deviceReq['id']]['type'] == TYPE_PHONE_FIND
+            isNotPhoneFind = lambda deviceReq: not isPhoneFind(deviceReq)
+
+            # Если хоть одно устройство в списке имеет тип отличный от phone_find, то нужно исключить из списка все устройства phone_find,
+            # чтобы на команды "включи/выключи всё везде" не прозванивать телефоны
+            if any(isNotPhoneFind(deviceReq) for deviceReq in devicesReq):
+                toExclude = list(filter(isPhoneFind, devicesReq))
+                if len(toExclude) > 0:
+                    devicesReq = list(filter(isNotPhoneFind, devicesReq))
+                    info('Excluded %s devices [%s]' % (TYPE_PHONE_FIND, ', '.join([deviceReq['id'] for deviceReq in toExclude])))
 
             with ThreadPool(processes=len(devicesReq)) as pool:
                 asyncResults = {}
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in home:
-                        continue
                     device = home[deviceId]
 
                     value = None
@@ -568,8 +576,6 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for deviceReq in devicesReq:
                     deviceId = deviceReq['id']
-                    if deviceId not in home:
-                        continue
                     applyResult = asyncResults[deviceId].get() if deviceId in asyncResults else {
                         'ok': False,
                         'error': 'INVALID_VALUE',
