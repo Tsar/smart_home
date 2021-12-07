@@ -228,7 +228,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
 
-    def send_response_advanced(self, code, contentType, data):
+    def sendResponseAdvanced(self, code, contentType, data, writeLog=True):
         dataB = data.encode('UTF-8') if isinstance(data, str) else data
         assert isinstance(dataB, bytes)
         self.send_response(code)
@@ -237,42 +237,47 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(dataB)
         self.wfile.flush()
-        info('Answered with code %d, content-type %s, response:\n%s' % (code, contentType, data))
+        if writeLog:
+            info('Answered with code %d, content-type %s, response:\n%s\n' % (code, contentType, data))
+
+    def sendResponseJson(self, code, data):
+        self.sendResponseAdvanced(code, 'application/json', json.dumps(data), writeLog=False)
+        info('Answered with code %d, response JSON:\n%s\n' % (code, json.dumps(data, indent=2, ensure_ascii=False)))
 
     def handleAuthorization(self, body=None):
         params = urllib.parse.parse_qs(self.path[len(AUTHORIZATION_ENDPOINT_PREFIX):])
         for requiredParam in ['state', 'redirect_uri', 'response_type', 'client_id']:
             if requiredParam not in params:
-                self.send_response_advanced(401, 'text/plain', 'No required GET-parameter %s' % requiredParam)
+                self.sendResponseAdvanced(401, 'text/plain', 'No required GET-parameter %s' % requiredParam)
                 return
         clientId = params['client_id'][0]
         if clientId != oauthSettings['client_id']:
-            self.send_response_advanced(403, 'text/plain', 'Bad client_id')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad client_id')
             return
         redirectUri = params['redirect_uri'][0]
         if redirectUri != EXPECTED_REDIRECT_URI:
-            self.send_response_advanced(403, 'text/plain', 'Bad redirect_uri')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad redirect_uri')
             return
         if params['response_type'][0] != 'code':
-            self.send_response_advanced(403, 'text/plain', 'Bad response_type')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad response_type')
             return
 
         if body is None:
             with open('auth_page.html', 'rb') as authPage:
-                self.send_response_advanced(200, 'text/html', authPage.read())
+                self.sendResponseAdvanced(200, 'text/html', authPage.read())
                 return
 
         credentials = urllib.parse.parse_qs(body)
         if requiredParam in ['uname', 'psw']:
             if requiredParam not in credentials:
-                self.send_response_advanced(401, 'text/plain', 'No required POST-parameter %s' % requiredParam)
+                self.sendResponseAdvanced(401, 'text/plain', 'No required POST-parameter %s' % requiredParam)
                 return
         username = credentials['uname'][0]
         if username not in users:
-            self.send_response_advanced(403, 'text/plain', 'Bad username')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad username')
             return
         if hashlib.sha256(credentials['psw'][0].encode('UTF-8')).hexdigest().lower() != users[username]['pwd_sha256'].lower():
-            self.send_response_advanced(403, 'text/plain', 'Bad password')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad password')
             return
 
         redirectLocation = '%s?%s' % (redirectUri, urllib.parse.urlencode({
@@ -287,50 +292,50 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def handleGetToken(self, body):
         if body is None:
-            self.send_response_advanced(400, 'text/plain', 'Bad Request')
+            self.sendResponseAdvanced(400, 'text/plain', 'Bad Request')
             return
         params = urllib.parse.parse_qs(body)
         for requiredParam in ['grant_type', 'code', 'redirect_uri', 'client_id', 'client_secret']:
             if requiredParam not in params:
-                self.send_response_advanced(401, 'text/plain', 'No required POST-parameter %s' % requiredParam)
+                self.sendResponseAdvanced(401, 'text/plain', 'No required POST-parameter %s' % requiredParam)
                 return
         if params['grant_type'][0] != 'authorization_code':
-            self.send_response_advanced(403, 'text/plain', 'Bad grant_type')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad grant_type')
             return
         if params['client_id'][0] != oauthSettings['client_id']:
-            self.send_response_advanced(403, 'text/plain', 'Bad client_id')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad client_id')
             return
         if params['client_secret'][0] != oauthSettings['client_secret']:
-            self.send_response_advanced(403, 'text/plain', 'Bad client_secret')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad client_secret')
             return
         if params['redirect_uri'][0] != EXPECTED_REDIRECT_URI:
-            self.send_response_advanced(403, 'text/plain', 'Bad redirect_uri')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad redirect_uri')
             return
         authCode = params['code'][0]
         if authCode not in authCodeToUsername:
-            self.send_response_advanced(403, 'text/plain', 'Bad authorization code')
+            self.sendResponseAdvanced(403, 'text/plain', 'Bad authorization code')
             return
 
         username = authCodeToUsername[authCode]
         info('OAuth client obtains access token for user [%s]' % username)
 
-        self.send_response_advanced(200, 'application/json', json.dumps({
+        self.sendResponseJson(200, {
             'access_token': users[username]['access_token'],
             'token_type': 'Bearer',
             'expires_in': 2147483647
-        }))
+        })
 
     def getUsernameHomeAndRequestId(self):
         token = self.headers.get('Authorization', None)
         if token is None:
-            self.send_response_advanced(401, 'text/plain', 'Unauthorized')
+            self.sendResponseAdvanced(401, 'text/plain', 'Unauthorized')
             raise RuntimeError('No Authorization header')
         if not token.startswith(EXPECTED_TOKEN_PREFIX):
-            self.send_response_advanced(401, 'text/plain', 'Bad access token prefix')
+            self.sendResponseAdvanced(401, 'text/plain', 'Bad access token prefix')
             raise RuntimeError('Bad access token type')
         token = token[len(EXPECTED_TOKEN_PREFIX):]
         if token not in tokenToUsername:
-            self.send_response_advanced(401, 'text/plain', 'Unauthorized')
+            self.sendResponseAdvanced(401, 'text/plain', 'Unauthorized')
             raise RuntimeError('Token [%s] not found' % token)
 
         username = tokenToUsername[token]
@@ -339,7 +344,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
         requestId = self.headers.get('X-Request-Id', None)
         if requestId is None:
-            self.send_response_advanced(400, 'text/plain', 'Bad Request')
+            self.sendResponseAdvanced(400, 'text/plain', 'Bad Request')
             raise RuntimeError('No X-Request-Id header')
 
         info('Token [%s], username [%s], home id [%s], request id [%s]' % (token, username, homeId, requestId))
@@ -349,9 +354,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         info('Handling HEAD request %s' % self.path)
 
         if self.path == '/v1.0':
-            self.send_response_advanced(200, 'text/plain', 'OK')
+            self.sendResponseAdvanced(200, 'text/plain', 'OK')
         else:
-            self.send_response_advanced(404, 'text/plain', 'Not Found')
+            self.sendResponseAdvanced(404, 'text/plain', 'Not Found')
 
     def do_GET(self):
         info('Handling GET request %s' % self.path)
@@ -382,15 +387,21 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     ]
                 }
             }
-            self.send_response_advanced(200, 'application/json', json.dumps(response))
+            self.sendResponseJson(200, response)
         else:
-            self.send_response_advanced(404, 'text/plain', 'Not Found')
+            self.sendResponseAdvanced(404, 'text/plain', 'Not Found')
 
     def do_POST(self):
+        contentType = self.headers.get('Content-Type', None)
         contentLength = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(contentLength).decode('UTF-8') if contentLength > 0 else None
 
-        info('Handling POST request %s with %s' % (self.path, 'no body' if body is None else 'body %s' % body))
+        info('Handling POST request %s with %s' % (
+            self.path,
+            'no body' if body is None else (
+                'JSON:\n%s' % json.dumps(json.loads(body), indent=2, ensure_ascii=False) if contentType == 'application/json' else 'body %s' % body
+            )
+        ))
 
         if self.path.startswith(AUTHORIZATION_ENDPOINT_PREFIX):
             self.handleAuthorization(body=body)
@@ -407,7 +418,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             return
 
         if self.path == '/v1.0/user/unlink':
-            self.send_response_advanced(200, 'application/json', json.dumps({'request_id': requestId}))
+            self.sendResponseJson(200, {'request_id': requestId})
             return
 
         if self.path == '/v1.0/user/devices/query':
@@ -490,7 +501,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     'devices': devicesResp
                 }
             }
-            self.send_response_advanced(200, 'application/json', json.dumps(response))
+            self.sendResponseJson(200, response)
 
         elif self.path == '/v1.0/user/devices/action':
             devicesReq = json.loads(body)['payload']['devices']
@@ -585,10 +596,10 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     'devices': devicesResp
                 }
             }
-            self.send_response_advanced(200, 'application/json', json.dumps(response))
+            self.sendResponseJson(200, response)
 
         else:
-            self.send_response_advanced(404, 'text/plain', 'Not Found')
+            self.sendResponseAdvanced(404, 'text/plain', 'Not Found')
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
