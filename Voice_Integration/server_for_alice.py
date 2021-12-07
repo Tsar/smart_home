@@ -12,6 +12,8 @@ import hashlib
 from datetime import datetime
 from multiprocessing.pool import ThreadPool
 
+import google_android_find
+
 HTTP_PORT = 23478
 
 AUTHORIZATION_ENDPOINT_PREFIX = '/authorize?'
@@ -207,24 +209,17 @@ def applyRelativeValue(deviceAddress, devicePassword, dimmerNumber, switcherNumb
     return applyValue(deviceAddress, devicePassword, dimmerNumber, None, targetValue, httpTimeoutSeconds=0.9)
 
 def phoneFind(phoneId, value):
-    with open('phone_find_queries.json', 'r') as phoneFindFile:
-        phoneFindQueries = json.loads(phoneFindFile.read())
-    if phoneId not in phoneFindQueries:
-        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Не заданы параметры для поиска устройства %s' % phoneId}
-
-    phoneFindQuery = phoneFindQueries[phoneId]
     try:
-        request = urllib.request.Request(phoneFindQuery['url'], headers=phoneFindQuery['headers'], data=phoneFindQuery['post_data'].encode('UTF-8'))
-        response = urllib.request.urlopen(request, timeout=1.5).read()
-    except Exception as err:
+        google_android_find.ringPhone(phoneId)
+    except google_android_find.NoParamsException:
+        info('WARNING: No params to ring phone %s' % phoneId)
+        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Не заданы параметры для поиска устройства %s' % phoneId}
+    except google_android_find.FailedToStartRingingException as err:
         info('WARNING: Failed to start ringing phone %s [%s]' % (phoneId, err))
-        return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось запустить прозвон устройства %s' % phoneId}
-
-    respStr = response.decode('UTF-8')
-    if respStr != phoneFindQuery['expected_response']:
-        info('WARNING: Unexpected response after sending query to start ringing phone %s [%s]' % (phoneId, respStr))
-        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Непонятный ответ на попытку запустить прозвон устройства %s [%s]' % (phoneId, respStr)}
-
+        return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось запустить прозвон устройства %s [%s]' % (phoneId, err)}
+    except google_android_find.UnexpectedResponse as err:
+        info('WARNING: Unexpected response after sending query to start ringing phone %s [%s]' % (phoneId, err))
+        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Непонятный ответ на попытку запустить прозвон устройства %s [%s]' % (phoneId, err)}
     return {'ok': True}
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
