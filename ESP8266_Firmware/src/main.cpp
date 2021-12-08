@@ -12,7 +12,7 @@
 
 #define HTTP_SERVER_PORT 80
 
-#define FIRMWARE_VERSION 5  // used as uint16_t, increase when making new firmware version
+#define FIRMWARE_VERSION 6  // used as uint16_t, increase when making new firmware version
 
 #define UPDATER_USERNAME "admin"
 
@@ -25,7 +25,7 @@ volatile uint32_t inputFallTimeMs = 0;
 volatile uint32_t inputFallsCount = 0;
 
 const uint8_t DIMMER_PINS[DIMMERS_COUNT] = {4, 5, 12};
-const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 9, 10};
+const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 10};
 
 #define DIMMER_MAX_VALUE 1000
 
@@ -747,6 +747,23 @@ void checkWiFiResetSequence() {
   }
 }
 
+void printFlashChipInfo() {
+  Serial.print("Chip ID: ");
+  Serial.println(ESP.getFlashChipId());
+
+  Serial.print("Chip Real Size: ");
+  Serial.println(ESP.getFlashChipRealSize());
+
+  Serial.print("Chip Size: ");
+  Serial.println(ESP.getFlashChipSize());
+
+  Serial.print("Chip Speed: ");
+  Serial.println(ESP.getFlashChipSpeed());
+
+  Serial.print("Chip Mode: ");
+  Serial.println(ESP.getFlashChipMode());
+}
+
 void setup() {
   for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
     pinMode(DIMMER_PINS[i], OUTPUT);
@@ -781,6 +798,7 @@ void setup() {
                 resetCfgHappened ? "CONFIGURATION RESET HAPPENED!" : "Configuration loaded successfully",
                 homeCfg.getName().c_str(), FIRMWARE_VERSION, homeCfg.getPassword().c_str()
   );
+  printFlashChipInfo();
 
   checkWiFiResetSequence();
 
