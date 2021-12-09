@@ -1,7 +1,7 @@
 {
   "version": 6,
   "file": "firmware/v6.bin",
-  "sha256": "2d81adb2c4c86fb961a0c0827d098213763454107df8c31726f794b3d66f8aea",
+  "sha256": "c4e8c4a926da894f93898eba62f723bb40f122044dc7d6fe1543ae06a23bf5a8",
   "description": {
     "en": "• switchers on pins 9 and 10 were removed for avoiding crashes on some ESPs;\n• configuration migration prepared, only usage checkboxes and ordering data will be lost.",
     "ru": "• были удалены переключатели на пинах 9 и 10, чтобы не крешиться на некоторых ESP;\n• подготовлена миграция конфигурации, будут утеряны только данные про галочки использования и порядок."
