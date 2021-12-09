@@ -100,7 +100,10 @@ void Configuration::loadOrReset(bool& resetHappened) {
 
     const int32_t magic = readInt32(pos);
     const int32_t formatVersion = readInt32(pos);
-    if (magic != CONFIGURATION_MAGIC || formatVersion != CONFIGURATION_FORMAT_VERSION) {
+    bool migrate5To6 = false;
+    if (magic == CONFIGURATION_MAGIC && formatVersion == 5) {
+        migrate5To6 = true;
+    } else if (magic != CONFIGURATION_MAGIC || formatVersion != CONFIGURATION_FORMAT_VERSION) {
         resetAndSave();
         resetHappened = true;
         return;
@@ -114,6 +117,12 @@ void Configuration::loadOrReset(bool& resetHappened) {
         switchers_[i] = readBool(pos);
         switchersInverted_[i] = readBool(pos);
     }
+    if (migrate5To6) {
+        for (uint8_t i = 0; i < 2; ++i) {  // configuration 5 had two more switchers
+            readBool(pos);
+            readBool(pos);
+        }
+    }
     switcherValueAfterBoot_ = readUInt8(pos);
 
     for (uint8_t i = 0; i < DIMMERS_COUNT; ++i) {
@@ -126,6 +135,11 @@ void Configuration::loadOrReset(bool& resetHappened) {
 
     additionalBlob_ = readString(pos);
     wifiResetSequenceLength = readUInt8(pos);
+
+    if (migrate5To6) {
+        additionalBlob_ = "";
+        save();
+    }
 }
 
 void Configuration::save() {
