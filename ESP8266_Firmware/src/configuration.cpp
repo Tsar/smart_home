@@ -139,6 +139,7 @@ void Configuration::loadOrReset(bool& resetHappened) {
     if (migrate5To6) {
         additionalBlob_ = "";
         save();
+        Serial.println("Done configuration format migration from version 5 to 6");
     }
 }
 
