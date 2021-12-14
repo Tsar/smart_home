@@ -59,6 +59,8 @@ COOKIES_UPDATE_INTERVAL_SECONDS = 1800  # 30 minutes
 def _cookieUpdaterRoutine():
     global cookies
 
+    if len(cookies) == 0:
+        return
     while True:
         for cookieName, cookie in cookies.items():
             print('Updating cookie "%s"... ' % cookieName, end='')

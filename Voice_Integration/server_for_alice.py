@@ -607,6 +607,8 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 if __name__ == '__main__':
     loadConfiguration()
+    google_android_find.init()
+
     server = ThreadedHTTPServer(('', HTTP_PORT), HTTPRequestHandler)
     info('Smart Home Yandex Dialogs HTTP server created, serving forever on port %d...' % HTTP_PORT)
     try:
