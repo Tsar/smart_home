@@ -2,10 +2,11 @@
 
 import time
 import json
+import string
+import random
 import threading
 import urllib.request
 import urllib.parse
-import http.cookiejar
 
 class NoParamsException(Exception):
     pass
@@ -16,18 +17,63 @@ class FailedToStartRingingException(Exception):
 class UnexpectedResponse(Exception):
     pass
 
+class SimpliestCookieJar:
+    lock = threading.RLock()
+
+    def __init__(self, filename):
+        with self.lock:
+            self.filename = filename
+            self.params = {}
+            with open(filename, 'r') as cookieFile:
+                for expr in cookieFile.read().strip().split(';'):
+                    key, value = expr.strip().split('=', 1)
+                    self.params[key] = value
+
+    def get(self):
+        with self.lock:
+            return '; '.join([key + '=' + value for key, value in self.params.items()])
+
+    def getParam(self, key):
+        with self.lock:
+            return self.params.get(key)
+
+    def update(self, headers):
+        changedParams = 0
+        with self.lock:
+            for headerName, headerValue in headers:
+                if headerName.lower() == 'set-cookie':
+                    key, value = headerValue.split(';', 1)[0].split('=', 1)
+                    if key not in self.params or self.params[key] != value:
+                        self.params[key] = value
+                        changedParams += 1
+            if changedParams > 0:
+                with open(self.filename, 'w') as cookieFile:
+                    cookieFile.write(self.get())
+        return changedParams
+
 params = {}
 cookies = {}
-cookiesLock = threading.Lock()
 
-COOKIES_UPDATE_INTERVAL_SECONDS = 3600  # 1 hour
+COOKIES_UPDATE_INTERVAL_SECONDS = 1800  # 30 minutes
 
 def _cookieUpdaterRoutine():
-    global cookies, cookiesLock
+    global cookies
 
     while True:
-        # TODO
+        for cookieName, cookie in cookies.items():
+            print('Updating cookie "%s"... ' % cookieName, end='')
+            try:
+                response = urllib.request.urlopen('https://www.google.com/android/find', timeout=3)
+                respHeaders = response.getheaders()
+            except Exception as err:
+                print('FAILED [%s]' % err)
+            changedParams = cookie.update(respHeaders)
+            print('OK [%d params changed]' % changedParams)
+
         time.sleep(COOKIES_UPDATE_INTERVAL_SECONDS)
+
+def _randomString(length=12):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 def init(launchCookieUpdaterRoutine=True):
     global params, cookies
@@ -35,52 +81,58 @@ def init(launchCookieUpdaterRoutine=True):
     with open('google_android_find_params.json', 'r') as paramsFile:
         params = json.loads(paramsFile.read())
         for phoneParams in params.values():
-            assert 'cookie_id' in phoneParams
-            assert 'post_data' in phoneParams
-            cookieId = phoneParams['cookie_id']
-            cookies[cookieId] = http.cookiejar.MozillaCookieJar('google_cookies/%s.txt' % cookieId)
+            assert 'cookie_name' in phoneParams
+            assert 'google_id' in phoneParams
+            cookieName = phoneParams['cookie_name']
+            cookies[cookieName] = SimpliestCookieJar('google_cookies/%s.txt' % cookieName)
 
     if launchCookieUpdaterRoutine:
         threading.Thread(target=_cookieUpdaterRoutine, daemon=True).start()
 
-def ringPhone(phoneId):
-    global cookies, cookiesLock
+def ringPhone(phoneId, stopRinging=False):
+    global cookies
 
     if phoneId not in params:
         raise NoParamsException()
     phoneParams = params[phoneId]
 
-    with cookiesLock:
-        if phoneParams['cookie_id'] not in cookies:
-            raise NoParamsException()
-        cookie = cookies[phoneParams['cookie_id']]
-        cookie.load(ignore_expires=True)
+    if phoneParams['cookie_name'] not in cookies:
+        raise NoParamsException()
+    cookie = cookies[phoneParams['cookie_name']]
 
-        xtdc = None
-        for cookieElement in cookie:
-            if cookieElement.name == 'xtdc':
-                xtdc = cookieElement.value
-                break
-        if xtdc is None:
-            raise NoParamsException()
+    xtdc = cookie.getParam('xtdc')
+    if xtdc is None:
+        raise NoParamsException()
 
-        try:
-            opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
-            request = urllib.request.Request(
-                'https://www.google.com/android/find/xhr/dc/stopRinging?xtdc=%s' % urllib.parse.quote_plus(xtdc),
-                headers={'content-type': 'application/x-www-form-urlencoded;charset=UTF-8'},
-                data=phoneParams['post_data'].encode('UTF-8')
-            )
-            response = opener.open(request, timeout=1.5).read()
-        except Exception as err:
-            raise FailedToStartRingingException(err)
+    try:
+        request = urllib.request.Request(
+            'https://www.google.com/android/find/xhr/dc/%s?xtdc=%s' % (
+                'stopRinging' if stopRinging else 'ring',
+                urllib.parse.quote_plus(xtdc)
+            ),
+            headers={
+                'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'cookie': cookie.get()
+            },
+            data=('["%s","%s"]' % (phoneParams['google_id'], _randomString())).encode('UTF-8')
+        )
+        response = urllib.request.urlopen(request, timeout=1.5)
+        respHeaders = response.getheaders()
+        respContent = response.read()
+    except Exception as err:
+        raise FailedToStartRingingException(err)
 
-        cookie.save(ignore_expires=True)
+    cookie.update(respHeaders)
 
-    respStr = response.decode('UTF-8')
+    respStr = respContent.decode('UTF-8')
     if respStr != ")]}'\n[]":
         raise UnexpectedResponse(respStr)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     init(launchCookieUpdaterRoutine=False)
-    ringPhone('tsar_phone')
+    testPhoneId = 'tsar_phone'
+    print('Starting ringing %s' % testPhoneId)
+    ringPhone(testPhoneId)
+    time.sleep(5)
+    print('Stopping ringing %s' % testPhoneId)
+    ringPhone(testPhoneId, stopRinging=True)

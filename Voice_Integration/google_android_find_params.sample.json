@@ -1,0 +1,6 @@
+{
+    "<MOBILE_DEVICE_IDENTIFIER>": {
+        "cookie_name": "<COOKIE_BASENAME>",
+        "google_id": "<ID_OF_DEVICE_IN_GOOGLE>"
+    }
+}
