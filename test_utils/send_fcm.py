@@ -28,7 +28,8 @@ if __name__ == "__main__":
                 "message": {
                     "data": {
                         "preved": "medved1234",
-                        "hello": "world"
+                        "hello": "world",
+                        "ring": "enable"
                     },
                     "token": FCM_TOKEN
                 }

@@ -27,7 +27,7 @@
         </activity>
 
         <service
-            android:name=".RetranslatorService"
+            android:name=".PhoneFindService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
