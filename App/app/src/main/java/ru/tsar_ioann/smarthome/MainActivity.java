@@ -6,8 +6,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.google.firebase.messaging.FirebaseMessaging;
-
 import java.io.IOException;
 import java.net.SocketException;
 
@@ -84,17 +82,6 @@ public class MainActivity extends Activity implements MenuVisibilityChanger {
                 Log.d(LOG_TAG, "Failed to start listening UDP: " + exception.getMessage());
             }
         });
-
-        /*
-        // TODO: uncomment and handle token is some way?
-        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
-            if (!task.isSuccessful()) {
-                Log.w("FCMTokenListener", "Fetching FCM registration token failed", task.getException());
-                return;
-            }
-            Log.d("FCMTokenListener", "FCM registration token: " + task.getResult());
-        });
-        */
     }
 
     @Override

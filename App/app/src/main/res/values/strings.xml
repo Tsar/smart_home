@@ -94,4 +94,14 @@
     <string name="firmware_upload_failed">Failed to upload new firmware to device!</string>
     <string name="firmware_update_failed_with_error">New firmware was uploaded to device, but it responded with error!</string>
     <string name="firmware_update_unexpected_response">New firmware was uploaded to device, but it responded with unexpected message!</string>
+    <string name="app_settings">Application settings</string>
+    <string name="firebase_token_was_copied">Copied firebase token to clipboard</string>
+    <string name="failed_to_obtain">&lt;failed to obtain&gt;</string>
+    <string name="failed_to_open_needed_settings">Failed to open needed settings automatically. Please, open them manually!</string>
+    <string name="phone_find_setup">Setting for ringing this device from server</string>
+    <string name="go_to_autostart_settings">Go to Autostart settings</string>
+    <string name="go_to_hidden_activity_settings">Go to app\'s background settings</string>
+    <string name="step_1_copy_firebase_token">1. Copy firebase-token of this installation and put it to Alice server config:</string>
+    <string name="step_2_activate_autostart">2. In \"Security -> Permissions -> Autostart\" find \"Smart Home\" and activate the switch.</string>
+    <string name="step_3_set_no_power_restrictions">3. In \"Battery -> Applications\" find \"Smart Home\" and set \"No restrictions\".</string>
 </resources>

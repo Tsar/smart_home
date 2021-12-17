@@ -94,4 +94,14 @@
     <string name="firmware_upload_failed">Не удалось загрузить новую прошивку на устройство!</string>
     <string name="firmware_update_failed_with_error">Новая прошивка была загружена на устройство, но оно ответило ошибкой!</string>
     <string name="firmware_update_unexpected_response">Новая прошивка была загружена на устройство, но оно ответило непонятным сообщением!</string>
+    <string name="app_settings">Настройки приложения</string>
+    <string name="firebase_token_was_copied">Firebase-токен скопирован в буфер обмена</string>
+    <string name="failed_to_obtain">&lt;ошибка получения&gt;</string>
+    <string name="failed_to_open_needed_settings">Не удалось открыть нужные настройки автоматически. Перейдите в них вручную, пожалуйста!</string>
+    <string name="phone_find_setup">Настройка прозванивалки данного устройства</string>
+    <string name="go_to_autostart_settings">Перейти в настройки автозапуска</string>
+    <string name="go_to_hidden_activity_settings">Перейти в настройки фоновой активности</string>
+    <string name="step_1_copy_firebase_token">1. Скопируйте и пропишите на сервере с Алисой firebase-токен конкретно этой установки приложения:</string>
+    <string name="step_2_activate_autostart">2. В настройках \"Безопасность -> Разрешения -> Автозапуск\" найдите \"Умный Дом\" и активируйте переключатель.</string>
+    <string name="step_3_set_no_power_restrictions">3. В настройках \"Батарея и производительность -> Список приложений\" найдите \"Умный Дом\" и поставьте \"Нет ограничений\".</string>
 </resources>

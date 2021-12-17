@@ -32,6 +32,7 @@
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.4053442028985507" />
         <entry key="app/src/main/res/layout/add_configured_device.xml" value="0.4164102564102564" />
         <entry key="app/src/main/res/layout/add_new_device.xml" value="0.3999094202898551" />
+        <entry key="app/src/main/res/layout/app_settings.xml" value="0.42291666666666666" />
         <entry key="app/src/main/res/layout/configured_device_params.xml" value="0.42291666666666666" />
         <entry key="app/src/main/res/layout/configured_devices.xml" value="0.36041666666666666" />
         <entry key="app/src/main/res/layout/connecting_fresh_device.xml" value="0.3908514492753623" />

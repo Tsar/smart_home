@@ -3,6 +3,8 @@ package ru.tsar_ioann.smarthome.screens;
 import android.app.Activity;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -15,6 +17,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
     private static final long ASYNC_REFRESH_MIN_INTERVAL_MS = 1000;
 
     private final Activity activity;
+    private final Button btnAppSettings;
     private final DevicesList devices;
     private final DevicesAdapter devicesAdapter;
 
@@ -28,6 +31,10 @@ public class Main extends BaseScreen implements DevicesList.Listener {
         activity = commonData.getActivity();
         devices = commonData.getDevices();
         devices.setListener(this);
+
+        btnAppSettings = activity.findViewById(R.id.btnAppSettings);
+        btnAppSettings.setVisibility(View.GONE);
+        btnAppSettings.setOnClickListener(v -> commonData.getScreenLauncher().launchScreen(ScreenId.APP_SETTINGS));
 
         RecyclerView rcvDevices = activity.findViewById(R.id.rcvDevices);
         rcvDevices.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false));
@@ -73,6 +80,7 @@ public class Main extends BaseScreen implements DevicesList.Listener {
 
     public void toggleSetupMode() {
         setupMode = !setupMode;
+        btnAppSettings.setVisibility(setupMode ? View.VISIBLE : View.GONE);
         devicesAdapter.setSettingsButtonsVisible(setupMode);
     }
 

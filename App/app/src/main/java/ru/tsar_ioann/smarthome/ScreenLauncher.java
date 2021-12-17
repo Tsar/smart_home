@@ -54,6 +54,9 @@ public class ScreenLauncher {
             case DEVICE_SETTINGS:
                 currentScreen = new DeviceSettings(commonData);
                 break;
+            case APP_SETTINGS:
+                currentScreen = new AppSettings(commonData);
+                break;
         }
         currentScreenId = screenId;
         viewFlipper.setDisplayedChild(currentScreen.getViewFlipperChildId());
