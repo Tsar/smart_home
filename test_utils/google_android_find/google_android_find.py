@@ -56,6 +56,7 @@ cookies = {}
 
 COOKIES_UPDATE_INTERVAL_SECONDS = 1800  # 30 minutes
 
+### PROBLEM: This does not actually help for keeping cookies valid :(
 def _cookieUpdaterRoutine():
     global cookies
 

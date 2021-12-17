@@ -2,7 +2,7 @@ Release/
 smart_home_password.txt
 __pycache__/
 Voice_Integration/configuration.json
-Voice_Integration/google_android_find_params.json
-Voice_Integration/google_cookies/*.txt
+test_utils/google_android_find/google_android_find_params.json
+test_utils/google_android_find/google_cookies/*.txt
 smart-home-by-tsar-firebase-adminsdk-*.json
 fcm_token.txt

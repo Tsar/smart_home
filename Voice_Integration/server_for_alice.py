@@ -12,8 +12,6 @@ import hashlib
 from datetime import datetime
 from multiprocessing.pool import ThreadPool
 
-import google_android_find
-
 HTTP_PORT = 23478
 
 AUTHORIZATION_ENDPOINT_PREFIX = '/authorize?'
@@ -209,18 +207,8 @@ def applyRelativeValue(deviceAddress, devicePassword, dimmerNumber, switcherNumb
     return applyValue(deviceAddress, devicePassword, dimmerNumber, None, targetValue, httpTimeoutSeconds=0.9)
 
 def phoneFind(phoneId, value):
-    try:
-        google_android_find.ringPhone(phoneId)
-    except google_android_find.NoParamsException:
-        info('WARNING: No params to ring phone %s' % phoneId)
-        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Не заданы параметры для поиска устройства %s' % phoneId}
-    except google_android_find.FailedToStartRingingException as err:
-        info('WARNING: Failed to start ringing phone %s [%s]' % (phoneId, err))
-        return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': 'Не удалось запустить прозвон устройства %s [%s]' % (phoneId, err)}
-    except google_android_find.UnexpectedResponse as err:
-        info('WARNING: Unexpected response after sending query to start ringing phone %s [%s]' % (phoneId, err))
-        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Непонятный ответ на попытку запустить прозвон устройства %s [%s]' % (phoneId, err)}
-    return {'ok': True}
+    info('WARNING: Not implemented phoneFind was called for phone %s' % phoneId)
+    return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Была вызвана нереализованная функция phoneFind для прозвона устройства %s' % phoneId}
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -607,7 +595,6 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 if __name__ == '__main__':
     loadConfiguration()
-    google_android_find.init()
 
     server = ThreadedHTTPServer(('', HTTP_PORT), HTTPRequestHandler)
     info('Smart Home Yandex Dialogs HTTP server created, serving forever on port %d...' % HTTP_PORT)
