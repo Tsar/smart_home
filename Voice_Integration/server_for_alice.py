@@ -69,6 +69,7 @@ YNDX_CAPABILITIES = {
 
 oauthSettings = {}
 firebaseSettings = None
+firebaseCredentials = None
 homes = {}
 users = {}
 
@@ -85,7 +86,7 @@ def info(msg):
     sys.stdout.flush()
 
 def loadConfiguration():
-    global oauthSettings, firebaseSettings, homes, users, authCodeToUsername, tokenToUsername
+    global oauthSettings, firebaseSettings, firebaseCredentials, homes, users, authCodeToUsername, tokenToUsername
 
     with open('configuration.json', 'r') as cfgFile:
         cfg = json.loads(cfgFile.read())
@@ -98,6 +99,10 @@ def loadConfiguration():
         firebaseSettings = cfg['firebase_settings']
         assert 'project_id' in firebaseSettings
         assert 'keyfile_name' in firebaseSettings
+        firebaseCredentials = ServiceAccountCredentials.from_json_keyfile_name(
+            firebaseSettings['keyfile_name'],
+            ['https://www.googleapis.com/auth/firebase.messaging']
+        )
 
     homes = cfg['homes']
     for devices in homes.values():
@@ -215,15 +220,13 @@ def applyRelativeValue(deviceAddress, devicePassword, dimmerNumber, switcherNumb
     return applyValue(deviceAddress, devicePassword, dimmerNumber, None, targetValue, httpTimeoutSeconds=0.9)
 
 def phoneFind(firebaseToken, value):
-    if firebaseSettings is None:
-        errorMessage = 'Function phoneFind was called, but no firebase_settings in configuration!'
+    if firebaseSettings is None or firebaseCredentials is None:
+        errorMessage = 'Function phoneFind was called, but no firebase settings or credentials! Check configuration'
         info('ERROR: ' + errorMessage)
         return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': errorMessage}
 
     try:
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(firebaseSettings['keyfile_name'], ['https://www.googleapis.com/auth/firebase.messaging'])
-        firebaseAccessToken = credentials.get_access_token()
-
+        firebaseAccessToken = firebaseCredentials.get_access_token()
         request = urllib.request.Request(
             'https://fcm.googleapis.com/v1/projects/%s/messages:send' % firebaseSettings['project_id'],
             headers={
@@ -239,8 +242,8 @@ def phoneFind(firebaseToken, value):
                 }
             }).encode('UTF-8')
         )
-        response = urllib.request.urlopen(request, timeout=2).read().decode('UTF-8')
-        info('Sent firebase message successfully [identifier: %s]' % json.loads(response)['name'])
+        response = urllib.request.urlopen(request, timeout=2).read()
+        info('Sent firebase message successfully [identifier: %s]' % json.loads(response.decode('UTF-8'))['name'])
         return {'ok': True}
 
     except urllib.error.HTTPError as err:
