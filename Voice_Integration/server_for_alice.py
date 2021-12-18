@@ -240,14 +240,13 @@ def phoneFind(firebaseToken, value):
             }).encode('UTF-8')
         )
         response = urllib.request.urlopen(request, timeout=2).read().decode('UTF-8')
-        print(response)
+        info('Sent firebase message successfully [identifier: %s]' % json.loads(response)['name'])
         return {'ok': True}
 
     except urllib.error.HTTPError as err:
         errorMessage = 'Failed to send firebase message with error %s: %s' % (err, err.read().decode('UTF-8'))
     except Exception as err:
         errorMessage = 'Failed to send firebase message with exception: %s' % err
-
     info('WARNING: ' + errorMessage)
     return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': errorMessage}
 
