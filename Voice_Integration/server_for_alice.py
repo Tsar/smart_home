@@ -234,11 +234,20 @@ def phoneFind(firebaseToken, value):
                 'Content-Type': 'application/json; UTF-8'
             },
             data=json.dumps({
-                "message": {
-                    "data": {
-                        "ring": "enable"
+                'message': {
+                    'data': {
+                        'ring': 'enable'
                     },
-                    "token": firebaseToken
+                    'notification': {
+                        'title': 'Smart Home',
+                        'body': 'This device is being searched! Press this notification to stop.'
+                    },
+                    'token': firebaseToken,
+                    'android': {
+                        'priority': 'high',
+                        'ttl': '30s',
+                        'direct_boot_ok': True
+                    }
                 }
             }).encode('UTF-8')
         )
