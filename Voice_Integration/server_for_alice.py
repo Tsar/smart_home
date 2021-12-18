@@ -238,10 +238,6 @@ def phoneFind(firebaseToken, value):
                     'data': {
                         'ring': 'enable'
                     },
-                    'notification': {
-                        'title': 'Smart Home',
-                        'body': 'This device is being searched! Press this notification to stop.'
-                    },
                     'token': firebaseToken,
                     'android': {
                         'priority': 'high',
