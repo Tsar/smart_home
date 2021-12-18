@@ -3,6 +3,10 @@
         "client_id": "<CLIENT_IDENTIFIER>",
         "client_secret": "<CLIENT_PASSWORD>"
     },
+    "firebase_settings": {
+        "project_id": "<FIREBASE_PROJECT_ID>",
+        "keyfile_name": "<SERVICE_ACCOUNT_KEYFILE_NAME>"
+    },
     "homes": {
         "<HOME_1_NAME>": {
             "<DEVICE_1_IDENTIFIER>": {
@@ -33,7 +37,7 @@
                 "name": "Найди мой телефон",
                 "room": "Виртуальная комната",
                 "type": "phone_find",
-                "phone": "<MOBILE_DEVICE_IDENTIFIER>"
+                "firebase_token": "<FIREBASE_TOKEN_FROM_SMART_HOME_APP>"
             }
         }
     },

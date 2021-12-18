@@ -5,4 +5,3 @@ Voice_Integration/configuration.json
 test_utils/google_android_find/google_android_find_params.json
 test_utils/google_android_find/google_cookies/*.txt
 smart-home-by-tsar-firebase-adminsdk-*.json
-fcm_token.txt

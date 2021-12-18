@@ -12,6 +12,8 @@ import hashlib
 from datetime import datetime
 from multiprocessing.pool import ThreadPool
 
+from oauth2client.service_account import ServiceAccountCredentials
+
 HTTP_PORT = 23478
 
 AUTHORIZATION_ENDPOINT_PREFIX = '/authorize?'
@@ -66,6 +68,7 @@ YNDX_CAPABILITIES = {
 }
 
 oauthSettings = {}
+firebaseSettings = None
 homes = {}
 users = {}
 
@@ -82,7 +85,7 @@ def info(msg):
     sys.stdout.flush()
 
 def loadConfiguration():
-    global oauthSettings, homes, users, authCodeToUsername, tokenToUsername
+    global oauthSettings, firebaseSettings, homes, users, authCodeToUsername, tokenToUsername
 
     with open('configuration.json', 'r') as cfgFile:
         cfg = json.loads(cfgFile.read())
@@ -90,6 +93,11 @@ def loadConfiguration():
     oauthSettings = cfg['oauth_settings']
     assert 'client_id' in oauthSettings
     assert 'client_secret' in oauthSettings
+
+    if 'firebase_settings' in cfg:
+        firebaseSettings = cfg['firebase_settings']
+        assert 'project_id' in firebaseSettings
+        assert 'keyfile_name' in firebaseSettings
 
     homes = cfg['homes']
     for devices in homes.values():
@@ -106,7 +114,7 @@ def loadConfiguration():
                 assert 'password' in device
                 assert 'switcher_number' in device
             elif device['type'] == TYPE_PHONE_FIND:
-                assert 'phone' in device
+                assert 'firebase_token' in device
             else:
                 raise RuntimeError('Unknown device type "%s"' % device['type'])
 
@@ -206,9 +214,42 @@ def applyRelativeValue(deviceAddress, devicePassword, dimmerNumber, switcherNumb
     info('Setting brightness to %d (current = %d, delta = %d)' % (targetValue, currentValue, value))
     return applyValue(deviceAddress, devicePassword, dimmerNumber, None, targetValue, httpTimeoutSeconds=0.9)
 
-def phoneFind(phoneId, value):
-    info('WARNING: Not implemented phoneFind was called for phone %s' % phoneId)
-    return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': 'Была вызвана нереализованная функция phoneFind для прозвона устройства %s' % phoneId}
+def phoneFind(firebaseToken, value):
+    if firebaseSettings is None:
+        errorMessage = 'Function phoneFind was called, but no firebase_settings in configuration!'
+        info('ERROR: ' + errorMessage)
+        return {'ok': False, 'error': 'INVALID_ACTION', 'error_msg': errorMessage}
+
+    try:
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(firebaseSettings['keyfile_name'], ['https://www.googleapis.com/auth/firebase.messaging'])
+        firebaseAccessToken = credentials.get_access_token()
+
+        request = urllib.request.Request(
+            'https://fcm.googleapis.com/v1/projects/%s/messages:send' % firebaseSettings['project_id'],
+            headers={
+                'Authorization': 'Bearer ' + firebaseAccessToken.access_token,
+                'Content-Type': 'application/json; UTF-8'
+            },
+            data=json.dumps({
+                "message": {
+                    "data": {
+                        "ring": "enable"
+                    },
+                    "token": firebaseToken
+                }
+            }).encode('UTF-8')
+        )
+        response = urllib.request.urlopen(request, timeout=2).read().decode('UTF-8')
+        print(response)
+        return {'ok': True}
+
+    except urllib.error.HTTPError as err:
+        errorMessage = 'Failed to send firebase message with error %s: %s' % (err, err.read().decode('UTF-8'))
+    except Exception as err:
+        errorMessage = 'Failed to send firebase message with exception: %s' % err
+
+    info('WARNING: ' + errorMessage)
+    return {'ok': False, 'error': 'DEVICE_UNREACHABLE', 'error_msg': errorMessage}
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -551,7 +592,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                             ))
                         elif device['type'] == TYPE_PHONE_FIND:
                             asyncResults[deviceId] = pool.apply_async(phoneFind, (
-                                device['phone'],
+                                device['firebase_token'],
                                 value
                             ))
                         else:
