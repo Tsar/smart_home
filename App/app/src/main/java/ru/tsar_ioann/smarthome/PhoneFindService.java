@@ -1,9 +1,16 @@
 package ru.tsar_ioann.smarthome;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -16,7 +23,9 @@ public class PhoneFindService extends FirebaseMessagingService {
     private static final String EXPECTED_SENDER = "18674982621";
     private static final String DATA_KEY_RING = "ring";
     private static final String DATA_VALUE_ENABLE = "enable";
-    private static final String DATA_VALUE_DISABLE = "disable";
+
+    private static final String NOTIFICATION_CHANNEL_ID = "SmartHomePhoneFindChannel";
+    private static final int NOTIFICATION_ID = 1;
 
     private int originalVolume;
     private MediaPlayer mediaPlayer;
@@ -53,16 +62,45 @@ public class PhoneFindService extends FirebaseMessagingService {
             Log.d(LOG_TAG, "Skipping firebase message, because key '" + DATA_KEY_RING + "' is null");
             return;
         }
-
-        if (ringValue.equals(DATA_VALUE_ENABLE)) {
-            Log.d(LOG_TAG, "Received firebase message 'ring: enable'");
-            startRinging();
-        } else if (ringValue.equals(DATA_VALUE_DISABLE)) {
-            Log.d(LOG_TAG, "Received firebase message 'ring: disable'");
-            stopRinging();
-        } else {
+        if (!ringValue.equals(DATA_VALUE_ENABLE)) {
             Log.d(LOG_TAG, "Skipping firebase message, because key '" + DATA_KEY_RING + "' has unexpected value: " + ringValue);
+            return;
         }
+
+        Log.d(LOG_TAG, "Received firebase message 'ring: enable'");
+        showNotification();
+        startRinging();
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    getString(R.string.phone_find_notification_channel_title),
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription(getString(R.string.phone_find_notification_channel_description));
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void showNotification() {
+        createNotificationChannel();  // safe to call this repeatedly
+
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.notify(
+                NOTIFICATION_ID,
+                new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                        .setSmallIcon(R.drawable.phone_find_icon)
+                        .setContentTitle(getString(R.string.phone_find_notification_title))
+                        .setContentText(getString(R.string.phone_find_notification_text))
+                        .setPriority(NotificationCompat.PRIORITY_MAX)
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                        .setAutoCancel(true)
+                        .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(), 0))
+                        .build()
+        );
     }
 
     private void startRinging() {
@@ -92,6 +130,7 @@ public class PhoneFindService extends FirebaseMessagingService {
         });
     }
 
+    /*
     private void stopRinging() {
         try {
             if (mediaPlayer != null && mediaPlayer.isPlaying()) {
@@ -107,4 +146,5 @@ public class PhoneFindService extends FirebaseMessagingService {
             Log.d(LOG_TAG, "Tried to stop media player, but caught exception: " + e.getMessage());
         }
     }
+    */
 }

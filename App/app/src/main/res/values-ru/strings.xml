@@ -104,4 +104,8 @@
     <string name="step_1_copy_firebase_token">1. Скопируйте и пропишите на сервере с Алисой firebase-токен конкретно этой установки приложения:</string>
     <string name="step_2_activate_autostart">2. В настройках \"Безопасность -> Разрешения -> Автозапуск\" найдите \"Умный Дом\" и активируйте переключатель.</string>
     <string name="step_3_set_no_power_restrictions">3. В настройках \"Батарея и производительность -> Список приложений\" найдите \"Умный Дом\" и поставьте \"Нет ограничений\".</string>
+    <string name="phone_find_notification_channel_title">Канал прозванивалки</string>
+    <string name="phone_find_notification_channel_description">Канал для прозвонки этого устройства с сервера</string>
+    <string name="phone_find_notification_title">Прозванивалка</string>
+    <string name="phone_find_notification_text">Это устройство пытаются найти!</string>
 </resources>
