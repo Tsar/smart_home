@@ -8,6 +8,7 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Build;
+import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -107,11 +108,15 @@ public class PhoneFindService extends FirebaseMessagingService {
         // It's important to play sound on STREAM_ALARM: if any headphones are connected,
         // then both phone speakers and headphones will be used
 
+        PowerManager powerManager = getSystemService(PowerManager.class);
+        PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "smarthome:ring");
+        wakeLock.acquire(60 * 1000L);  // timeout is 1 minute
+
         AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM);
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
         audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0);
-        Log.d(LOG_TAG, "Set volume for STREAM_ALARM to " + maxVolume + " (was " + originalVolume + ")");
+        Log.d(LOG_TAG, "Volume for STREAM_ALARM set to " + maxVolume + " (was " + originalVolume + ")");
 
         mediaPlayer = MediaPlayer.create(
                 this,
@@ -119,32 +124,17 @@ public class PhoneFindService extends FirebaseMessagingService {
                 new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build(),
                 audioManager.generateAudioSessionId()
         );
-        //mediaPlayer.setLooping(true);
-        Log.d(LOG_TAG, "Starting media player");
-        mediaPlayer.start();
+
         mediaPlayer.setOnCompletionListener(mp -> {
+            Log.d(LOG_TAG, "Media player has finished playing");
             mediaPlayer.reset();
             mediaPlayer.release();
             audioManager.setStreamVolume(AudioManager.STREAM_ALARM, originalVolume, 0);
-            Log.d(LOG_TAG, "Restore volume for STREAM_ALARM back to " + originalVolume);
+            Log.d(LOG_TAG, "Restored volume for STREAM_ALARM back to " + originalVolume);
+            wakeLock.release();
         });
-    }
 
-    /*
-    private void stopRinging() {
-        try {
-            if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                Log.d(LOG_TAG, "Stopping media player");
-                mediaPlayer.stop();
-                mediaPlayer.reset();
-                mediaPlayer.release();
-                AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-                audioManager.setStreamVolume(AudioManager.STREAM_ALARM, originalVolume, 0);
-                Log.d(LOG_TAG, "Restore volume for STREAM_ALARM back to " + originalVolume);
-            }
-        } catch (Exception e) {
-            Log.d(LOG_TAG, "Tried to stop media player, but caught exception: " + e.getMessage());
-        }
+        Log.d(LOG_TAG, "Starting media player");
+        mediaPlayer.start();
     }
-    */
 }
