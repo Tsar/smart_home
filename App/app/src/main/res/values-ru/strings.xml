@@ -104,8 +104,12 @@
     <string name="step_1_copy_firebase_token">1. Скопируйте и пропишите на сервере с Алисой firebase-токен конкретно этой установки приложения:</string>
     <string name="step_2_activate_autostart">2. В настройках \"Безопасность -> Разрешения -> Автозапуск\" найдите \"Умный Дом\" и активируйте переключатель.</string>
     <string name="step_3_set_no_power_restrictions">3. В настройках \"Батарея и производительность -> Список приложений\" найдите \"Умный Дом\" и поставьте \"Нет ограничений\".</string>
-    <string name="phone_find_notification_channel_title">Канал прозванивалки</string>
-    <string name="phone_find_notification_channel_description">Канал для прозвонки этого устройства с сервера</string>
-    <string name="phone_find_notification_title">Прозванивалка</string>
+    <string name="step_4_choose_ring_sound">4. Выберите звук прозвонки:</string>
+    <string name="device_search_sound_changed">Звук прозвонки изменён</string>
+    <string name="phone_find_notification_channel_title">Канал поиска устройства</string>
+    <string name="phone_find_notification_channel_description">Канал для поиска этого устройства с сервера</string>
+    <string name="phone_find_notification_title">Выполняется прозвонка…</string>
     <string name="phone_find_notification_text">Это устройство пытаются найти!</string>
+    <string name="sound_nasty_but_very_loud">Мерзкий, но очень громкий</string>
+    <string name="sound_as_in_mi_fit">Как в Mi Fit</string>
 </resources>

@@ -19,6 +19,11 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
 public class PhoneFindService extends FirebaseMessagingService {
+    public static final String SETTINGS_NAME = "phone_find";
+    public static final String SETTINGS_KEY_SOUND = "sound_id";
+    public static final int SETTINGS_VALUE_SOUND_NASTY = 0;
+    public static final int SETTINGS_VALUE_SOUND_MI_FIT = 1;
+
     private static final String LOG_TAG = "PhoneFindService";
 
     private static final String EXPECTED_SENDER = "18674982621";
@@ -118,9 +123,20 @@ public class PhoneFindService extends FirebaseMessagingService {
         audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0);
         Log.d(LOG_TAG, "Volume for STREAM_ALARM set to " + maxVolume + " (was " + originalVolume + ")");
 
+        final int soundId = getSharedPreferences(SETTINGS_NAME, MODE_PRIVATE).getInt(SETTINGS_KEY_SOUND, 0);
+        int soundResourceId = R.raw.findphone1;
+        switch (soundId) {
+            case SETTINGS_VALUE_SOUND_NASTY:
+                soundResourceId = R.raw.findphone1;
+                break;
+            case SETTINGS_VALUE_SOUND_MI_FIT:
+                soundResourceId = R.raw.findphone2;
+                break;
+        }
+
         mediaPlayer = MediaPlayer.create(
                 this,
-                R.raw.findphone2,
+                soundResourceId,
                 new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build(),
                 audioManager.generateAudioSessionId()
         );

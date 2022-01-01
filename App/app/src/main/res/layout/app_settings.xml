@@ -56,6 +56,33 @@
             android:text="@string/go_to_hidden_activity_settings"
             android:textSize="16sp"/>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="16sp"
+            android:text="@string/step_4_choose_ring_sound" />
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/rbSoundNastyButLoud"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sound_nasty_but_very_loud"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rbSoundAsInMiFit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sound_as_in_mi_fit"
+                android:checked="false" />
+
+        </RadioGroup>
+
     </LinearLayout>
 
 </ScrollView>

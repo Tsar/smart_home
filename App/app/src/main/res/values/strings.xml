@@ -104,8 +104,12 @@
     <string name="step_1_copy_firebase_token">1. Copy firebase-token of this installation and put it to Alice server config:</string>
     <string name="step_2_activate_autostart">2. In \"Security -> Permissions -> Autostart\" find \"Smart Home\" and activate the switch.</string>
     <string name="step_3_set_no_power_restrictions">3. In \"Battery -> Applications\" find \"Smart Home\" and set \"No restrictions\".</string>
-    <string name="phone_find_notification_channel_title">Ringer Channel</string>
-    <string name="phone_find_notification_channel_description">Channel for ringing this device from server</string>
-    <string name="phone_find_notification_title">Ringer</string>
+    <string name="step_4_choose_ring_sound">4. Choose sound for device search:</string>
+    <string name="device_search_sound_changed">Sound for device search was changed</string>
+    <string name="phone_find_notification_channel_title">Device search channel</string>
+    <string name="phone_find_notification_channel_description">Channel for searching this device from server</string>
+    <string name="phone_find_notification_title">Ringing…</string>
     <string name="phone_find_notification_text">This device is being searched!</string>
+    <string name="sound_nasty_but_very_loud">Nasty, but very loud</string>
+    <string name="sound_as_in_mi_fit">As in Mi Fit</string>
 </resources>
