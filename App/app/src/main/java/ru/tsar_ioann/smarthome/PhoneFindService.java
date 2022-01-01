@@ -120,7 +120,7 @@ public class PhoneFindService extends FirebaseMessagingService {
 
         mediaPlayer = MediaPlayer.create(
                 this,
-                R.raw.alarm,
+                R.raw.findphone2,
                 new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build(),
                 audioManager.generateAudioSessionId()
         );
