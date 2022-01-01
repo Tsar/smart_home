@@ -1,16 +1,14 @@
 package ru.tsar_ioann.smarthome;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
-import android.media.AudioAttributes;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.os.Build;
-import android.os.PowerManager;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
@@ -19,11 +17,6 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
 public class PhoneFindService extends FirebaseMessagingService {
-    public static final String SETTINGS_NAME = "phone_find";
-    public static final String SETTINGS_KEY_SOUND = "sound_id";
-    public static final int SETTINGS_VALUE_SOUND_NASTY = 0;
-    public static final int SETTINGS_VALUE_SOUND_MI_FIT = 1;
-
     private static final String LOG_TAG = "PhoneFindService";
 
     private static final String EXPECTED_SENDER = "18674982621";
@@ -31,13 +24,10 @@ public class PhoneFindService extends FirebaseMessagingService {
     private static final String DATA_VALUE_ENABLE = "enable";
 
     private static final String NOTIFICATION_CHANNEL_ID = "SmartHomePhoneFindChannel";
-    private static final int NOTIFICATION_ID = 1;
-
-    private int originalVolume;
-    private MediaPlayer mediaPlayer;
+    public static final int NOTIFICATION_ID = 1;
 
     @Override
-    public void onNewToken(String token) {
+    public void onNewToken(@NonNull String token) {
         Log.d(LOG_TAG, "FCM registration token: " + token);
 
         // TODO: handle token is some way?
@@ -75,7 +65,7 @@ public class PhoneFindService extends FirebaseMessagingService {
 
         Log.d(LOG_TAG, "Received firebase message 'ring: enable'");
         showNotification();
-        startRinging();
+        startService(new Intent(this, RingingService.class).setAction(RingingService.ACTION_START_RINGING));
     }
 
     private void createNotificationChannel() {
@@ -91,8 +81,16 @@ public class PhoneFindService extends FirebaseMessagingService {
         }
     }
 
+    @SuppressLint("LaunchActivityFromNotification")
     private void showNotification() {
         createNotificationChannel();  // safe to call this repeatedly
+
+        PendingIntent stopRingingIntent = PendingIntent.getService(
+                this,
+                0,
+                new Intent(this, RingingService.class).setAction(RingingService.ACTION_STOP_RINGING),
+                0
+        );
 
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
         notificationManager.notify(
@@ -104,53 +102,13 @@ public class PhoneFindService extends FirebaseMessagingService {
                         .setPriority(NotificationCompat.PRIORITY_MAX)
                         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                         .setAutoCancel(true)
-                        .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(), 0))
+                        .setContentIntent(stopRingingIntent)
+                        .addAction(
+                                R.drawable.device_is_found,
+                                getString(R.string.phone_find_notification_action_device_found),
+                                stopRingingIntent
+                        )
                         .build()
         );
-    }
-
-    private void startRinging() {
-        // It's important to play sound on STREAM_ALARM: if any headphones are connected,
-        // then both phone speakers and headphones will be used
-
-        PowerManager powerManager = getSystemService(PowerManager.class);
-        PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "smarthome:ring");
-        wakeLock.acquire(60 * 1000L);  // timeout is 1 minute
-
-        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-        originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM);
-        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM);
-        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0);
-        Log.d(LOG_TAG, "Volume for STREAM_ALARM set to " + maxVolume + " (was " + originalVolume + ")");
-
-        final int soundId = getSharedPreferences(SETTINGS_NAME, MODE_PRIVATE).getInt(SETTINGS_KEY_SOUND, 0);
-        int soundResourceId = R.raw.findphone1;
-        switch (soundId) {
-            case SETTINGS_VALUE_SOUND_NASTY:
-                soundResourceId = R.raw.findphone1;
-                break;
-            case SETTINGS_VALUE_SOUND_MI_FIT:
-                soundResourceId = R.raw.findphone2;
-                break;
-        }
-
-        mediaPlayer = MediaPlayer.create(
-                this,
-                soundResourceId,
-                new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build(),
-                audioManager.generateAudioSessionId()
-        );
-
-        mediaPlayer.setOnCompletionListener(mp -> {
-            Log.d(LOG_TAG, "Media player has finished playing");
-            mediaPlayer.reset();
-            mediaPlayer.release();
-            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, originalVolume, 0);
-            Log.d(LOG_TAG, "Restored volume for STREAM_ALARM back to " + originalVolume);
-            wakeLock.release();
-        });
-
-        Log.d(LOG_TAG, "Starting media player");
-        mediaPlayer.start();
     }
 }

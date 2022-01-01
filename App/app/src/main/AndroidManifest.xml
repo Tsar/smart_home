@@ -35,6 +35,10 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".RingingService"
+            android:exported="false" />
+
     </application>
 
 </manifest>

@@ -110,6 +110,7 @@
     <string name="phone_find_notification_channel_description">Channel for searching this device from server</string>
     <string name="phone_find_notification_title">Ringing…</string>
     <string name="phone_find_notification_text">This device is being searched!</string>
+    <string name="phone_find_notification_action_device_found">Device is found</string>
     <string name="sound_nasty_but_very_loud">Nasty, but very loud</string>
     <string name="sound_as_in_mi_fit">As in Mi Fit</string>
 </resources>

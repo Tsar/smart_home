@@ -110,6 +110,7 @@
     <string name="phone_find_notification_channel_description">Канал для поиска этого устройства с сервера</string>
     <string name="phone_find_notification_title">Выполняется прозвонка…</string>
     <string name="phone_find_notification_text">Это устройство пытаются найти!</string>
+    <string name="phone_find_notification_action_device_found">Устройство найдено</string>
     <string name="sound_nasty_but_very_loud">Мерзкий, но очень громкий</string>
     <string name="sound_as_in_mi_fit">Как в Mi Fit</string>
 </resources>

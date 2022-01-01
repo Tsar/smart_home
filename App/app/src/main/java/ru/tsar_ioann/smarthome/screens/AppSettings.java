@@ -34,14 +34,14 @@ public class AppSettings extends BaseScreen {
         final RadioButton rbSoundNastyButLoud = activity.findViewById(R.id.rbSoundNastyButLoud);
         final RadioButton rbSoundAsInMiFit = activity.findViewById(R.id.rbSoundAsInMiFit);
 
-        phoneFindSettings = activity.getSharedPreferences(PhoneFindService.SETTINGS_NAME, Context.MODE_PRIVATE);
-        final int soundId = phoneFindSettings.getInt(PhoneFindService.SETTINGS_KEY_SOUND, 0);
+        phoneFindSettings = activity.getSharedPreferences(RingingService.SETTINGS_NAME, Context.MODE_PRIVATE);
+        final int soundId = phoneFindSettings.getInt(RingingService.SETTINGS_KEY_SOUND, 0);
 
         switch (soundId) {
-            case PhoneFindService.SETTINGS_VALUE_SOUND_NASTY:
+            case RingingService.SETTINGS_VALUE_SOUND_NASTY:
                 rbSoundNastyButLoud.setChecked(true);
                 break;
-            case PhoneFindService.SETTINGS_VALUE_SOUND_MI_FIT:
+            case RingingService.SETTINGS_VALUE_SOUND_MI_FIT:
                 rbSoundAsInMiFit.setChecked(true);
                 break;
         }
@@ -50,12 +50,12 @@ public class AppSettings extends BaseScreen {
 
         rbSoundNastyButLoud.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                setPhoneFindSound(PhoneFindService.SETTINGS_VALUE_SOUND_NASTY);
+                setPhoneFindSound(RingingService.SETTINGS_VALUE_SOUND_NASTY);
             }
         });
         rbSoundAsInMiFit.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                setPhoneFindSound(PhoneFindService.SETTINGS_VALUE_SOUND_MI_FIT);
+                setPhoneFindSound(RingingService.SETTINGS_VALUE_SOUND_MI_FIT);
             }
         });
 
@@ -119,7 +119,7 @@ public class AppSettings extends BaseScreen {
 
     private void setPhoneFindSound(int soundId) {
         SharedPreferences.Editor editor = phoneFindSettings.edit();
-        editor.putInt(PhoneFindService.SETTINGS_KEY_SOUND, soundId);
+        editor.putInt(RingingService.SETTINGS_KEY_SOUND, soundId);
         editor.apply();
         Toast.makeText(activity, R.string.device_search_sound_changed, Toast.LENGTH_SHORT).show();
     }
