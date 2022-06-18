@@ -12,7 +12,7 @@
 
 #define HTTP_SERVER_PORT 80
 
-#define FIRMWARE_VERSION 6  // used as uint16_t, increase when making new firmware version
+#define FIRMWARE_VERSION 999  // used as uint16_t, increase when making new firmware version
 
 #define UPDATER_USERNAME "admin"
 
@@ -24,8 +24,8 @@
 volatile uint32_t inputFallTimeMs = 0;
 volatile uint32_t inputFallsCount = 0;
 
-const uint8_t DIMMER_PINS[DIMMERS_COUNT] = {4, 5, 12};
-const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15};
+const uint8_t DIMMER_PINS[DIMMERS_COUNT] = {};
+const uint8_t SWITCHER_PINS[SWITCHERS_COUNT] = {13, 15, 4, 5, 12};
 
 #define DIMMER_MAX_VALUE 1000
 

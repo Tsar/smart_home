@@ -3,8 +3,8 @@
 #include <WString.h>
 #include <Ticker.h>
 
-#define SWITCHERS_COUNT 2
-#define DIMMERS_COUNT   3
+#define SWITCHERS_COUNT 5
+#define DIMMERS_COUNT   0
 
 #define DEFAULT_HTTP_PASSWORD "12345"
 

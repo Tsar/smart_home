@@ -5,7 +5,7 @@
 #include <HardwareSerial.h>
 
 #define CONFIGURATION_MAGIC 0x37B9AFBE
-#define CONFIGURATION_FORMAT_VERSION 6  // увеличивать при изменении формата конфигурации
+#define CONFIGURATION_FORMAT_VERSION 999  // увеличивать при изменении формата конфигурации
 
 #define PROCESS_ASYNC_EVENTS_INTERVAL_MS 2200
 
