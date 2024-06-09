@@ -1,0 +1,11 @@
+Отличие ESP-12E и ESP-12F
+
+ ESP-12E входит в серию ESP-XX. Это миниатюрный модуль Wi-Fi, используемый для установления беспроводного сетевого соединения для микроконтроллера или процессора. Ядро ESP-12E — ESP8266EX. Этот модуль не имеет сложных схем или программирования, поэтому использовать его очень просто.
+             Модуль ESP-12F  также является членом серии «ESP-XX», которая сочетает в себе микроконтроллер ESP8266 с 4 МБ флэш-памяти и антенну на печатной плате. ESP -12F — улучшенная версия 12E. Он совместим по контактам, имеет повышенную стабильность и лучшую антенну.
+             
+Другие пишут, что отличие только в форме антенны:
+
+https://www.utmel.com/components/esp12e-vs-esp12f-which-one-is-better?id=1441#:~:text=What's%20the%20difference%20between%20the,said%20to%20be%20better%20tuned.
+
+What's the difference between the ESP-12F and ESP-12E? The ESP-12F and ESP-12E are the same size and have the same pins. The antenna design is the only difference between the two. The updated ESP-12F antenna is said to be better tuned.2
+
