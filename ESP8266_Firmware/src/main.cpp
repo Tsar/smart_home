@@ -539,7 +539,6 @@ void handleSetValues() {
     }
   }
 
-  bool accepted = false;
   if (dimmersChanged || switchersChanged) {
     if (dimmersChanged) {
       fillDimmerValues();
@@ -554,8 +553,6 @@ void handleSetValues() {
         (switchersChanged && homeCfg.getSwitcherValueAfterBoot() == 0xFF)) {
       homeCfg.asyncSave();
     }
-
-    accepted = true;
   } else {
     server.send(200, "text/plain", "NOTHING_CHANGED\n");
   }
@@ -646,6 +643,7 @@ void handleSendToUart() {
   }
 
   Serial.print(server.arg("plain"));
+  server.send(200, "text/plain", "OK\n");
 }
 
 void handleNotFound() {
