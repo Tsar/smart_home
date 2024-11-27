@@ -77,7 +77,6 @@ const IPAddress UDP_MULTICAST_IP(227, 16, 119, 203);
 
 WiFiUDP udp;
 char udpInputBuffer[32];
-uint32_t udpScanCounter = 0;
 
 #define REJOIN_MULTICAST_GROUP_INTERVAL 120000  // 2 minutes
 Ticker rejoinMulticastGroupTicker;
@@ -245,8 +244,8 @@ void disconnectWiFi() {
 
 void rejoinMulticastGroup() {
   const auto& ip = WiFi.localIP();
-  Serial.printf("IGMP leave group %s\n", igmp_leavegroup(ip, UDP_MULTICAST_IP) == ERR_OK ? "OK" : "failed");
-  Serial.printf("IGMP join group %s\n", igmp_joingroup(ip, UDP_MULTICAST_IP) == ERR_OK ? "OK" : "failed");
+  igmp_leavegroup(ip, UDP_MULTICAST_IP);
+  igmp_joingroup(ip, UDP_MULTICAST_IP);
 }
 
 void enableAccessPoint() {
@@ -257,16 +256,12 @@ void enableAccessPoint() {
   char softAPName[32] = {};
   sprintf(softAPName, "SmartHomeDevice_%02X%02X%02X", mac[3], mac[4], mac[5]);
 
-  Serial.printf("Enabling access point '%s' ... ", softAPName);
   const bool result = WiFi.softAP(softAPName, "setup12345");
   if (!result) {
-    Serial.println("Failed");
     fastBlinkForever();
     return;
   }
 
-  const String ip = WiFi.softAPIP().toString();
-  Serial.printf("Access point enabled, IP: %s\n", ip.c_str());
   digitalWrite(LED_BUILTIN, LOW);
   isAccessPointEnabled = true;
 }
@@ -275,22 +270,18 @@ bool connectToWiFi(const char* ssid, const char* passphrase, bool connectInfinit
   digitalWrite(LED_BUILTIN, LOW);
   udp.stop();
 
-  Serial.printf("Connecting to wi-fi: SSID '%s', passphrase '%s'\n", ssid, passphrase);
   WiFi.begin(ssid, passphrase);
 
   wifiConnectResult = WiFi.waitForConnectResult(30000);
   while (wifiConnectResult != WL_CONNECTED) {
     if (!connectInfinitely) {
-      Serial.printf("Failed to connect, status: %d\n", wifiConnectResult);
       return false;
     }
-    Serial.printf("Not yet connected, status: %d\n", wifiConnectResult);
     delay(1000);  // making delay for part of wait, because sometimes waitForConnectResult exits immediately
     wifiConnectResult = WiFi.waitForConnectResult(9000);
   }
 
   const auto& ip = WiFi.localIP();
-  Serial.printf("Connected, IP: %s\n", ip.toString().c_str());
   digitalWrite(LED_BUILTIN, HIGH);
 
   // This should partly help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
@@ -298,11 +289,8 @@ bool connectToWiFi(const char* ssid, const char* passphrase, bool connectInfinit
 
   const bool listeningMulticast = udp.beginMulticast(ip, UDP_MULTICAST_IP, UDP_MULTICAST_PORT);
   if (listeningMulticast) {
-    Serial.printf("Started listening UDP multicast on %s:%d\n", UDP_MULTICAST_IP.toString().c_str(), UDP_MULTICAST_PORT);
     rejoinMulticastGroupTicker.detach();
     rejoinMulticastGroupTicker.attach_ms_scheduled(REJOIN_MULTICAST_GROUP_INTERVAL, rejoinMulticastGroup);
-  } else {
-    Serial.println("Failed to start listening UDP multicast");
   }
 
   return true;
@@ -313,13 +301,11 @@ bool checkPassword() {
     return true;
   }
   server.send(403, "text/plain", "Forbidden");
-  Serial.printf("Sent 403 for %s\n", server.uri().c_str());
   return false;
 }
 
 void sendBadRequest() {
   server.send(400, "text/plain", "Bad Request");
-  Serial.printf("Sent 400 for %s\n", server.uri().c_str());
 }
 
 // Create JSON (inefficient function, only for manual debugging)
@@ -451,15 +437,9 @@ void generateInfoBinary(uint8_t version) {
   }
 
   serializer.writeString(additionalBlob);
-
-  if (serializer.getWrittenSize() != sz) {
-    Serial.printf("WARNING: Serialized: %d, expected: %d\n", serializer.getWrittenSize(), sz);
-  }
 }
 
 void handleGetInfo() {
-  const auto tsStart = micros64();
-
   if (!checkPassword()) return;
 
   if (server.hasArg("binary")) {
@@ -468,9 +448,6 @@ void handleGetInfo() {
   } else {
     server.send(200, "application/json", generateInfoJson(server.hasArg("minimal")));
   }
-
-  const auto tsEnd = micros64();
-  Serial.printf("Handled %s, spent %.2lf ms\n", server.uri().c_str(), (tsEnd - tsStart) / 1000.0);
 }
 
 void handleSetupWiFi() {
@@ -483,7 +460,6 @@ void handleSetupWiFi() {
 
   wifiSetupState = WiFiSetupState::IN_PROGRESS;
   server.send(200, "text/plain", "TRYING_TO_CONNECT");
-  Serial.printf("Sent response to %s\n", server.uri().c_str());
   delay(100);  // задержка нужна, чтобы успеть отправить ответ до попытки
   disconnectWiFi();
   wifiSetupState = connectToWiFi(server.arg("ssid").c_str(), server.arg("passphrase").c_str(), false)
@@ -512,7 +488,6 @@ void handleGetSetupWiFiState() {
       break;
   }
   server.send(200, "text/plain", result);
-  Serial.printf("Handled %s (response: %s)\n", server.uri().c_str(), result.c_str());
 }
 
 void handleResetWiFi() {
@@ -520,7 +495,6 @@ void handleResetWiFi() {
 
   server.send(200, "text/plain", "OK");
   delay(100);
-  Serial.println("Reset wi-fi credentials by request");
   WiFi.disconnect(true);
   enableAccessPoint();
 }
@@ -532,12 +506,9 @@ void handleTurnOffAccessPoint() {
   delay(100);
   WiFi.softAPdisconnect(true);
   isAccessPointEnabled = false;
-  Serial.println("Access point disabled by request");
 }
 
 void handleSetValues() {
-  const auto tsStart = micros64();
-
   if (!checkPassword()) return;
 
   bool dimmersChanged = false;
@@ -588,14 +559,6 @@ void handleSetValues() {
   } else {
     server.send(200, "text/plain", "NOTHING_CHANGED\n");
   }
-
-  const auto tsEnd = micros64();
-  Serial.printf(
-    "Handled %s, spent %.2lf ms, %s\n",
-    server.uri().c_str(),
-    (tsEnd - tsStart) / 1000.0,
-    accepted ? "accepted new values" : "nothing was changed"
-  );
 }
 
 void handleSetSettings() {
@@ -659,7 +622,6 @@ void handleSetSettings() {
 
   homeCfg.save();
   server.send(200, "text/plain", "ACCEPTED\n");
-  Serial.printf("Handled %s\n", server.uri().c_str());
 }
 
 void handleSetPassword() {
@@ -675,12 +637,19 @@ void handleSetPassword() {
   updateServer.updateCredentials(UPDATER_USERNAME, homeCfg.getPassword());
 
   server.send(200, "text/plain", "ACCEPTED\n");
-  Serial.printf("Handled %s\n", server.uri().c_str());
+}
+
+void handleSendToUart() {
+  if (!server.hasArg("plain")) {
+    sendBadRequest();
+    return;
+  }
+
+  Serial.print(server.arg("plain"));
 }
 
 void handleNotFound() {
   server.send(404, "text/plain", "Not Found");
-  Serial.printf("Sent 404 for %s\n", server.uri().c_str());
 }
 
 void udpHandlePacket() {
@@ -693,14 +662,12 @@ void udpHandlePacket() {
       udp.beginPacket(udp.remoteIP(), UDP_RESPONSE_PORT);  // unicast back
       udp.write(response.c_str());
       udp.endPacket();
-      Serial.printf("Handled UDP scan request #%d\n", ++udpScanCounter);
     }
   }
 }
 
 void resetWiFiResetSequence() {
   homeCfg.setWiFiResetSequenceLengthAndSave(0);
-  Serial.printf("Done reset wi-fi reset sequence length to zero; current uptime = %ld ms\n", millis());
 }
 
 void incrementWiFiResetSequence() {
@@ -708,7 +675,6 @@ void incrementWiFiResetSequence() {
   homeCfg.setWiFiResetSequenceLengthAndSave(currentSeqLength + 1);
 
   const auto currentUptime = millis();
-  Serial.printf("Done wi-fi reset sequence length incrementation to %d; current uptime = %ld ms\n", currentSeqLength + 1, currentUptime);
 
   const uint32_t resetSeqLengthUptime = WIFI_RESET_SEQUENCE[currentSeqLength] * 1.2;
   if (resetSeqLengthUptime >= currentUptime) {
@@ -725,7 +691,6 @@ void checkWiFiResetSequence() {
     homeCfg.setPassword(DEFAULT_HTTP_PASSWORD);  // пароль для HTTP тоже сбрасываем, чтобы можно было добавить устройство как свежее
     homeCfg.setWiFiResetSequenceLengthAndSave(0);
 
-    Serial.println("Reset wi-fi credentials by code sequence of uptimes");
     WiFi.disconnect(true);
 
     // Поморгать встроенным светодиодом 5 раз
@@ -741,8 +706,6 @@ void checkWiFiResetSequence() {
     if (incrementSeqLengthUptime >= currentUptime) {
       const uint32_t interval = incrementSeqLengthUptime - currentUptime;
       wifiResetSequenceDetectorTicker.once_ms(interval, incrementWiFiResetSequence);
-    } else {
-      Serial.println("Failed to schedule wi-fi reset sequence length incrementation: it should have been in the past");
     }
   }
 }
@@ -777,10 +740,6 @@ void setup() {
   digitalWrite(LED_BUILTIN, LOW);
 
   Serial.begin(115200);
-  Serial.printf("\n%s\nDevice name: %s, firmware version: %d, HTTP password: '%s'\n",
-                resetCfgHappened ? "CONFIGURATION RESET HAPPENED!" : "Configuration loaded successfully",
-                homeCfg.getName().c_str(), FIRMWARE_VERSION, homeCfg.getPassword().c_str()
-  );
 
   checkWiFiResetSequence();
 
@@ -794,9 +753,7 @@ void setup() {
   isAccessPointEnabled = false;
 
   // This should partly help for quick responses, details: https://github.com/esp8266/Arduino/issues/6886
-  if (!WiFi.setSleepMode(WIFI_NONE_SLEEP)) {
-    Serial.println("Failed to set wi-fi sleep mode to None!");
-  }
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
 
   station_config stationCfg;
   wifi_station_get_config_default(&stationCfg);
@@ -804,10 +761,8 @@ void setup() {
   const char* cfgPassphrase = reinterpret_cast<char*>(stationCfg.password);
 
   if (strlen(cfgSsid) > 0) {
-    Serial.println("Found wi-fi credentials");
     connectToWiFi(cfgSsid, cfgPassphrase, true);
   } else {
-    Serial.println("No wi-fi credentials found");
     enableAccessPoint();
   }
 
@@ -819,6 +774,7 @@ void setup() {
   server.on("/set_values", HTTP_ANY, handleSetValues);
   server.on("/set_settings", HTTP_POST, handleSetSettings);
   server.on("/set_password", HTTP_POST, handleSetPassword);
+  server.on("/send2uart", HTTP_POST, handleSendToUart);
   server.onNotFound(handleNotFound);
 
   const char* headerKeys[] = {"Password"};
@@ -827,7 +783,6 @@ void setup() {
   updateServer.setup(&server, "/fw_update", UPDATER_USERNAME, homeCfg.getPassword());
 
   server.begin();
-  Serial.printf("Started HTTP server on port %d\n", HTTP_SERVER_PORT);
 }
 
 void loop() {
